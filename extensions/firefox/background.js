@@ -68,6 +68,27 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (url) sendDownload(url, tab?.url || info.pageUrl || "");
 });
 
+// Explicit opt-in: never cancel a browser download until RustGet has accepted it.
+chrome.downloads.onCreated.addListener(async (item) => {
+  try {
+    const { interceptDownloads } = await chrome.storage.local.get("interceptDownloads");
+    if (!interceptDownloads || item.byExtensionId) return;
+    const url = item.finalUrl || item.url || "";
+    if (!/^https?:/i.test(url)) return;
+    await native({
+      type: "add",
+      url,
+      referrer: item.referrer || "",
+      cookie: await cookieHeader(url),
+    });
+    await chrome.downloads.cancel(item.id);
+    await flash("↓", "#43d17a", "Taken over by RustGet");
+  } catch (error) {
+    // Leave the browser download untouched if RustGet is unavailable.
+    console.warn("RustGet interception skipped:", error.message || error);
+  }
+});
+
 chrome.action.onClicked.addListener(async (tab) => {
   const stored = await chrome.storage.session?.get("detected") || {};
   const first = stored.detected?.[0];
@@ -76,6 +97,13 @@ chrome.action.onClicked.addListener(async (tab) => {
 });
 
 chrome.runtime.onMessage.addListener((message, sender, reply) => {
+  if (message?.type === "rustget-ping") {
+    native({ type: "ping" }).then(
+      (data) => reply({ ok: true, data }),
+      (error) => reply({ ok: false, error: String(error.message || error) }),
+    );
+    return true;
+  }
   if (message?.type === "rustget-media") {
     const item = { url: message.url, pageUrl: sender.tab?.url || "" };
     chrome.storage.session?.get("detected").then(({ detected = [] }) => {

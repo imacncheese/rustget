@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>RustGet options</title>
+  <style>
+    body { font: 14px/1.5 system-ui, sans-serif; margin: 0; background: #0b0d12; color: #eef1f7; }
+    main { max-width: 460px; margin: 24px auto; padding: 22px; background: #11141c; border: 1px solid #232936; border-radius: 14px; }
+    h1 { font-size: 18px; margin: 0 0 4px; }
+    p { color: #8c95a8; margin: 0 0 18px; font-size: 12px; }
+    label { display: flex; gap: 9px; align-items: flex-start; padding: 11px 0; border-top: 1px solid #232936; }
+    label span { display: block; }
+    label small { display: block; color: #8c95a8; font-size: 11px; margin-top: 2px; }
+    input { accent-color: #ff7a45; margin-top: 3px; }
+    .status { margin-top: 14px; font-size: 12px; color: #8c95a8; }
+    .ok { color: #43d17a; } .bad { color: #ff5f6d; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>RustGet</h1>
+    <p>Local-only browser bridge. Nothing is sent anywhere except your RustGet daemon.</p>
+    <label>
+      <input type="checkbox" id="interceptDownloads">
+      <span>Take over browser downloads
+        <small>Default off. When enabled, a browser download is cancelled only after RustGet accepts it. Blob/data URLs are ignored.</small>
+      </span>
+    </label>
+    <label>
+      <input type="checkbox" id="mediaPanel">
+      <span>Show the floating media panel
+        <small>Detects direct video/audio and HLS/DASH links on the current page.</small>
+      </span>
+    </label>
+    <button id="test">Test daemon connection</button>
+    <div class="status" id="status">Not checked.</div>
+  </main>
+  <script src="options.js"></script>
+</body>
+</html>

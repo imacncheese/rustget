@@ -4,10 +4,11 @@
   "version": "0.1.0",
   "description": "Send links, video and audio to the RustGet download manager.",
   "minimum_chrome_version": "109",
-  "permissions": ["contextMenus", "nativeMessaging", "storage", "cookies", "activeTab"],
+  "permissions": ["contextMenus", "nativeMessaging", "storage", "cookies", "activeTab", "downloads"],
   "host_permissions": ["<all_urls>"],
   "background": { "service_worker": "background.js" },
   "action": { "default_title": "Download with RustGet" },
+  "options_ui": { "page": "options.html", "open_in_tab": false },
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*"],

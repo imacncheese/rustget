@@ -5,6 +5,19 @@
 
   const seen = new Map();
   let panel = null;
+  let panelEnabled = true;
+  try {
+    chrome.storage.local.get({ mediaPanel: true }, (values) => {
+      panelEnabled = values.mediaPanel !== false;
+      if (!panelEnabled) { panel?.remove(); panel = null; }
+    });
+    chrome.storage.onChanged.addListener((changes) => {
+      if (changes.mediaPanel) {
+        panelEnabled = changes.mediaPanel.newValue !== false;
+        if (panelEnabled) render(); else { panel?.remove(); panel = null; }
+      }
+    });
+  } catch { /* storage may be unavailable on restricted pages */ }
 
   function absolute(url) {
     try { return new URL(url, location.href).href; } catch { return ""; }
@@ -34,7 +47,7 @@
   }
 
   function render() {
-    if (!seen.size) {
+    if (!panelEnabled || !seen.size) {
       panel?.remove();
       panel = null;
       return;

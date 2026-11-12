@@ -9,10 +9,11 @@
       "strict_min_version": "115.0"
     }
   },
-  "permissions": ["contextMenus", "nativeMessaging", "storage", "cookies", "activeTab"],
+  "permissions": ["contextMenus", "nativeMessaging", "storage", "cookies", "activeTab", "downloads"],
   "host_permissions": ["<all_urls>"],
   "background": { "scripts": ["background.js"] },
   "action": { "default_title": "Download with RustGet" },
+  "options_ui": { "page": "options.html", "open_in_tab": false },
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*"],

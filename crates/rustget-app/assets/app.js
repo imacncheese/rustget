@@ -905,6 +905,33 @@
       }
     });
 
+    const hasDroppedLink = (event) =>
+      Array.from(event.dataTransfer?.types || []).some((type) => type === "text/uri-list" || type === "text/plain");
+    document.addEventListener("dragover", (event) => {
+      if (!hasDroppedLink(event)) return;
+      event.preventDefault();
+      document.body.classList.add("drop-target");
+    });
+    document.addEventListener("dragleave", (event) => {
+      if (!event.relatedTarget) document.body.classList.remove("drop-target");
+    });
+    document.addEventListener("drop", (event) => {
+      document.body.classList.remove("drop-target");
+      event.preventDefault();
+      const raw = event.dataTransfer?.getData("text/uri-list") || event.dataTransfer?.getData("text/plain") || "";
+      const links = raw.split(/\r?\n/).map((line) => line.trim()).filter((line) => line && !line.startsWith("#"));
+      const url = links.find((line) => /^https?:\/\//i.test(line));
+      if (!url) {
+        toast(event.dataTransfer?.files?.length
+          ? "Local files are not supported yet; drop a URL instead"
+          : "Drop an http(s) link to download it", true);
+        return;
+      }
+      openAdd();
+      $("#addUrl").value = url;
+      $("#probeHint").textContent = links.length > 1 ? `${links.length} links dropped; added the first` : "Link dropped — press Check or Add.";
+    });
+
     matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
     $("#listViewport").addEventListener("keydown", (event) => {
       if (event.key === "Enter" && state.selected) openSelected();

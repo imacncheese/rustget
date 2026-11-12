@@ -170,6 +170,13 @@ button:disabled { opacity: .38; cursor: not-allowed; }
 .detail-grid small, .meta small { display: block; color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 3px; }
 .detail-grid span { font-variant-numeric: tabular-nums; }
 .speed-chart { height: 58px; margin-bottom: 16px; padding: 4px 6px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; }
+body.drop-target::after {
+  content: "Drop a link to download";
+  position: fixed; inset: 18px; z-index: 90; pointer-events: none;
+  display: grid; place-items: center; border: 2px dashed var(--accent);
+  border-radius: 18px; background: rgba(11,13,18,.62); color: var(--text);
+  font-size: 18px; letter-spacing: .02em; backdrop-filter: blur(2px);
+}
 .speed-chart canvas { display: block; width: 100%; height: 100%; }
 .section-title { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
 .segments { display: flex; gap: 2px; height: 34px; margin-bottom: 18px; }

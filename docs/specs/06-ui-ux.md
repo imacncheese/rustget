@@ -189,6 +189,10 @@ Settings has **Export config** and **Import config** actions. The export is the
 same JSON bundle as the API (downloads, settings, categories, schedules); import
 reloads the queue after applying the bundle.
 
+Dropping an `http(s)` URI list anywhere on the window opens the add dialog with
+the first link prefilled and a drop overlay. Local files are rejected with an
+explanation; RustGet has no local-file import path yet.
+
 The add dialog has a **Check** action next to the URL. It calls
 `POST /api/v1/probe` and shows the filename, size and whether the origin supports
 ranges before the user commits the download.

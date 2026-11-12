@@ -50,6 +50,7 @@
 - [x] Live speed sparkline, URL probe preview, duplicate URL detection and daemon single-instance lock.
 - [x] Opt-in scheduler power actions with platform command planning.
 - [x] Versioned JSON export/import for downloads, settings, categories and schedules.
+- [x] Drag-and-drop http(s) links into the add dialog.
 - [x] Scheduler weekly timeline and add/delete form in the web UI.
 - [x] Chromium/Firefox extension + native-messaging host (live tested).
 - [x] Opt-in browser-download takeover with options UI (default off).

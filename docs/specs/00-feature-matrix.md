@@ -84,7 +84,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | B07 | Native Messaging host (Rust) | MUST | P1 | M5 | ✅ | Standard framing, ping/add/list/pause/resume; live daemon test |
 | B08 | Local authenticated REST/WebSocket API | MUST | P0 | M3 | ✅ | API tests; token, origin, body limit |
 | B09 | Clipboard URL monitoring | SHOULD | P1 | M4 | ◐ | UI paste button; no background clipboard watcher |
-| B10 | Drag and drop links | SHOULD | P1 | M4 | — | Planned |
+| B10 | Drag and drop links | SHOULD | P1 | M4 | ✅ | Drop an http(s) URI list onto the window; add dialog prefilled |
 | B11 | Add URL dialog with probe preview | MUST | P0 | M4 | ✅ | Check button calls `/api/v1/probe` and shows filename/size/range support |
 | B12 | Batch URL import | MUST | P1 | M4 | ✅ | `batch` command |
 | B13 | Numeric/wildcard batch pattern | SHOULD | P1 | M4 | ✅ | `[001-100]`, multiple ranges; tests; 10k cap |
@@ -146,7 +146,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | D07 | Settings, searchable/advanced collapse | SHOULD | P1 | M4 | ◐ | Small settings dialog only |
 | D08 | First-run wizard | SHOULD | P1 | M4 | — | Token dialog is the only onboarding |
 | D09 | HiDPI | MUST | P1 | M4 | ✅ | CSS pixels, no fixed raster assets |
-| D10 | Drag/drop links and files | SHOULD | P1 | M4 | — | Planned |
+| D10 | Drag/drop links and files | SHOULD | P1 | M4 | ◐ | Links supported; local files rejected with an explanation |
 | D11 | Sortable columns and live ETA | MUST | P1 | M4 | ✅ | Implemented |
 | D12 | Responsive layout | SHOULD | P2 | M4 | ✅ | Breakpoints at 1080/760 px |
 
@@ -206,10 +206,10 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 76 |
-| ◐ partial | 39 |
+| ✅ implemented + verified | 77 |
+| ◐ partial | 40 |
 | ○ specified, not implemented | 1 |
-| — not started | 31 |
+| — not started | 29 |
 | **Total tracked** | **147** |
 
 By area:
@@ -217,9 +217,9 @@ By area:
 | Area | Rows | ✅ | ◐ | ○ | — |
 |---|---:|---:|---:|---:|---:|
 | A. Download engine | 46 | 22 | 18 | 0 | 6 |
-| B. Capture/integration | 22 | 11 | 8 | 0 | 3 |
+| B. Capture/integration | 22 | 12 | 8 | 0 | 2 |
 | C. Management | 30 | 21 | 4 | 0 | 5 |
-| D. UI/UX | 12 | 8 | 1 | 0 | 3 |
+| D. UI/UX | 12 | 8 | 2 | 0 | 2 |
 | E. Quality/security | 15 | 9 | 3 | 1 | 2 |
 | F. Platform/packaging | 10 | 2 | 2 | 0 | 6 |
 | G. Protocols/extensibility | 12 | 3 | 3 | 0 | 6 |

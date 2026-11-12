@@ -60,6 +60,12 @@ pub struct DownloadProgress {
     pub final_url: Option<String>,
     pub filename: Option<String>,
     pub error: Option<String>,
+    /// For segmented media (HLS/DASH), progress can be expressed in media
+    /// segments while the total byte size is still unknown.
+    #[serde(default)]
+    pub unit_total: Option<u64>,
+    #[serde(default)]
+    pub unit_completed: u64,
 }
 
 impl DownloadProgress {
@@ -77,6 +83,8 @@ impl DownloadProgress {
             final_url: None,
             filename: None,
             error: None,
+            unit_total: None,
+            unit_completed: 0,
         }
     }
 }
@@ -161,6 +169,16 @@ impl Downloader {
     ) -> Result<DownloadSummary> {
         let started = Instant::now();
         let mut tracker = Tracker::new(progress, request.id);
+        if is_hls_url(&request.url) {
+            return self
+                .download_hls(&request, cancel, &mut tracker, started)
+                .await;
+        }
+        if is_mpd_url(&request.url) {
+            return self
+                .download_dash(&request, cancel, &mut tracker, started)
+                .await;
+        }
         tracker.emit(
             DownloadState::Probing,
             None,
@@ -251,6 +269,413 @@ impl Downloader {
             .run_single(&request, &probe, &paths, cancel, &mut tracker, started)
             .await?;
         Ok(summary)
+    }
+
+    async fn download_hls(
+        &self,
+        request: &DownloadRequest,
+        cancel: CancellationToken,
+        tracker: &mut Tracker,
+        started: Instant,
+    ) -> Result<DownloadSummary> {
+        use rustget_media::HlsPlaylist;
+
+        tracker.emit(
+            DownloadState::Probing,
+            None,
+            0,
+            1,
+            Vec::new(),
+            Some(request.url.as_str()),
+            None,
+            None,
+        );
+        let mut playlist_url = request.url.clone();
+        let playlist = self.fetch_hls_playlist(&playlist_url, &cancel).await?;
+        let media = match playlist {
+            HlsPlaylist::Master(variants) => {
+                let variant = variants
+                    .into_iter()
+                    .max_by_key(|variant| variant.bandwidth)
+                    .ok_or(NetError::Protocol("HLS master has no variants".into()))?;
+                playlist_url = Url::parse(&variant.url)
+                    .map_err(|error| NetError::InvalidUrl(error.to_string()))?;
+                match self.fetch_hls_playlist(&playlist_url, &cancel).await? {
+                    HlsPlaylist::Media(media) => media,
+                    HlsPlaylist::Master(_) => {
+                        return Err(NetError::Protocol(
+                            "nested HLS master playlists are not supported".into(),
+                        ));
+                    }
+                }
+            }
+            HlsPlaylist::Media(media) => media,
+        };
+        if media.encrypted {
+            return Err(NetError::Protocol(
+                "encrypted HLS playlists are not supported yet".into(),
+            ));
+        }
+        tracker.set_units(media.segments.len() as u64, 0);
+        let destination = hls_destination(request, &request.url)?;
+        if let Some(parent) = destination.parent() {
+            tokio::fs::create_dir_all(parent).await?;
+        }
+        let paths = DownloadPaths::new(&destination);
+        if paths.destination.exists() && !request.overwrite {
+            return Err(NetError::DestinationExists(
+                paths.destination.display().to_string(),
+            ));
+        }
+        let part = PartFile::open_unbounded(&paths.part)?;
+        let limiter =
+            rustget_core::RateLimiter::new(self.config.max_speed_bytes_per_sec.unwrap_or(0));
+        let retry = RetryPolicy::from_engine(&self.config);
+        let mut cursor = 0_u64;
+        let mut completed = 0_usize;
+        let mut pseudo_segments = Vec::new();
+        if let Some(init) = &media.init_map {
+            let bytes = self
+                .fetch_media_bytes(init, &cancel, &retry, &limiter)
+                .await?;
+            part.write_at(cursor, &bytes)?;
+            cursor += bytes.len() as u64;
+        }
+        tracker.emit(
+            DownloadState::Downloading,
+            None,
+            cursor,
+            1,
+            Vec::new(),
+            Some(playlist_url.as_str()),
+            None,
+            None,
+        );
+        for segment in &media.segments {
+            let bytes = self
+                .fetch_media_bytes(&segment.url, &cancel, &retry, &limiter)
+                .await?;
+            part.write_at(cursor, &bytes)?;
+            cursor += bytes.len() as u64;
+            completed += 1;
+            tracker.set_units(media.segments.len() as u64, completed as u64);
+            pseudo_segments.push(SegmentProgress {
+                id: SegmentId(completed as u64 - 1),
+                start: completed as u64 - 1,
+                end: completed as u64 - 1,
+                written: completed as u64,
+                state: SegmentState::Complete,
+                attempts: 1,
+            });
+            if pseudo_segments.len() > 256 {
+                pseudo_segments.remove(0);
+            }
+            if completed % 10 == 0 || completed == media.segments.len() {
+                tracker.emit(
+                    DownloadState::Downloading,
+                    None,
+                    cursor,
+                    1,
+                    pseudo_segments.clone(),
+                    Some(playlist_url.as_str()),
+                    None,
+                    None,
+                );
+            }
+        }
+        part.set_len(cursor)?;
+        part.sync_all()?;
+        if let Some(spec) = &request.checksum {
+            verify_checksum(&paths.part, spec).await?;
+        }
+        std::fs::rename(&paths.part, &paths.destination)?;
+        remove_journal(&paths);
+        let summary = DownloadSummary {
+            id: request.id,
+            destination: paths.destination.clone(),
+            final_url: playlist_url.to_string(),
+            total_size: cursor,
+            downloaded: cursor,
+            elapsed_ms: u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX),
+            segments: media.segments.len(),
+            resumed: false,
+            checksum_verified: request.checksum.is_some(),
+            average_speed_bps: if started.elapsed().as_secs_f64() > 0.0 {
+                cursor as f64 / started.elapsed().as_secs_f64()
+            } else {
+                0.0
+            },
+        };
+        tracker.emit(
+            DownloadState::Complete,
+            Some(cursor),
+            cursor,
+            0,
+            pseudo_segments,
+            Some(playlist_url.as_str()),
+            None,
+            None,
+        );
+        Ok(summary)
+    }
+
+    async fn download_dash(
+        &self,
+        request: &DownloadRequest,
+        cancel: CancellationToken,
+        tracker: &mut Tracker,
+        started: Instant,
+    ) -> Result<DownloadSummary> {
+        tracker.emit(
+            DownloadState::Probing,
+            None,
+            0,
+            1,
+            Vec::new(),
+            Some(request.url.as_str()),
+            None,
+            None,
+        );
+        let text = self
+            .fetch_media_text(&request.url, &cancel, "DASH manifest", 16 * 1024 * 1024)
+            .await?;
+        let manifest = rustget_media::parse_mpd(&text, &request.url)
+            .map_err(|error| NetError::Protocol(error.to_string()))?;
+        let representation = manifest
+            .representations
+            .into_iter()
+            .max_by_key(|representation| representation.bandwidth)
+            .ok_or(NetError::Protocol(
+                "DASH manifest has no representations".into(),
+            ))?;
+        if representation.drm {
+            return Err(NetError::Protocol(
+                "DRM-protected DASH representations are not supported".into(),
+            ));
+        }
+        let count = representation.segment_count().ok_or_else(|| {
+            NetError::Protocol(
+                "DASH SegmentTimeline/live manifests are not supported yet; \
+                 a duration-based SegmentTemplate is required"
+                    .into(),
+            )
+        })?;
+        if count > 100_000 {
+            return Err(NetError::Protocol(format!(
+                "DASH representation has {count} segments; refusing a live/huge manifest"
+            )));
+        }
+        tracker.set_units(count, 0);
+        let destination = dash_destination(request)?;
+        if let Some(parent) = destination.parent() {
+            tokio::fs::create_dir_all(parent).await?;
+        }
+        let paths = DownloadPaths::new(&destination);
+        if paths.destination.exists() && !request.overwrite {
+            return Err(NetError::DestinationExists(
+                paths.destination.display().to_string(),
+            ));
+        }
+        let part = PartFile::open_unbounded(&paths.part)?;
+        let limiter =
+            rustget_core::RateLimiter::new(self.config.max_speed_bytes_per_sec.unwrap_or(0));
+        let retry = RetryPolicy::from_engine(&self.config);
+        let base = Url::parse(&representation.base_url)
+            .map_err(|error| NetError::InvalidUrl(error.to_string()))?;
+        let mut cursor = 0_u64;
+        let mut pseudo_segments = Vec::new();
+        if let Some(init) = &representation.initialization {
+            let bytes = self
+                .fetch_media_bytes(init, &cancel, &retry, &limiter)
+                .await?;
+            part.write_at(cursor, &bytes)?;
+            cursor += bytes.len() as u64;
+        }
+        tracker.emit(
+            DownloadState::Downloading,
+            None,
+            cursor,
+            1,
+            Vec::new(),
+            Some(request.url.as_str()),
+            None,
+            None,
+        );
+        for index in 0..count {
+            let number = representation.start_number + index;
+            let relative = representation
+                .segment_url(number)
+                .ok_or_else(|| NetError::Protocol(format!("cannot build DASH segment {number}")))?;
+            let url = base
+                .join(&relative)
+                .map_err(|error| NetError::InvalidUrl(error.to_string()))?;
+            let bytes = self
+                .fetch_media_bytes(url.as_str(), &cancel, &retry, &limiter)
+                .await?;
+            part.write_at(cursor, &bytes)?;
+            cursor += bytes.len() as u64;
+            tracker.set_units(count, index + 1);
+            pseudo_segments.push(SegmentProgress {
+                id: SegmentId(index),
+                start: index,
+                end: index,
+                written: index + 1,
+                state: SegmentState::Complete,
+                attempts: 1,
+            });
+            if pseudo_segments.len() > 256 {
+                pseudo_segments.remove(0);
+            }
+            if index % 10 == 0 || index + 1 == count {
+                tracker.emit(
+                    DownloadState::Downloading,
+                    None,
+                    cursor,
+                    1,
+                    pseudo_segments.clone(),
+                    Some(request.url.as_str()),
+                    None,
+                    None,
+                );
+            }
+        }
+        part.set_len(cursor)?;
+        part.sync_all()?;
+        if let Some(spec) = &request.checksum {
+            verify_checksum(&paths.part, spec).await?;
+        }
+        std::fs::rename(&paths.part, &paths.destination)?;
+        remove_journal(&paths);
+        let summary = DownloadSummary {
+            id: request.id,
+            destination: paths.destination.clone(),
+            final_url: request.url.to_string(),
+            total_size: cursor,
+            downloaded: cursor,
+            elapsed_ms: u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX),
+            segments: count as usize,
+            resumed: false,
+            checksum_verified: request.checksum.is_some(),
+            average_speed_bps: if started.elapsed().as_secs_f64() > 0.0 {
+                cursor as f64 / started.elapsed().as_secs_f64()
+            } else {
+                0.0
+            },
+        };
+        tracker.emit(
+            DownloadState::Complete,
+            Some(cursor),
+            cursor,
+            0,
+            pseudo_segments,
+            Some(request.url.as_str()),
+            None,
+            None,
+        );
+        Ok(summary)
+    }
+
+    async fn fetch_hls_playlist(
+        &self,
+        url: &Url,
+        cancel: &CancellationToken,
+    ) -> Result<rustget_media::HlsPlaylist> {
+        let text = self
+            .fetch_media_text(url, cancel, "HLS playlist", 8 * 1024 * 1024)
+            .await?;
+        rustget_media::parse_hls(&text, url).map_err(|error| NetError::Protocol(error.to_string()))
+    }
+
+    async fn fetch_media_text(
+        &self,
+        url: &Url,
+        cancel: &CancellationToken,
+        label: &str,
+        max_bytes: usize,
+    ) -> Result<String> {
+        let response = tokio::select! {
+            _ = cancel.cancelled() => return Err(NetError::Cancelled),
+            response = self
+                .client
+                .apply_common(self.client.client().get(url.clone()))?
+                .send() => response?,
+        };
+        let status = response.status();
+        if !status.is_success() {
+            return Err(NetError::status(
+                status.as_u16(),
+                url.as_str(),
+                status
+                    .canonical_reason()
+                    .unwrap_or("manifest request failed"),
+            ));
+        }
+        let body = response.bytes().await?;
+        if body.len() > max_bytes {
+            return Err(NetError::Protocol(format!(
+                "{label} exceeds {max_bytes} bytes"
+            )));
+        }
+        String::from_utf8(body.to_vec())
+            .map_err(|_| NetError::Protocol(format!("{label} is not UTF-8")))
+    }
+
+    async fn fetch_media_bytes(
+        &self,
+        url: &str,
+        cancel: &CancellationToken,
+        retry: &RetryPolicy,
+        limiter: &rustget_core::RateLimiter,
+    ) -> Result<Vec<u8>> {
+        let parsed = Url::parse(url).map_err(|error| NetError::InvalidUrl(error.to_string()))?;
+        let mut attempt = 0_u32;
+        loop {
+            let result: Result<Vec<u8>> = async {
+                let response = tokio::select! {
+                    _ = cancel.cancelled() => return Err(NetError::Cancelled),
+                    response = self
+                        .client
+                        .apply_common(self.client.client().get(parsed.clone()))?
+                        .send() => response?,
+                };
+                let status = response.status();
+                if !status.is_success() {
+                    return Err(NetError::status(
+                        status.as_u16(),
+                        parsed.as_str(),
+                        status
+                            .canonical_reason()
+                            .unwrap_or("segment request failed"),
+                    ));
+                }
+                let bytes = response.bytes().await?;
+                if bytes.len() > 512 * 1024 * 1024 {
+                    return Err(NetError::Protocol("HLS segment exceeds 512 MiB".into()));
+                }
+                tokio::select! {
+                    _ = cancel.cancelled() => return Err(NetError::Cancelled),
+                    _ = limiter.acquire(bytes.len() as u64) => {}
+                }
+                Ok(bytes.to_vec())
+            }
+            .await;
+            match result {
+                Ok(bytes) => return Ok(bytes),
+                Err(NetError::Cancelled) => return Err(NetError::Cancelled),
+                Err(error) => {
+                    let class = error.class();
+                    if !retry.should_retry(class, attempt + 1) {
+                        return Err(error);
+                    }
+                    attempt += 1;
+                    let delay = retry.delay(class, attempt);
+                    tokio::select! {
+                        _ = cancel.cancelled() => return Err(NetError::Cancelled),
+                        _ = tokio::time::sleep(delay) => {}
+                    }
+                }
+            }
+        }
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -1156,6 +1581,86 @@ fn segment_progress(ledger: &SegmentLedger) -> Vec<SegmentProgress> {
         .collect()
 }
 
+fn is_hls_url(url: &Url) -> bool {
+    url.path().to_ascii_lowercase().ends_with(".m3u8")
+}
+
+fn is_mpd_url(url: &Url) -> bool {
+    url.path().to_ascii_lowercase().ends_with(".mpd")
+}
+
+fn dash_destination(request: &DownloadRequest) -> Result<PathBuf> {
+    let explicit = request.destination.is_some();
+    let downloaded_name = rustget_storage::filename_from_url(&request.url)
+        .map(|name| sanitize_filename(&name))
+        .unwrap_or_else(|| "stream.mpd".into());
+    let stem = downloaded_name
+        .strip_suffix(".mpd")
+        .or_else(|| downloaded_name.strip_suffix(".MPD"))
+        .unwrap_or(&downloaded_name)
+        .to_string();
+    let destination = if let Some(path) = &request.destination {
+        if path.is_dir() {
+            path.join(format!("{stem}.mp4"))
+        } else if path
+            .extension()
+            .and_then(|extension| extension.to_str())
+            .is_some_and(|extension| extension.eq_ignore_ascii_case("mpd"))
+        {
+            path.with_extension("mp4")
+        } else {
+            path.clone()
+        }
+    } else {
+        request.directory.join(format!("{stem}.mp4"))
+    };
+    if destination.exists() && !request.overwrite {
+        if explicit {
+            return Err(NetError::DestinationExists(
+                destination.display().to_string(),
+            ));
+        }
+        return Ok(unique_destination(destination));
+    }
+    Ok(destination)
+}
+
+fn hls_destination(request: &DownloadRequest, playlist_url: &Url) -> Result<PathBuf> {
+    let explicit = request.destination.is_some();
+    let downloaded_name = rustget_storage::filename_from_url(playlist_url)
+        .map(|name| sanitize_filename(&name))
+        .unwrap_or_else(|| "stream.m3u8".into());
+    let stem = downloaded_name
+        .strip_suffix(".m3u8")
+        .or_else(|| downloaded_name.strip_suffix(".M3U8"))
+        .unwrap_or(&downloaded_name)
+        .to_string();
+    let destination = if let Some(path) = &request.destination {
+        if path.is_dir() {
+            path.join(format!("{stem}.ts"))
+        } else if path
+            .extension()
+            .and_then(|extension| extension.to_str())
+            .is_some_and(|extension| extension.eq_ignore_ascii_case("m3u8"))
+        {
+            path.with_extension("ts")
+        } else {
+            path.clone()
+        }
+    } else {
+        request.directory.join(format!("{stem}.ts"))
+    };
+    if destination.exists() && !request.overwrite {
+        if explicit {
+            return Err(NetError::DestinationExists(
+                destination.display().to_string(),
+            ));
+        }
+        return Ok(unique_destination(destination));
+    }
+    Ok(destination)
+}
+
 fn resolve_destination(request: &DownloadRequest, probe: &FileProbe) -> Result<PathBuf> {
     let explicit = request.destination.is_some();
     let destination = if let Some(destination) = &request.destination {
@@ -1317,6 +1822,7 @@ struct Tracker {
     last_bytes: u64,
     last_sample: Instant,
     speed: f64,
+    units: Option<(u64, u64)>,
 }
 
 impl Tracker {
@@ -1327,7 +1833,12 @@ impl Tracker {
             last_bytes: 0,
             last_sample: Instant::now(),
             speed: 0.0,
+            units: None,
         }
+    }
+
+    fn set_units(&mut self, total: u64, completed: u64) {
+        self.units = Some((total, completed));
     }
 
     /// Establish the resumed byte count so the first progress event does not
@@ -1386,6 +1897,8 @@ impl Tracker {
             final_url: final_url.map(str::to_string),
             filename,
             error,
+            unit_total: self.units.map(|units| units.0),
+            unit_completed: self.units.map_or(0, |units| units.1),
         });
     }
 }

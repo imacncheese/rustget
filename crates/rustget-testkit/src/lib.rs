@@ -47,6 +47,10 @@ pub struct TestFile {
     /// imbalance that exercises work stealing.
     pub slow_start_zero_ms: u64,
     pub etag: Option<String>,
+    /// Optional inline body for playlists, manifests and segment fixtures.
+    /// When set, Range is ignored and the whole body is served.
+    pub body: Option<Vec<u8>>,
+    pub content_type: String,
 }
 
 impl TestFile {
@@ -68,7 +72,18 @@ impl TestFile {
             head_delay_ms: 0,
             slow_start_zero_ms: 0,
             etag: None,
+            body: None,
+            content_type: "application/octet-stream".into(),
         }
+    }
+
+    #[must_use]
+    pub fn inline(name: impl Into<String>, content_type: &str, body: impl Into<Vec<u8>>) -> Self {
+        let body = body.into();
+        let mut file = Self::new(name, body.len() as u64);
+        file.body = Some(body);
+        file.content_type = content_type.into();
+        file
     }
 
     #[must_use]
@@ -338,6 +353,46 @@ async fn serve_file(
     }
     if file.spec.head_delay_ms > 0 {
         tokio::time::sleep(Duration::from_millis(file.spec.head_delay_ms)).await;
+    }
+    if let Some(body) = &file.spec.body {
+        let mut response = Response::new(if method == Method::HEAD {
+            Body::empty()
+        } else {
+            Body::from(body.clone())
+        });
+        let response_headers = response.headers_mut();
+        response_headers.insert(
+            header::CONTENT_TYPE,
+            HeaderValue::from_str(&file.spec.content_type)
+                .unwrap_or_else(|_| HeaderValue::from_static("application/octet-stream")),
+        );
+        response_headers.insert(header::CONTENT_LENGTH, HeaderValue::from(body.len()));
+        response_headers.insert(
+            header::ETAG,
+            header_value_or_star(&format!("\"inline-{:x}\"", body.len())),
+        );
+        state.0.requests.fetch_add(1, Ordering::Relaxed);
+        state.0.log.lock().expect("testkit lock").push(RequestLog {
+            method: method.to_string(),
+            path: format!("/files/{name}"),
+            range: headers
+                .get(header::RANGE)
+                .and_then(|value| value.to_str().ok())
+                .map(str::to_string),
+            if_range: headers
+                .get(header::IF_RANGE)
+                .and_then(|value| value.to_str().ok())
+                .map(str::to_string),
+            user_agent: headers
+                .get(header::USER_AGENT)
+                .and_then(|value| value.to_str().ok())
+                .map(str::to_string),
+            status: 200,
+            range_start: None,
+            range_end: None,
+            peer: connect.0.to_string(),
+        });
+        return response;
     }
     let range_header = headers
         .get(header::RANGE)

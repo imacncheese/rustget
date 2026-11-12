@@ -59,6 +59,13 @@
     if (!record || !record.total_size) return 0;
     return Math.max(0, Math.min(1, (record.downloaded || 0) / record.total_size));
   }
+  function displayRatio(record) {
+    const live = state.live.get(record.id);
+    if (live && live.unit_total) {
+      return Math.max(0, Math.min(1, (live.unit_completed || 0) / live.unit_total));
+    }
+    return progressRatio(record);
+  }
   function statusLabel(s) {
     return ({ finalizing: "finishing", downloading: "downloading" })[s] || s;
   }
@@ -206,7 +213,7 @@
     const key = state.sortKey;
     items.sort((a, b) => {
       let left, right;
-      if (key === "progress") { left = progressRatio(a); right = progressRatio(b); }
+      if (key === "progress") { left = displayRatio(a); right = displayRatio(b); }
       else if (key === "filename" || key === "status" || key === "category") {
         left = String(a[key] || "").toLowerCase(); right = String(b[key] || "").toLowerCase();
       } else { left = Number(a[key] || 0); right = Number(b[key] || 0); }
@@ -283,7 +290,7 @@
   }
 
   function rowHtml(record) {
-    const ratio = progressRatio(record);
+    const ratio = displayRatio(record);
     const percent = Math.round(ratio * 100);
     const done = record.status === "completed";
     const failed = record.status === "failed";
@@ -367,7 +374,7 @@
     const badge = $("#detailStatus");
     badge.textContent = statusLabel(record.status);
     badge.className = `badge ${record.status}`;
-    const ratio = progressRatio(record);
+    const ratio = displayRatio(record);
     $("#detailBar").style.width = `${Math.round(ratio * 100)}%`;
     $("#detailBar").style.background = record.status === "failed" ? "var(--danger)" : "";
     $("#detailSize").textContent = `${bytes(record.downloaded)} / ${record.total_size ? bytes(record.total_size) : "unknown"}`;
@@ -399,7 +406,7 @@
     if (!segments.length) {
       const segment = document.createElement("div");
       segment.className = "seg";
-      segment.innerHTML = `<i style="width:${Math.round(progressRatio(record) * 100)}%"></i>`;
+      segment.innerHTML = `<i style="width:${Math.round(displayRatio(record) * 100)}%"></i>`;
       container.appendChild(segment);
       return;
     }

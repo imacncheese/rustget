@@ -23,7 +23,10 @@ Keep a Changelog and the project uses Semantic Versioning.
 - Web UI with virtualized list, live segment view, add dialog and themes.
 - Chromium and Firefox MV3 extension sources.
 - Native-messaging host with live daemon test.
-- HLS and DASH parsers; FFmpeg sidecar boundary.
+- HLS VOD downloads (master/media playlists, init maps, ordered segments).
+- DASH VOD downloads (duration-based SegmentTemplate), DRM rejection.
+- HLS/DASH segment progress units and bounded pseudo-segment UI events.
+- FFmpeg sidecar boundary.
 - Same-origin site crawler with robots.txt and extension filters.
 - Instrumented adversarial HTTP testkit.
 - Property tests for segment invariants.

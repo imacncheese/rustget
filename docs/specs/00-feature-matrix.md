@@ -48,8 +48,8 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | A22 | HTTPS with rustls | MUST | P0 | M1 | ✅ | `rustls-tls`, no OpenSSL system dependency |
 | A23 | FTP / FTPS | SHOULD | P2 | M6 | — | Planned; MMS intentionally out of scope |
 | A24 | SFTP | COULD | P3 | M7 | — | Planned |
-| A25 | HLS (.m3u8) | SHOULD | P1 | M5 | ◐ | Parser + variants/segments/keys tested; no download orchestration |
-| A26 | DASH (.mpd) | SHOULD | P1 | M5 | ◐ | MPD/Representation/SegmentTemplate parser tested; no timeline downloader |
+| A25 | HLS (.m3u8) | SHOULD | P1 | M5 | ◐ | Master/media VOD download, init map, ordered concat, progress; AES-128/audio groups/parallel segments missing |
+| A26 | DASH (.mpd) | SHOULD | P1 | M5 | ◐ | Duration-based SegmentTemplate VOD download, DRM rejection; SegmentTimeline/live/audio missing |
 | A27 | Magnet / BitTorrent | COULD | P3 | M7 | — | Out of current scope |
 | A28 | Probe: HEAD then GET `Range: bytes=0-0` | MUST | P0 | M1 | ✅ | Implemented; Content-Range/length parsing |
 | A29 | Content-Encoding pitfalls | MUST | P0 | M1 | ✅ | Forces `Accept-Encoding: identity`; rejects non-identity |
@@ -192,7 +192,8 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | G01 | Generic HTTP(S) progressive | MUST | P0 | M1 | ✅ | Engine tests |
 | G02 | HLS master/media playlist parser | SHOULD | P1 | M5 | ✅ | Variants, segments, encryption/init map; tests |
 | G03 | DASH MPD parser | SHOULD | P1 | M5 | ✅ | Representations, templates, ISO duration; tests |
-| G04 | HLS/DASH segment scheduler | SHOULD | P1 | M5 | — | Parser not wired |
+| G04 | HLS/DASH segment scheduler | SHOULD | P1 | M5 | ◐ | Sequential VOD segment download with retry/rate limit; no parallel segment workers or resume |
+| G05 | FFmpeg mux sidecar | SHOULD | P2 | M5 | ◐ | `-c copy` plan; not invoked by the media path yet |
 | G05 | FFmpeg mux sidecar | SHOULD | P2 | M5 | ◐ | `-c copy` plan; not used by download flow |
 | G06 | Plugin API for extractors | COULD | P2 | M7 | — | Planned |
 | G07 | yt-dlp adapter | COULD | P3 | M7 | — | Planned |

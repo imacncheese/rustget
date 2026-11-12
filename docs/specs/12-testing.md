@@ -25,14 +25,14 @@ the public internet.
 | `rustget-core` | 14 unit + 3 proptest | partition, split, scheduling, rate, retry |
 | `rustget-storage` | 15 | journal recovery, preallocation, positional writes, paths |
 | `rustget-testkit` | 5 | range parsing, 206, no-range, flaky, redirect |
-| `rustget-net` | 5 unit + 8 integration + 2 end-to-end | probe/checksum, download, fallback, redirects, retries, validator, resume, work stealing, adaptive growth |
-| `rustget-queue` | 9 | DB persistence, queue order, interruption, manager completion, scheduler, category routing |
+| `rustget-net` | 5 unit + 8 HTTP + 2 work/adaptive + 2 HLS + 2 DASH | probe/checksum, download, fallback, redirects, retries, validator, resume, work stealing, adaptive growth, media |
+| `rustget-queue` | 10 | DB persistence, queue order, interruption, manager completion, scheduler, category routing, HLS routing |
 | `rustget-ipc` | 3 | bearer auth, UI serving, add/list/delete, origin rejection |
 | `rustget-cli` | 4 + 1 | pattern expansion, kill/resume |
-| `rustget-media` | 4 | HLS master/media, DASH, FFmpeg discovery |
+| `rustget-media` | 5 | HLS master/media, DASH template/count, FFmpeg discovery |
 | `rustget-crawler` | 2 | robots parsing, origin/extension filters |
 | `rustget-native-host` | 2 | framing, oversize rejection |
-| **Total** | **77** | |
+| **Total** | **83** | |
 
 ## 3. Commands
 

@@ -77,7 +77,7 @@ impl Database {
             INSERT OR IGNORE INTO categories(name,directory,extensions) VALUES
                 ('General','',''),
                 ('Music','','mp3 flac wav m4a ogg opus aac'),
-                ('Video','','mp4 mkv webm avi mov m4v ts'),
+                ('Video','','mp4 mkv webm avi mov m4v ts m3u8 mpd m4s'),
                 ('Programs','','exe msi msix dmg pkg deb rpm appimage apk'),
                 ('Documents','','pdf doc docx xls xlsx ppt pptx txt md epub'),
                 ('Archives','','zip 7z rar tar gz bz2 xz zst');

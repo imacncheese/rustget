@@ -1971,6 +1971,7 @@ dependencies = [
  "md-5",
  "reqwest",
  "rustget-core",
+ "rustget-media",
  "rustget-storage",
  "rustget-testkit",
  "serde",

@@ -21,7 +21,7 @@ modern UI. It is not affiliated with or endorsed by Tonec FZE.
 | Authenticated REST + WebSocket API | Working | API integration tests |
 | Web UI | Working | headless-browser screenshot above |
 | Native-messaging browser bridge | Working | framing tests + live daemon test |
-| HLS / DASH parsing | Parser complete | 3 pure tests; not yet wired to the UI |
+| HLS / DASH downloads | VOD working | parser + end-to-end segment tests; AES/DRM not supported |
 | Scheduler windows | Basic | pure schedule tests + daemon loop |
 | FTP/FTPS, HTTP/3, BitTorrent, tray | Not implemented | see the parity scorecard |
 
@@ -120,8 +120,11 @@ See [the browser bridge spec](docs/specs/05-browser-bridge.md).
   view, keyboard shortcuts, light/dark/system themes, add dialog, settings.
 - **Browser bridge.** Standard 4-byte length-prefixed native messaging, context
   menu and a floating media panel for direct media URLs.
+- **Media.** HLS master/media VOD and duration-template DASH VOD downloads,
+  ordered segment concatenation, encryption/DRM rejection, FFmpeg sidecar
+  boundary; `rustget add https://site/master.m3u8`.
 - **Discovery.** Same-origin, depth-bounded site crawler with robots.txt,
-  extension filters and `rustget grab`; HLS/DASH manifest parsers.
+  extension filters and `rustget grab`.
 
 ## What is deliberately not claimed yet
 
@@ -130,8 +133,8 @@ RustGet is an M0–M3 implementation with parts of M4/M5. It does **not** yet ha
 - FTP/FTPS/SFTP, HTTP/3/QUIC, BitTorrent/magnet or MMS.
 - Digest/NTLM/Kerberos authentication, PAC, client certificates.
 - Per-host connection caps or mirror failover.
-- A site grabber, production HLS/DASH download orchestration, or FFmpeg muxing
-  wired into the download flow.
+- AES-128 HLS decryption, DASH SegmentTimeline/live manifests, separate
+  audio/video muxing, or parallel segment download/resume for media.
 - Tray integration, OS autostart, single-instance desktop shell, native
   notifications, or a Tauri binary.
 - i18n, import/export, post-download actions, antivirus hooks, shutdown/sleep
@@ -188,12 +191,13 @@ commands and output summary):
   gap/overlap invariants.
 - `rustget-storage`: 15 tests, including torn-journal recovery and out-of-order
   positional writes.
-- `rustget-net`: 10 integration tests (engine, work stealing, adaptive growth).
-- `rustget-queue`: 9 DB/manager/scheduler tests.
+- `rustget-net`: 5 unit + 14 integration tests (engine, work stealing, adaptive
+  growth, HLS, DASH).
+- `rustget-queue`: 10 DB/manager/scheduler/HLS-routing tests.
 - `rustget-ipc`: 3 API tests (auth, origin rejection, add/list/delete).
 - `rustget-cli`: 4 pattern tests + 1 kill-process/resume test.
 - `rustget-testkit`: 5 protocol tests.
-- `rustget-media`: 4 parser/discovery tests.
+- `rustget-media`: 5 parser/discovery tests.
 - `rustget-crawler`: 2 discovery/robots tests.
 - `rustget-native-host`: 2 framing tests.
 

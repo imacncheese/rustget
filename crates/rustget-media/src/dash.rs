@@ -24,6 +24,36 @@ pub struct DashRepresentation {
     pub initialization: Option<String>,
     pub media_template: Option<String>,
     pub start_number: u64,
+    pub duration_per_segment: Option<u64>,
+    pub timescale: u64,
+    pub period_duration_secs: Option<f64>,
+    pub drm: bool,
+}
+
+impl DashRepresentation {
+    /// Number of media segments for a simple duration-based SegmentTemplate.
+    /// SegmentTimeline, multi-period and live manifests return `None`.
+    #[must_use]
+    pub fn segment_count(&self) -> Option<u64> {
+        let duration = self.duration_per_segment?;
+        let total = self.period_duration_secs?;
+        if duration == 0 || self.timescale == 0 {
+            return None;
+        }
+        let count = (total * self.timescale as f64 / duration as f64).ceil();
+        (count > 0.0).then_some(count as u64)
+    }
+
+    #[must_use]
+    pub fn segment_url(&self, number: u64) -> Option<String> {
+        let template = self.media_template.as_ref()?;
+        let time =
+            number.saturating_sub(self.start_number) * self.duration_per_segment.unwrap_or(1);
+        Some(
+            expand_template(template, &self.id, self.bandwidth, number)
+                .replace("$Time$", &time.to_string()),
+        )
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -99,6 +129,23 @@ pub fn parse_mpd(text: &str, base: &Url) -> Result<DashManifest, DashError> {
                     .and_then(|node| node.attribute("startNumber"))
                     .and_then(|value| value.parse().ok())
                     .unwrap_or(1);
+                let duration_per_segment = template
+                    .and_then(|node| node.attribute("duration"))
+                    .and_then(|value| value.parse().ok());
+                let timescale = template
+                    .and_then(|node| node.attribute("timescale"))
+                    .and_then(|value| value.parse().ok())
+                    .unwrap_or(1);
+                let period_duration_secs = period
+                    .attribute("duration")
+                    .and_then(parse_duration)
+                    .or(duration_secs);
+                let drm = adaptation
+                    .children()
+                    .any(|node| node.has_tag_name("ContentProtection"))
+                    || representation
+                        .children()
+                        .any(|node| node.has_tag_name("ContentProtection"));
                 representations.push(DashRepresentation {
                     id: id.clone(),
                     bandwidth,
@@ -128,6 +175,10 @@ pub fn parse_mpd(text: &str, base: &Url) -> Result<DashManifest, DashError> {
                         .and_then(|node| node.attribute("media"))
                         .map(str::to_string),
                     start_number,
+                    duration_per_segment,
+                    timescale,
+                    period_duration_secs,
+                    drm,
                 });
             }
         }
@@ -204,5 +255,26 @@ mod tests {
             representation.initialization.as_deref(),
             Some("https://cdn.example.test/movie/video/init-720.mp4")
         );
+        assert!(representation.media_template.is_some());
+    }
+
+    #[test]
+    fn duration_template_segment_count_and_urls() {
+        let mpd = r#"<MPD xmlns="urn:mpeg:dash:schema:mpd:2011" mediaPresentationDuration="PT6S">
+  <Period>
+    <AdaptationSet mimeType="video/mp4">
+      <Representation id="v" bandwidth="1000">
+        <SegmentTemplate duration="2" timescale="1" startNumber="1"
+          initialization="init-$RepresentationID$.mp4" media="seg-$Number$.m4s"/>
+      </Representation>
+    </AdaptationSet>
+  </Period>
+</MPD>"#;
+        let base = Url::parse("https://cdn.example.test/x/manifest.mpd").unwrap();
+        let parsed = parse_mpd(mpd, &base).unwrap();
+        let rep = &parsed.representations[0];
+        assert_eq!(rep.segment_count(), Some(3));
+        assert_eq!(rep.segment_url(1), Some("seg-1.m4s".into()));
+        assert_eq!(rep.segment_url(3), Some("seg-3.m4s".into()));
     }
 }

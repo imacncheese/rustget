@@ -572,6 +572,12 @@ impl DownloadManager {
             };
             let status = match result {
                 Ok(summary) => {
+                    record.filename = summary
+                        .destination
+                        .file_name()
+                        .and_then(|name| name.to_str())
+                        .unwrap_or(&record.filename)
+                        .to_string();
                     record.destination = summary.destination;
                     record.final_url = Some(summary.final_url);
                     record.total_size = Some(summary.total_size);
@@ -721,6 +727,54 @@ mod tests {
         assert_eq!(record.destination.parent(), Some(music.as_path()));
     }
 
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn manager_routes_hls_and_updates_output_extension() {
+        use rustget_testkit::{TestFile, TestkitConfig};
+        let server = TestServer::start(
+            TestkitConfig::default()
+                .with_file(TestFile::inline(
+                    "stream.m3u8",
+                    "application/vnd.apple.mpegurl",
+                    b"#EXTM3U\n#EXT-X-TARGETDURATION:1\n#EXTINF:1,\na.m4s\n#EXTINF:1,\nb.m4s\n#EXT-X-ENDLIST\n",
+                ))
+                .with_file(TestFile::inline("a.m4s", "video/iso.segment", b"AAA"))
+                .with_file(TestFile::inline("b.m4s", "video/iso.segment", b"BBB")),
+        )
+        .await
+        .unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let manager = DownloadManager::new(ManagerConfig {
+            data_dir: dir.path().join("data"),
+            download_dir: dir.path().join("downloads"),
+            engine: EngineConfig::default(),
+            max_concurrent: 1,
+        })
+        .unwrap();
+        let mut events = manager.subscribe();
+        let record = manager
+            .add(NewDownload {
+                url: server.file_url("stream.m3u8"),
+                ..NewDownload::default()
+            })
+            .await
+            .unwrap();
+        tokio::time::timeout(Duration::from_secs(15), async {
+            loop {
+                if let Ok(ManagerEvent::Finished { id, status }) = events.recv().await {
+                    if id == record.id {
+                        assert_eq!(status, DownloadStatus::Completed);
+                        break;
+                    }
+                }
+            }
+        })
+        .await
+        .unwrap();
+        let stored = manager.get(record.id).unwrap();
+        assert!(stored.destination.ends_with("stream.ts"));
+        assert_eq!(std::fs::read(&stored.destination).unwrap(), b"AAABBB");
+    }
+
     #[test]
     fn progress_is_mapped_to_record() {
         let mut record = DownloadRecord {
@@ -759,6 +813,8 @@ mod tests {
             final_url: Some("https://example.test/f".into()),
             filename: Some("f".into()),
             error: None,
+            unit_total: None,
+            unit_completed: 0,
         };
         apply_progress(&mut record, &snapshot);
         assert_eq!(record.status, DownloadStatus::Downloading);

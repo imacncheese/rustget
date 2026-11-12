@@ -48,6 +48,8 @@
 - [x] Web UI: virtualized list, details, segments, add/settings, themes.
 - [x] Chromium/Firefox extension + native-messaging host (live tested).
 - [x] HLS/DASH parsers, FFmpeg sidecar boundary.
+- [x] HLS VOD download path (master/media, init map, ordered segments).
+- [x] DASH VOD download path (duration SegmentTemplate, DRM rejection).
 - [x] Criterion ledger benchmarks and 128 MiB aria2 comparison.
 - [x] Adaptive concurrency growth test.
 - [x] Same-origin crawler with robots.txt and CLI `grab`.
@@ -57,7 +59,7 @@
 
 - [ ] Fuzz targets actually run.
 - [ ] Tauri/native shell, tray, single-instance, autostart.
-- [ ] HLS/DASH download orchestration + FFmpeg mux.
+- [ ] HLS AES-128/audio groups, DASH SegmentTimeline/live, parallel media segments.
 - [ ] FTP/FTPS, Digest, SOCKS5, per-host caps, mirrors.
 - [ ] Load test at 10k rows.
 - [ ] Accessibility audit.
@@ -79,11 +81,11 @@
 rustget-core     14 unit + 3 proptest   PASS
 rustget-storage  15                      PASS
 rustget-testkit   5                      PASS
-rustget-net       8 + work stealing + adaptive  PASS
-rustget-queue     9                      PASS
+rustget-net       5 unit + 8 HTTP + 2 work/adaptive + 2 HLS + 2 DASH  PASS
+rustget-queue     10                     PASS
 rustget-ipc       3                      PASS
 rustget-cli       4 + 1 crash safety     PASS
-rustget-media     4                      PASS
+rustget-media     5                      PASS
 rustget-crawler   2                      PASS
 rustget-native-host 2                    PASS
 clippy -D warnings                       PASS

@@ -4,7 +4,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use parking_lot::Mutex;
-use rustget_core::EngineConfig;
+use rustget_core::{EngineConfig, RateLimiter};
 use rustget_net::{
     ChecksumSpec, DownloadProgress, DownloadRequest, DownloadState, Downloader, HostLimiter,
     NetError, RequestOptions,
@@ -226,6 +226,7 @@ pub struct DownloadManager {
     pending_power: Mutex<Option<crate::scheduler::PowerAction>>,
     power_hook: Mutex<Option<Arc<dyn PowerHook>>>,
     host_limiter: Arc<HostLimiter>,
+    rate_limiter: RateLimiter,
 }
 
 impl DownloadManager {
@@ -235,6 +236,7 @@ impl DownloadManager {
         let db = Arc::new(Database::open(config.data_dir.join("rustget.db"))?);
         db.mark_interrupted()?;
         let per_host = usize::from(config.engine.max_connections_per_host);
+        let rate_limiter = RateLimiter::new(config.engine.max_speed_bytes_per_sec.unwrap_or(0));
         let (events, _) = broadcast::channel(1024);
         Ok(Arc::new(Self {
             config,
@@ -247,6 +249,7 @@ impl DownloadManager {
             pending_power: Mutex::new(None),
             power_hook: Mutex::new(None),
             host_limiter: Arc::new(HostLimiter::new(per_host)),
+            rate_limiter,
         }))
     }
 
@@ -352,8 +355,11 @@ impl DownloadManager {
                 cookie,
                 ..RequestOptions::default()
             };
-            let downloader = Downloader::new(base_config, options)?
+            let mut downloader = Downloader::new(base_config, options)?
                 .with_host_limiter(Arc::clone(&self.host_limiter));
+            if request.speed_limit.is_none() {
+                downloader = downloader.with_rate_limiter(self.rate_limiter.clone());
+            }
             let mut probe = None;
             let mut last_error = None;
             for candidate in std::iter::once(&url).chain(parsed_mirrors.iter()) {
@@ -451,9 +457,7 @@ impl DownloadManager {
                 .connections
                 .unwrap_or(self.config.engine.connections)
                 .clamp(1, self.config.engine.max_connections),
-            speed_limit: request
-                .speed_limit
-                .or(self.config.engine.max_speed_bytes_per_sec),
+            speed_limit: request.speed_limit,
             headers: request.headers,
             checksum_algorithm: request.checksum_algorithm,
             checksum_value: request.checksum_value,
@@ -848,9 +852,17 @@ impl DownloadManager {
             cookie,
             ..RequestOptions::default()
         };
-        let downloader = match Downloader::new(engine, options)
-            .map(|downloader| downloader.with_host_limiter(Arc::clone(&self.host_limiter)))
-        {
+        let shared_limiter = record
+            .speed_limit
+            .is_none()
+            .then(|| self.rate_limiter.clone());
+        let downloader = match Downloader::new(engine, options).map(|downloader| {
+            let downloader = downloader.with_host_limiter(Arc::clone(&self.host_limiter));
+            match shared_limiter {
+                Some(limiter) => downloader.with_rate_limiter(limiter),
+                None => downloader,
+            }
+        }) {
             Ok(downloader) => downloader,
             Err(error) => {
                 record.status = DownloadStatus::Failed;

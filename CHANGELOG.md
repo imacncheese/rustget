@@ -26,6 +26,7 @@ Keep a Changelog and the project uses Semantic Versioning.
 - Opt-in scheduler power actions (`--allow-power-actions`) with tested command
   planning and a fake-hook test.
 - Cross-process single-instance lock for `rustget serve`.
+- Process-wide shared speed limiter with per-download overrides.
 - Free-space preflight with configurable reserve.
 - Pooled connection reuse regression test.
 - Safe opt-in ZIP extraction after download.

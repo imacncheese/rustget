@@ -141,6 +141,7 @@ pub struct Downloader {
     client: Arc<NetClient>,
     config: EngineConfig,
     host_limiter: Option<Arc<crate::host::HostLimiter>>,
+    rate_limiter: Option<rustget_core::RateLimiter>,
 }
 
 impl Downloader {
@@ -153,6 +154,7 @@ impl Downloader {
             client,
             config,
             host_limiter: None,
+            rate_limiter: None,
         })
     }
 
@@ -213,6 +215,18 @@ impl Downloader {
     pub fn with_host_limiter(mut self, limiter: Arc<crate::host::HostLimiter>) -> Self {
         self.host_limiter = Some(limiter);
         self
+    }
+
+    #[must_use]
+    pub fn with_rate_limiter(mut self, limiter: rustget_core::RateLimiter) -> Self {
+        self.rate_limiter = Some(limiter);
+        self
+    }
+
+    fn rate_limiter(&self) -> rustget_core::RateLimiter {
+        self.rate_limiter.clone().unwrap_or_else(|| {
+            rustget_core::RateLimiter::new(self.config.max_speed_bytes_per_sec.unwrap_or(0))
+        })
     }
 
     #[must_use]
@@ -669,8 +683,7 @@ impl Downloader {
             ));
         }
         let part = PartFile::open_unbounded(&paths.part)?;
-        let limiter =
-            rustget_core::RateLimiter::new(self.config.max_speed_bytes_per_sec.unwrap_or(0));
+        let limiter = self.rate_limiter();
         let retry = RetryPolicy::from_engine(&self.config);
         let mut cursor = 0_u64;
         let mut completed = 0_usize;
@@ -831,8 +844,7 @@ impl Downloader {
             ));
         }
         let part = PartFile::open_unbounded(&paths.part)?;
-        let limiter =
-            rustget_core::RateLimiter::new(self.config.max_speed_bytes_per_sec.unwrap_or(0));
+        let limiter = self.rate_limiter();
         let retry = RetryPolicy::from_engine(&self.config);
         let base = Url::parse(&representation.base_url)
             .map_err(|error| NetError::InvalidUrl(error.to_string()))?;
@@ -1121,9 +1133,7 @@ impl Downloader {
         };
         journal.append(&state, false)?;
 
-        let limiter = Arc::new(rustget_core::RateLimiter::new(
-            self.config.max_speed_bytes_per_sec.unwrap_or(0),
-        ));
+        let limiter = Arc::new(self.rate_limiter());
         let validator = probe.validator.if_range().map(str::to_string);
         let mut worker_urls = vec![request.url.clone()];
         for mirror in &request.mirrors {
@@ -1427,8 +1437,7 @@ impl Downloader {
             None,
         );
         let retry = RetryPolicy::from_engine(&self.config);
-        let limiter =
-            rustget_core::RateLimiter::new(self.config.max_speed_bytes_per_sec.unwrap_or(0));
+        let limiter = self.rate_limiter();
         let mut attempt = 0_u32;
         loop {
             match self

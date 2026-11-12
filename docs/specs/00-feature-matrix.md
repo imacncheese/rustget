@@ -58,7 +58,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | A32 | Cookies | MUST | P1 | M1 | ✅ | Explicit Cookie header plus persistent jar with Set-Cookie refresh and session reuse |
 | A33 | Custom headers, Referer, User-Agent | MUST | P1 | M1 | ✅ | CLI `-H`, manager persists headers; UA config |
 | A34 | Client certificates | COULD | P2 | M6 | ✅ | PEM client cert+key (`client_cert`/`--client-cert`), mutual-TLS success and rejection tests |
-| A35 | HTTP/HTTPS/SOCKS5 proxy, system proxy, PAC | SHOULD | P2 | M6 | ◐ | Explicit HTTP proxy in `RequestOptions`; no SOCKS/PAC/system detection |
+| A35 | HTTP/HTTPS/SOCKS5 proxy, system proxy, PAC | SHOULD | P2 | M6 | ◐ | Explicit HTTP and SOCKS5 proxies tested; system proxy/PAC missing |
 | A36 | Per-download proxy | COULD | P2 | M6 | ◐ | Field exists only at client construction |
 | A37 | MD5 / SHA-1 / SHA-256 / BLAKE3 verification | MUST | P1 | M1 | ✅ | Streaming hashes, pre-rename verification; tests |
 | A38 | Post-download open/run/extract | SHOULD | P2 | M4 | ✅ | Open folder, argv post-action runner, safe ZIP extraction with fixture test |

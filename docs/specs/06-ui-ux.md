@@ -228,7 +228,7 @@ The add dialog has a **Check** action next to the URL. It calls
 ranges before the user commits the download.
 
 The details pane shows tag chips with a remove action and an **Add tag** input;
-the search box also matches tags. The add dialog accepts comma-separated tags, an optional HTTP proxy URL, Basic
+the search box also matches tags. The add dialog accepts comma-separated tags, an optional HTTP/SOCKS5 proxy URL, Basic
 and Digest username/password, an optional PEM client-certificate path for mutual TLS, and a
 **Resolve with yt-dlp** checkbox, **Use persistent cookie jar**, and **Extract
 ZIP after download**.

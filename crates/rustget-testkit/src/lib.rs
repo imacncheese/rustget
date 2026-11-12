@@ -8,6 +8,7 @@
 
 pub mod ftp;
 pub mod proxy;
+pub mod socks;
 
 pub use ftp::{FtpFixtureConfig, FtpTestServer};
 pub use proxy::ProxyServer;

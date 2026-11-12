@@ -860,6 +860,9 @@ impl DownloadManager {
                             record.status = DownloadStatus::Completed;
                             record.error = None;
                             record.completed_at_ms = Some(chrono::Utc::now().timestamp_millis());
+                            if let Err(error) = this.run_post_action(&record.destination).await {
+                                record.error = Some(error);
+                            }
                             DownloadStatus::Completed
                         }
                         Err(error) => {
@@ -900,6 +903,61 @@ impl DownloadManager {
                 _join: task,
             },
         );
+    }
+
+    async fn run_post_action(&self, path: &std::path::Path) -> Result<(), String> {
+        let Some(raw) = self
+            .db
+            .get_setting("post_action.command")
+            .map_err(|error| format!("cannot read post-action command: {error}"))?
+        else {
+            return Ok(());
+        };
+        let mut parts: Vec<String> = serde_json::from_str(&raw)
+            .map_err(|error| format!("invalid post_action.command JSON: {error}"))?;
+        if parts.is_empty() {
+            return Ok(());
+        }
+        let program = parts.remove(0);
+        let file = path.to_string_lossy();
+        let mut replaced = false;
+        let args: Vec<String> = parts
+            .into_iter()
+            .map(|arg| {
+                if arg.contains("{file}") {
+                    replaced = true;
+                    arg.replace("{file}", &file)
+                } else {
+                    arg
+                }
+            })
+            .collect();
+        let mut command = tokio::process::Command::new(&program);
+        command
+            .args(&args)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::piped());
+        if !replaced {
+            command.arg(path);
+        }
+        let output = tokio::time::timeout(Duration::from_secs(60), command.output())
+            .await
+            .map_err(|_| format!("post-action timed out for {}", path.display()))?
+            .map_err(|error| format!("cannot run {program}: {error}"))?;
+        if output.status.success() {
+            Ok(())
+        } else {
+            let stderr: String = String::from_utf8_lossy(&output.stderr)
+                .chars()
+                .take(500)
+                .collect();
+            Err(format!(
+                "post-action failed for {} (status {}): {stderr}",
+                path.display(),
+                output.status
+            ))
+        }
     }
 
     async fn resolve_with_ytdlp(&self, url: &str) -> Result<String> {

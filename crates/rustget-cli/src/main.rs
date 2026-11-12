@@ -161,6 +161,12 @@ enum Command {
         #[arg(trailing_var_arg = true)]
         rest: Vec<String>,
     },
+    /// Test-only post-action stub; copies the completed file to a marker path.
+    PostStub {
+        marker: PathBuf,
+        #[arg(trailing_var_arg = true)]
+        rest: Vec<String>,
+    },
     /// Install, remove or inspect the per-user autostart entry.
     Autostart {
         #[command(subcommand)]
@@ -306,6 +312,12 @@ struct ServeArgs {
     /// Extra argument for `--ytdlp`; repeatable.
     #[arg(long = "ytdlp-arg")]
     ytdlp_args: Vec<String>,
+    /// Post-download action program; `{file}` is replaced or the path appended.
+    #[arg(long)]
+    post_action: Option<PathBuf>,
+    /// Extra argument for `--post-action`; repeatable.
+    #[arg(long = "post-action-arg")]
+    post_action_args: Vec<String>,
 }
 
 struct PlatformPower;
@@ -354,6 +366,13 @@ async fn main() -> Result<()> {
     }
     if let Command::YtdlpStub { url, .. } = &cli.command {
         println!("{url}?resolved=1");
+        return Ok(());
+    }
+    if let Command::PostStub { marker, rest } = &cli.command {
+        let source = rest
+            .first()
+            .ok_or_else(|| anyhow::anyhow!("post-stub requires a completed file"))?;
+        std::fs::copy(source, marker)?;
         return Ok(());
     }
     let paths = Paths::resolve(&cli)?;
@@ -405,7 +424,7 @@ async fn main() -> Result<()> {
         Command::Import { path } => import_downloads(&cli, &paths, path).await,
         Command::Tag { id, tags } => tag_download(&cli, &paths, id, tags).await,
         Command::Autostart { action, dry_run } => autostart(&paths, action, *dry_run),
-        Command::Scan { .. } | Command::YtdlpStub { .. } => {
+        Command::Scan { .. } | Command::YtdlpStub { .. } | Command::PostStub { .. } => {
             unreachable!("local helper handled before path resolution")
         }
         Command::Schedule { action } => schedule_command(&cli, &paths, action).await,
@@ -501,6 +520,12 @@ async fn serve(
         command.extend(args.ytdlp_args.iter().cloned());
         manager.set_setting("ytdlp.command", &serde_json::to_string(&command)?)?;
         println!("yt-dlp:     {}", ytdlp.display());
+    }
+    if let Some(action) = &args.post_action {
+        let mut command = vec![action.to_string_lossy().to_string()];
+        command.extend(args.post_action_args.iter().cloned());
+        manager.set_setting("post_action.command", &serde_json::to_string(&command)?)?;
+        println!("post-action: {}", action.display());
     }
     if args.allow_power_actions {
         manager.set_power_hook(std::sync::Arc::new(PlatformPower));

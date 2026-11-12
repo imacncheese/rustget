@@ -117,6 +117,9 @@ implemented, will be opt-in.
   plaintext password, over the wire.
 - Client certificates are read from a local PEM path supplied per download; the
   private key is not copied into the database, only the path is persisted.
+- The post-action runner executes an operator-configured argv with `{file}`
+  substitution or an appended path, no shell, stdout suppressed, stderr capped,
+  and a 60 s timeout. It is not an OS-level sandbox.
 - The antivirus scan hook executes an operator-configured argv with the completed
   file appended, no shell, stdout suppressed, stderr capped, and a 60 s timeout.
   A non-zero exit marks the download failed but does not delete the file.

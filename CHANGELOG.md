@@ -26,6 +26,7 @@ Keep a Changelog and the project uses Semantic Versioning.
 - Opt-in scheduler power actions (`--allow-power-actions`) with tested command
   planning and a fake-hook test.
 - Cross-process single-instance lock for `rustget serve`.
+- Post-download action runner with `{file}` and timeout.
 - Cross-host redirect auth-stripping regression test.
 - yt-dlp resolver adapter with configurable command and stub tests.
 - HTTP Digest auth (MD5/SHA-256, qop=auth) with challenge fixture.

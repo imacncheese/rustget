@@ -166,7 +166,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | E10 | SSRF/local API hardening | MUST | P0 | M3 | ✅ | Loopback bind, bearer token, origin check, no CORS |
 | E11 | Path traversal protection | MUST | P0 | M1 | ✅ | Sanitizer tests |
 | E12 | Redirect safety (no credential leak) | MUST | P0 | M2 | ✅ | Cross-host redirect fixture proves Authorization is dropped at target |
-| E13 | Post-action sandboxing | SHOULD | P2 | M6 | — | Actions not implemented |
+| E13 | Post-action sandboxing | SHOULD | P2 | M6 | ◐ | argv post-action runner with `{file}`, 60 s timeout, no shell; no OS/filesystem sandbox |
 | E14 | No telemetry by default | MUST | P0 | M3 | ✅ | No analytics code/dependency |
 | E15 | Dependency/license policy | MUST | P1 | M0 | ✅ | `deny.toml`, `cargo-deny` in CI |
 
@@ -207,9 +207,9 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | State | Count |
 |---|---:|
 | ✅ implemented + verified | 85 |
-| ◐ partial | 46 |
+| ◐ partial | 47 |
 | ○ specified, not implemented | 1 |
-| — not started | 15 |
+| — not started | 14 |
 | **Total tracked** | **147** |
 
 By area:
@@ -220,7 +220,7 @@ By area:
 | B. Capture/integration | 22 | 12 | 9 | 0 | 1 |
 | C. Management | 30 | 23 | 7 | 0 | 0 |
 | D. UI/UX | 12 | 10 | 2 | 0 | 0 |
-| E. Quality/security | 15 | 10 | 2 | 1 | 2 |
+| E. Quality/security | 15 | 10 | 3 | 1 | 1 |
 | F. Platform/packaging | 10 | 2 | 3 | 0 | 5 |
 | G. Protocols/extensibility | 12 | 4 | 4 | 0 | 4 |
 

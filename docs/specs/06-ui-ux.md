@@ -4,6 +4,7 @@
 implemented; video picker and first-run wizard are design-only
 **Code:** `crates/rustget-app/assets`
 **Reference screenshots:** [main](../assets/ui-main.png),
+[first-run wizard](../assets/ui-wizard.png),
 [live speed](../assets/ui-speed.png), [scheduler](../assets/ui-scheduler.png)
 
 ## 1. Design principles
@@ -192,6 +193,11 @@ stream.
 Settings has **Export config** and **Import config** actions. The export is the
 same JSON bundle as the API (downloads, settings, categories, schedules); import
 reloads the queue after applying the bundle.
+
+With no token (and no valid saved token), the first-run wizard opens instead of
+the settings form: a welcome step, then a token field whose value is tested
+against `/api/v1/stats` before being saved. Closing the wizard still leaves the
+Settings token field available.
 
 Dropping an `http(s)` URI list anywhere on the window opens the add dialog with
 the first link prefilled and a drop overlay. Local files are rejected with an

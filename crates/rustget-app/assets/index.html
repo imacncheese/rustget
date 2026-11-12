@@ -226,6 +226,32 @@
     </form>
   </dialog>
 
+  <dialog id="wizardDialog">
+    <div class="modal narrow wizard">
+      <div class="wizard-step" data-step="1">
+        <div class="wizard-logo">R</div>
+        <h2>Welcome to RustGet</h2>
+        <p class="hint">Fast, open and local. Three things to know:</p>
+        <ul class="wizard-list">
+          <li>Paste a link or drag one onto the window.</li>
+          <li>The daemon stores tokens and downloads only on this machine.</li>
+          <li>Use the sidebar Scheduler, Logs and Settings when you need them.</li>
+        </ul>
+        <button class="primary" id="wizardNext">Get started</button>
+      </div>
+      <div class="wizard-step" data-step="2" hidden>
+        <h2>Connect this browser</h2>
+        <p class="hint">Paste the API token printed by <code>rustget serve</code>. It never leaves this machine.</p>
+        <label class="field"><span>API token</span><input id="wizardToken" type="password" autocomplete="off" spellcheck="false"></label>
+        <p class="hint error" id="wizardError" hidden></p>
+        <div class="wizard-actions">
+          <button class="secondary" id="wizardBack">Back</button>
+          <button class="primary" id="wizardFinish">Test &amp; finish</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
   <dialog id="logsDialog">
     <div class="modal wide">
       <header class="modal-head">

@@ -95,7 +95,7 @@
     if (options.body) headers["Content-Type"] = "application/json";
     const response = await fetch(apiBase() + path, { ...options, headers });
     if (response.status === 401) {
-      openSettings("The API token is missing or invalid.");
+      openWizard();
       throw new Error("Unauthorized");
     }
     const text = await response.text();
@@ -759,6 +759,41 @@
     $("#addDialog").showModal();
     setTimeout(() => $("#addUrl").focus(), 30);
   }
+  function wizardStep(step) {
+    $$("#wizardDialog .wizard-step").forEach((panel) => {
+      panel.hidden = Number(panel.dataset.step) !== step;
+    });
+    if (step === 2) setTimeout(() => $("#wizardToken").focus(), 30);
+  }
+  function openWizard() {
+    $("#wizardError").hidden = true;
+    $("#wizardToken").value = "";
+    wizardStep(1);
+    $("#wizardDialog").showModal();
+  }
+  async function finishWizard() {
+    const token = $("#wizardToken").value.trim();
+    const error = $("#wizardError");
+    if (token.length < 16) {
+      error.textContent = "That does not look like a RustGet token.";
+      error.hidden = false;
+      return;
+    }
+    try {
+      const response = await fetch("/api/v1/stats", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error(`token rejected (${response.status})`);
+      state.token = token;
+      localStorage.setItem("rustget.token", token);
+      $("#wizardDialog").close();
+      await load();
+      toast("RustGet connected");
+    } catch (cause) {
+      error.textContent = cause.message;
+      error.hidden = false;
+    }
+  }
   function openSettings(message) {
     $("#tokenInput").value = state.token;
     $("#themeSelect").value = localStorage.getItem("rustget.theme") || "system";
@@ -906,6 +941,12 @@
     $("#logsBtn").addEventListener("click", openLogs);
     $("#logsClose").addEventListener("click", closeLogs);
     $("#logsRefresh").addEventListener("click", refreshLogs);
+    $("#wizardNext").addEventListener("click", () => wizardStep(2));
+    $("#wizardBack").addEventListener("click", () => wizardStep(1));
+    $("#wizardFinish").addEventListener("click", finishWizard);
+    $("#wizardToken").addEventListener("keydown", (event) => {
+      if (event.key === "Enter") { event.preventDefault(); finishWizard(); }
+    });
     $("#schedulesClose").addEventListener("click", () => $("#schedulesDialog").close());
     $("#scheduleForm").addEventListener("submit", submitSchedule);
     $("#themeBtn").addEventListener("click", cycleTheme);
@@ -1071,9 +1112,12 @@
     bind();
     renderAll();
     if (!state.token) {
-      openSettings("Enter the API token printed by `rustget serve`.");
+      openWizard();
     } else {
-      load();
+      const token = state.token;
+      fetch("/api/v1/stats", { headers: { Authorization: `Bearer ${token}` } })
+        .then((response) => response.ok ? load() : openWizard())
+        .catch(() => openWizard());
     }
   }
 

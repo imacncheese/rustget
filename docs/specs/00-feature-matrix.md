@@ -144,7 +144,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | D05 | Video quality picker | SHOULD | P2 | M5 | ✅ | `/api/v1/media/probe` catalog, add-dialog quality select, persisted `media_variant`; HLS/DASH tested |
 | D06 | Scheduler weekly timeline | SHOULD | P2 | M4 | ✅ | Web UI timeline, add/delete form, API-backed; power actions not executed |
 | D07 | Settings, searchable/advanced collapse | SHOULD | P1 | M4 | ◐ | Small settings dialog only |
-| D08 | First-run wizard | SHOULD | P1 | M4 | — | Token dialog is the only onboarding |
+| D08 | First-run wizard | SHOULD | P1 | M4 | ✅ | Two-step welcome → token test/save; screenshot `docs/assets/ui-wizard.png` |
 | D09 | HiDPI | MUST | P1 | M4 | ✅ | CSS pixels, no fixed raster assets |
 | D10 | Drag/drop links and files | SHOULD | P1 | M4 | ◐ | Links supported; local files rejected with an explanation |
 | D11 | Sortable columns and live ETA | MUST | P1 | M4 | ✅ | Implemented |
@@ -206,10 +206,10 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 80 |
+| ✅ implemented + verified | 81 |
 | ◐ partial | 41 |
 | ○ specified, not implemented | 1 |
-| — not started | 25 |
+| — not started | 24 |
 | **Total tracked** | **147** |
 
 By area:
@@ -219,7 +219,7 @@ By area:
 | A. Download engine | 46 | 22 | 18 | 0 | 6 |
 | B. Capture/integration | 22 | 12 | 8 | 0 | 2 |
 | C. Management | 30 | 23 | 5 | 0 | 2 |
-| D. UI/UX | 12 | 9 | 2 | 0 | 1 |
+| D. UI/UX | 12 | 10 | 2 | 0 | 0 |
 | E. Quality/security | 15 | 9 | 3 | 1 | 2 |
 | F. Platform/packaging | 10 | 2 | 2 | 0 | 6 |
 | G. Protocols/extensibility | 12 | 3 | 3 | 0 | 6 |

@@ -175,6 +175,12 @@ button:disabled { opacity: .38; cursor: not-allowed; }
 .tag { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 99px; background: rgba(255,122,69,.12); border: 1px solid rgba(255,122,69,.35); color: var(--text); font-size: 11px; }
 .tag button { border: 0; background: transparent; color: var(--muted); cursor: pointer; padding: 0; font-size: 13px; line-height: 1; }
 .tag button:hover { color: var(--danger); }
+.wizard { padding: 28px; text-align: center; }
+.wizard-logo { width: 58px; height: 58px; margin: 0 auto 12px; display: grid; place-items: center; border-radius: 16px; background: linear-gradient(135deg, var(--accent), #ffc46b); color: #16110c; font-size: 26px; font-weight: 900; }
+.wizard h2 { margin: 0 0 8px; }
+.wizard-list { text-align: left; color: var(--muted); margin: 16px 0 22px; padding-left: 20px; line-height: 1.8; }
+.wizard-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+.wizard .field { text-align: left; }
 .logs-list { max-height: 58vh; overflow: auto; margin: 0; padding: 10px; background: #07090d; border: 1px solid var(--line); border-radius: 10px; font: 11px/1.55 ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 .log-line { display: block; }
 .log-line .lvl { display: inline-block; min-width: 44px; font-weight: 700; }

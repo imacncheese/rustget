@@ -54,6 +54,7 @@
 - [x] HLS/DASH quality catalog and variant picker.
 - [x] Persisted tags with API/CLI/UI editing and tag search.
 - [x] In-app log viewer over a bounded tracing buffer.
+- [x] Two-step first-run wizard with token validation.
 - [~] Autostart CLI/platform entries; Windows registry writes blocked here.
 - [x] Scheduler weekly timeline and add/delete form in the web UI.
 - [x] Chromium/Firefox extension + native-messaging host (live tested).

@@ -255,6 +255,14 @@ impl Database {
         Ok(usize::try_from(count).unwrap_or(0))
     }
 
+    pub fn find_by_url(&self, url: &str) -> rusqlite::Result<Option<DownloadRecord>> {
+        let conn = self.conn.lock();
+        let mut statement = conn
+            .prepare("SELECT * FROM downloads WHERE url=?1 ORDER BY created_at_ms DESC LIMIT 1")?;
+        let mut rows = statement.query(params![url])?;
+        rows.next()?.map(map_row).transpose()
+    }
+
     pub fn list_categories(&self) -> rusqlite::Result<Vec<Category>> {
         let conn = self.conn.lock();
         let mut statement =

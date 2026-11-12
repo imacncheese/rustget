@@ -142,6 +142,9 @@ struct AddArgs {
     /// Alternate URL expected to serve the same bytes; repeatable.
     #[arg(long = "mirror")]
     mirrors: Vec<String>,
+    /// Allow another row with the same URL.
+    #[arg(long)]
+    allow_duplicate: bool,
     /// Exact output path or directory.
     #[arg(short, long)]
     output: Option<PathBuf>,
@@ -395,6 +398,7 @@ async fn add(cli: &Cli, paths: &Paths, args: &AddArgs) -> Result<()> {
     let request = NewDownload {
         url: args.url.clone(),
         mirrors: args.mirrors.clone(),
+        allow_duplicate: args.allow_duplicate,
         destination: args.output.clone(),
         directory: Some(paths.download_dir.clone()),
         category: Some(args.category.clone()),
@@ -777,6 +781,7 @@ async fn grab(
                 &AddArgs {
                     url: file.url,
                     mirrors: Vec::new(),
+                    allow_duplicate: false,
                     output: None,
                     connections,
                     limit: 0.0,
@@ -951,6 +956,7 @@ async fn batch(
         let args = AddArgs {
             url,
             mirrors: Vec::new(),
+            allow_duplicate: false,
             output: None,
             connections,
             limit: 0.0,

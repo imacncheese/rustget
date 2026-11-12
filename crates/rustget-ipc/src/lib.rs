@@ -31,6 +31,8 @@ pub enum ApiError {
     ForbiddenOrigin,
     #[error("not found")]
     NotFound,
+    #[error("{0}")]
+    Conflict(String),
     #[error("bad request: {0}")]
     BadRequest(String),
     #[error("server error: {0}")]
@@ -43,6 +45,7 @@ impl IntoResponse for ApiError {
             Self::Unauthorized => (StatusCode::UNAUTHORIZED, "unauthorized"),
             Self::ForbiddenOrigin => (StatusCode::FORBIDDEN, "forbidden_origin"),
             Self::NotFound => (StatusCode::NOT_FOUND, "not_found"),
+            Self::Conflict(_) => (StatusCode::CONFLICT, "conflict"),
             Self::BadRequest(_) => (StatusCode::BAD_REQUEST, "bad_request"),
             Self::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, "internal"),
         };
@@ -707,6 +710,7 @@ fn map_manager_error(error: &rustget_queue::manager::ManagerError) -> ApiError {
     use rustget_queue::manager::ManagerError;
     match error {
         ManagerError::NotFound(_) => ApiError::NotFound,
+        ManagerError::Duplicate { .. } => ApiError::Conflict(error.to_string()),
         ManagerError::Url(_)
         | ManagerError::InvalidState(_)
         | ManagerError::Net(rustget_net::NetError::InvalidUrl(_)) => {

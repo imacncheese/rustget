@@ -85,14 +85,14 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | B08 | Local authenticated REST/WebSocket API | MUST | P0 | M3 | ✅ | API tests; token, origin, body limit |
 | B09 | Clipboard URL monitoring | SHOULD | P1 | M4 | ◐ | UI paste button; no background clipboard watcher |
 | B10 | Drag and drop links | SHOULD | P1 | M4 | — | Planned |
-| B11 | Add URL dialog with probe preview | MUST | P0 | M4 | ◐ | Dialog + server-side probe; no size preview before submit |
+| B11 | Add URL dialog with probe preview | MUST | P0 | M4 | ✅ | Check button calls `/api/v1/probe` and shows filename/size/range support |
 | B12 | Batch URL import | MUST | P1 | M4 | ✅ | `batch` command |
 | B13 | Numeric/wildcard batch pattern | SHOULD | P1 | M4 | ✅ | `[001-100]`, multiple ranges; tests; 10k cap |
 | B14 | Site grabber/spider | SHOULD | P2 | M6 | ◐ | Same-origin BFS crawler, depth/page caps, robots toggle, extension filters; CLI `grab`; no UI or saved projects |
 | B15 | Video grabber HLS/DASH + FFmpeg mux | SHOULD | P2 | M5 | ◐ | Parsers and sidecar boundary; not connected to downloader |
 | B16 | yt-dlp plugin | COULD | P3 | M7 | — | Planned plugin API |
 | B17 | Categories and auto-routing | MUST | P1 | M3 | ✅ | DB categories, extension mapping, directory routing |
-| B18 | Duplicate detection by URL | SHOULD | P1 | M3 | — | Unique filenames only |
+| B18 | Duplicate detection by URL | SHOULD | P1 | M3 | ✅ | Completed URL returns 409; queued/paused duplicate resumes the existing row; `allow_duplicate` overrides |
 | B19 | Filename sanitization and collisions | MUST | P0 | M1 | ✅ | Traversal, reserved names, truncation, `(1)` suffix; tests |
 | B20 | Content-Disposition / RFC 5987 | MUST | P0 | M1 | ✅ | Quoted + `filename*`; tests |
 | B21 | Redirect resolution (301/302/303/307/308) | MUST | P0 | M1 | ✅ | `reqwest` policy; 2-hop test |
@@ -121,7 +121,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | C17 | Tray icon | SHOULD | P1 | M4 | — | Planned; no native shell |
 | C18 | Desktop notifications | SHOULD | P1 | M4 | ◐ | Browser Notification API; no OS integration |
 | C19 | Start with system | SHOULD | P2 | M6 | — | Planned |
-| C20 | Single instance | MUST | P1 | M4 | — | Daemon port is exclusive, but no desktop single-instance lock |
+| C20 | Single instance | MUST | P1 | M4 | ◐ | Daemon lock file enforced; no native desktop shell yet |
 | C21 | CLI: add/list/pause/resume/remove/schedule/config | MUST | P0 | M1 | ✅ | Implemented; pause/resume require daemon |
 | C22 | Headless daemon | MUST | P0 | M3 | ✅ | `rustget serve` |
 | C23 | i18n via Fluent | SHOULD | P2 | M7 | — | English only |
@@ -206,10 +206,10 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 73 |
+| ✅ implemented + verified | 75 |
 | ◐ partial | 39 |
 | ○ specified, not implemented | 1 |
-| — not started | 34 |
+| — not started | 32 |
 | **Total tracked** | **147** |
 
 By area:
@@ -217,8 +217,8 @@ By area:
 | Area | Rows | ✅ | ◐ | ○ | — |
 |---|---:|---:|---:|---:|---:|
 | A. Download engine | 46 | 22 | 18 | 0 | 6 |
-| B. Capture/integration | 22 | 9 | 9 | 0 | 4 |
-| C. Management | 30 | 20 | 3 | 0 | 7 |
+| B. Capture/integration | 22 | 11 | 8 | 0 | 3 |
+| C. Management | 30 | 20 | 4 | 0 | 6 |
 | D. UI/UX | 12 | 8 | 1 | 0 | 3 |
 | E. Quality/security | 15 | 9 | 3 | 1 | 2 |
 | F. Platform/packaging | 10 | 2 | 2 | 0 | 6 |

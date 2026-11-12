@@ -144,6 +144,15 @@ async fn add_list_and_delete_download() {
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
 
+    let duplicate = client
+        .post(format!("{base}/api/v1/downloads"))
+        .bearer_auth(&token)
+        .json(&serde_json::json!({"url": origin.file_url("file.bin")}))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(duplicate.status(), 409);
+
     let exported: serde_json::Value = client
         .get(format!("{base}/api/v1/export"))
         .bearer_auth(&token)

@@ -115,6 +115,10 @@ Request:
   is rejected.
 - `mirrors` is an optional array of alternate HTTP(S) URLs.
 - `201 Created` with the record.
+- `409 Conflict` when the primary URL is already **completed**. A queued,
+  paused, failed or interrupted duplicate returns the existing row and (when
+  `start` is true) re-queues it. Set `"allow_duplicate": true` to create a new
+  row anyway.
 - `400` for an invalid URL or state.
 - `500` for an unexpected probe/DB failure (the HTTP status mapping will be
   refined).

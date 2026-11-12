@@ -204,7 +204,7 @@ commands and output summary):
   positional writes.
 - `rustget-net`: 7 unit + 20 integration tests (engine, work stealing, adaptive
   growth, mirrors, host caps, HLS/AES, DASH timeline, FTP).
-- `rustget-queue`: 14 DB migration/manager/scheduler/power-hook/HLS/FTP/mirror tests.
+- `rustget-queue`: 15 DB migration/manager/duplicate/scheduler/power-hook/HLS/FTP/mirror tests.
 - `rustget-ipc`: 4 API tests (auth, origin/Host rejection, add/list/delete).
 - `rustget-cli`: 4 pattern tests + 1 kill-process/resume test.
 - `rustget-testkit`: 5 protocol tests.

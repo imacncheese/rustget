@@ -20,6 +20,8 @@ Keep a Changelog and the project uses Semantic Versioning.
 - MD5/SHA-1/SHA-256/BLAKE3 checksum verification.
 - SQLite WAL catalogue, queues, priorities and concurrency limits.
 - Add-dialog URL probe preview (filename, size, range support).
+- Duplicate-URL handling: completed URLs return 409, interrupted duplicates
+  resume the existing row, `--allow-duplicate` overrides.
 - Live speed sparkline in the details pane.
 - Opt-in scheduler power actions (`--allow-power-actions`) with tested command
   planning and a fake-hook test.

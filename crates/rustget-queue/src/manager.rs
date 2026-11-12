@@ -33,6 +33,8 @@ pub enum ManagerError {
     Url(#[from] url::ParseError),
     #[error("download {0} not found")]
     NotFound(Uuid),
+    #[error("this URL is already in the queue as {id}")]
+    Duplicate { id: Uuid },
     #[error("invalid state transition: {0}")]
     InvalidState(String),
 }
@@ -66,6 +68,8 @@ pub struct NewDownload {
     pub mirrors: Vec<String>,
     pub destination: Option<PathBuf>,
     pub directory: Option<PathBuf>,
+    #[serde(default)]
+    pub allow_duplicate: bool,
     pub category: Option<String>,
     pub connections: Option<u8>,
     pub speed_limit: Option<u64>,
@@ -94,6 +98,7 @@ impl NewDownload {
                 .destination
                 .parent()
                 .map(std::path::Path::to_path_buf),
+            allow_duplicate: true,
             category: Some(record.category.clone()),
             connections: Some(record.connections),
             speed_limit: record.speed_limit,
@@ -113,6 +118,7 @@ impl Default for NewDownload {
             mirrors: Vec::new(),
             destination: None,
             directory: None,
+            allow_duplicate: false,
             category: None,
             connections: None,
             speed_limit: None,
@@ -223,6 +229,23 @@ impl DownloadManager {
                 "unsupported URL scheme '{}' (ftps is not implemented yet)",
                 url.scheme()
             )));
+        }
+        if !request.allow_duplicate {
+            if let Some(existing) = self.db.find_by_url(url.as_str())? {
+                if existing.status == DownloadStatus::Completed {
+                    return Err(ManagerError::Duplicate { id: existing.id });
+                }
+                let mut existing = existing;
+                if request.start && !self.tasks.lock().contains_key(&existing.id) {
+                    existing.status = DownloadStatus::Queued;
+                    existing.error = None;
+                    existing.updated_at_ms = chrono::Utc::now().timestamp_millis();
+                    self.db.update(&existing)?;
+                    let _ = self.events.send(ManagerEvent::Updated(existing.clone()));
+                    self.schedule();
+                }
+                return Ok(existing);
+            }
         }
         let is_ftp = url.scheme() == "ftp";
         let parsed_mirrors: Vec<Url> = if is_ftp {
@@ -1025,6 +1048,44 @@ mod tests {
         let stored = manager.get(record.id).unwrap();
         assert_eq!(std::fs::read(&stored.destination).unwrap(), content);
         server.shutdown().await;
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn duplicate_url_is_rejected_unless_explicitly_allowed() {
+        let server = TestServer::start(TestkitConfig::single(128 * 1024))
+            .await
+            .unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        let manager = DownloadManager::new(ManagerConfig {
+            data_dir: directory.path().join("data"),
+            download_dir: directory.path().join("downloads"),
+            engine: EngineConfig::default(),
+            max_concurrent: 2,
+        })
+        .unwrap();
+        let request = NewDownload {
+            url: server.file_url("file.bin"),
+            start: false,
+            ..NewDownload::default()
+        };
+        let first = manager.add(request.clone()).await.unwrap();
+        let second = manager.add(request.clone()).await.unwrap();
+        assert_eq!(first.id, second.id, "interrupted/queued duplicate resumes");
+        let mut completed = manager.get(first.id).unwrap();
+        completed.status = DownloadStatus::Completed;
+        manager.database().update(&completed).unwrap();
+        assert!(matches!(
+            manager.add(request.clone()).await,
+            Err(ManagerError::Duplicate { .. })
+        ));
+        manager
+            .add(NewDownload {
+                allow_duplicate: true,
+                ..request
+            })
+            .await
+            .unwrap();
+        assert_eq!(manager.list(None).unwrap().len(), 2);
     }
 
     #[test]

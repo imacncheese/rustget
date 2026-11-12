@@ -70,6 +70,8 @@ pub struct DownloadRecord {
     pub digest_auth: Option<(String, String)>,
     #[serde(default)]
     pub use_ytdlp: bool,
+    #[serde(default)]
+    pub use_cookie_jar: bool,
     pub final_url: Option<String>,
     pub destination: PathBuf,
     pub filename: String,

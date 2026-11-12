@@ -73,6 +73,8 @@ pub struct NewDownload {
     pub digest_auth: Option<(String, String)>,
     #[serde(default)]
     pub use_ytdlp: bool,
+    #[serde(default)]
+    pub use_cookie_jar: bool,
     pub destination: Option<PathBuf>,
     pub directory: Option<PathBuf>,
     #[serde(default)]
@@ -107,6 +109,7 @@ impl NewDownload {
             client_cert: record.client_cert.clone(),
             digest_auth: record.digest_auth.clone(),
             use_ytdlp: record.use_ytdlp,
+            use_cookie_jar: record.use_cookie_jar,
             destination: Some(record.destination.clone()),
             directory: record
                 .destination
@@ -136,6 +139,7 @@ impl Default for NewDownload {
             client_cert: None,
             digest_auth: None,
             use_ytdlp: false,
+            use_cookie_jar: false,
             destination: None,
             directory: None,
             allow_duplicate: false,
@@ -310,9 +314,26 @@ impl DownloadManager {
             (sanitize_filename(&name), url.to_string(), None, None, None)
         } else {
             let base_config = self.engine_for(request.connections, request.speed_limit);
+            let client_identity_pem = request
+                .client_cert
+                .as_deref()
+                .map(std::fs::read)
+                .transpose()?;
+            let cookie = if request.use_cookie_jar {
+                self.db.cookie_header(
+                    url.host_str().unwrap_or_default(),
+                    url.path(),
+                    url.scheme() == "https",
+                )?
+            } else {
+                None
+            };
             let options = RequestOptions {
                 headers: request.headers.clone(),
                 proxy: request.proxy.clone(),
+                digest_auth: request.digest_auth.clone(),
+                client_identity_pem,
+                cookie,
                 ..RequestOptions::default()
             };
             let downloader = Downloader::new(base_config, options)?
@@ -397,6 +418,7 @@ impl DownloadManager {
             client_cert: request.client_cert,
             digest_auth: request.digest_auth,
             use_ytdlp: request.use_ytdlp,
+            use_cookie_jar: request.use_cookie_jar,
             final_url: Some(final_url),
             destination,
             filename,
@@ -760,11 +782,50 @@ impl DownloadManager {
                 return;
             }
         };
+        let cookie = if record.use_cookie_jar {
+            let url = match url::Url::parse(&record.url) {
+                Ok(url) => url,
+                Err(error) => {
+                    record.status = DownloadStatus::Failed;
+                    record.error = Some(format!("invalid URL for cookie jar: {error}"));
+                    record.updated_at_ms = chrono::Utc::now().timestamp_millis();
+                    let _ = self.db.update(&record);
+                    let _ = self.events.send(ManagerEvent::Updated(record.clone()));
+                    let _ = self.events.send(ManagerEvent::Finished {
+                        id: record.id,
+                        status: DownloadStatus::Failed,
+                    });
+                    return;
+                }
+            };
+            match self.db.cookie_header(
+                url.host_str().unwrap_or_default(),
+                url.path(),
+                url.scheme() == "https",
+            ) {
+                Ok(cookie) => cookie,
+                Err(error) => {
+                    record.status = DownloadStatus::Failed;
+                    record.error = Some(format!("cannot read cookie jar: {error}"));
+                    record.updated_at_ms = chrono::Utc::now().timestamp_millis();
+                    let _ = self.db.update(&record);
+                    let _ = self.events.send(ManagerEvent::Updated(record.clone()));
+                    let _ = self.events.send(ManagerEvent::Finished {
+                        id: record.id,
+                        status: DownloadStatus::Failed,
+                    });
+                    return;
+                }
+            }
+        } else {
+            None
+        };
         let options = RequestOptions {
             headers: record.headers.clone(),
             proxy: record.proxy.clone(),
             digest_auth: record.digest_auth.clone(),
             client_identity_pem,
+            cookie,
             ..RequestOptions::default()
         };
         let downloader = match Downloader::new(engine, options)
@@ -844,6 +905,14 @@ impl DownloadManager {
             };
             let status = match result {
                 Ok(summary) => {
+                    if record.use_cookie_jar && !summary.set_cookies.is_empty() {
+                        if let Ok(url) = url::Url::parse(&summary.final_url) {
+                            let _ = this.db.save_cookies(
+                                url.host_str().unwrap_or_default(),
+                                &summary.set_cookies,
+                            );
+                        }
+                    }
                     record.filename = summary
                         .destination
                         .file_name()
@@ -1393,6 +1462,7 @@ mod tests {
             client_cert: None,
             digest_auth: None,
             use_ytdlp: false,
+            use_cookie_jar: false,
             final_url: None,
             destination: PathBuf::new(),
             filename: String::new(),

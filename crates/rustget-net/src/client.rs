@@ -340,6 +340,12 @@ impl NetClient {
             filename,
             http_version: format!("{:?}", response.version()),
             status: status.as_u16(),
+            set_cookies: headers
+                .get_all(reqwest::header::SET_COOKIE)
+                .iter()
+                .filter_map(|value| value.to_str().ok())
+                .map(str::to_string)
+                .collect(),
         })
     }
 }

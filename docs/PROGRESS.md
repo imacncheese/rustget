@@ -63,6 +63,7 @@
 - [x] yt-dlp resolver adapter with a testable stub.
 - [x] Cross-host redirect credential-leak regression test.
 - [~] Post-action argv runner with timeout; no OS sandbox.
+- [x] Persistent cookie jar with a two-download session test.
 - [x] Explicit per-download HTTP proxy with a live proxy fixture.
 - [~] Autostart CLI/platform entries; Windows registry writes blocked here.
 - [x] Scheduler weekly timeline and add/delete form in the web UI.
@@ -109,14 +110,14 @@ rustget-testkit   5                      PASS
 rustget-net       7 unit + 8 HTTP + 2 work/adaptive + 2 mirrors + 2 HLS + 2 AES-HLS + 3 DASH + 1 host cap + 1 FTP + 1 proxy + 2 client-cert + 2 digest + 1 redirect-auth  PASS
 rustget-queue     16                     PASS
 rustget-ipc       6                      PASS
-rustget-cli       4 + 1 crash + 2 scan + 2 yt-dlp + 1 post  PASS
+rustget-cli       4 + 1 crash + 2 scan + 2 yt-dlp + 1 post + 1 cookie  PASS
 rustget-media     6                      PASS
 rustget-crawler   2                      PASS
 rustget-native-host 2                    PASS
 rustget-platform  3                     PASS
 clippy -D warnings                       PASS
 cargo fmt --check                        PASS
-total                                  116 tests
+total                                  117 tests
 ```
 
 Commands:

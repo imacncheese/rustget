@@ -110,6 +110,8 @@ implemented, will be opt-in.
   future redesign will store sensitive headers in the OS keyring or redact them
   after the transfer.
 - Basic auth fields are not persisted today (and not exposed in the UI).
+- The optional cookie jar stores cookie values in plaintext SQLite and sends
+  them only to matching domains/paths (and HTTPS-only when `Secure`).
 - Cross-host redirects are covered by a fixture that proves `Authorization` is
   not forwarded to the target origin.
 - HTTP Digest credentials are persisted as JSON in `downloads.digest_auth`,

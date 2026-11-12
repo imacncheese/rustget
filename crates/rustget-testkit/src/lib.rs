@@ -45,6 +45,8 @@ pub struct TestFile {
     pub basic_auth: Option<(String, String)>,
     pub digest_auth: Option<(String, String, String)>,
     pub redirect_to: Option<String>,
+    pub set_cookie: Option<String>,
+    pub require_cookie: Option<String>,
     pub content_disposition: Option<String>,
     /// Increment ETag on every request, simulating a file changed in place.
     pub changing_etag: bool,
@@ -76,6 +78,8 @@ impl TestFile {
             basic_auth: None,
             digest_auth: None,
             redirect_to: None,
+            set_cookie: None,
+            require_cookie: None,
             content_disposition: None,
             changing_etag: false,
             omit_length: false,
@@ -136,6 +140,18 @@ impl TestFile {
     #[must_use]
     pub fn redirect_to(mut self, url: impl Into<String>) -> Self {
         self.redirect_to = Some(url.into());
+        self
+    }
+
+    #[must_use]
+    pub fn set_cookie(mut self, value: impl Into<String>) -> Self {
+        self.set_cookie = Some(value.into());
+        self
+    }
+
+    #[must_use]
+    pub fn require_cookie(mut self, value: impl Into<String>) -> Self {
+        self.require_cookie = Some(value.into());
         self
     }
 
@@ -412,6 +428,15 @@ async fn serve_file(
             return response;
         }
     }
+    if let Some(required) = &file.spec.require_cookie {
+        let cookie = headers
+            .get(header::COOKIE)
+            .and_then(|value| value.to_str().ok())
+            .unwrap_or_default();
+        if !cookie.split(';').any(|part| part.trim() == required) {
+            return StatusCode::FORBIDDEN.into_response();
+        }
+    }
     if let Some((user, pass)) = &file.spec.basic_auth {
         let expected = format!(
             "Basic {}",
@@ -449,6 +474,11 @@ async fn serve_file(
             header::ETAG,
             header_value_or_star(&format!("\"inline-{:x}\"", body.len())),
         );
+        if let Some(cookie) = &file.spec.set_cookie {
+            if let Ok(value) = HeaderValue::from_str(cookie) {
+                response_headers.insert(header::SET_COOKIE, value);
+            }
+        }
         state.0.requests.fetch_add(1, Ordering::Relaxed);
         state.0.log.lock().expect("testkit lock").push(RequestLog {
             method: method.to_string(),
@@ -602,6 +632,11 @@ async fn serve_file(
                 HeaderValue::from_str(&format!("bytes {start}-{end}/{}", file.spec.size))
             {
                 response_headers.insert(header::CONTENT_RANGE, value);
+            }
+        }
+        if let Some(cookie) = &file.spec.set_cookie {
+            if let Ok(value) = HeaderValue::from_str(cookie) {
+                response_headers.insert(header::SET_COOKIE, value);
             }
         }
     }

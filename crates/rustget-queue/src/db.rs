@@ -33,6 +33,7 @@ impl Database {
                 client_cert TEXT,
                 digest_auth TEXT,
                 use_ytdlp INTEGER NOT NULL DEFAULT 0,
+                use_cookie_jar INTEGER NOT NULL DEFAULT 0,
                 final_url TEXT,
                 destination TEXT NOT NULL,
                 filename TEXT NOT NULL,
@@ -60,6 +61,15 @@ impl Database {
             CREATE TABLE IF NOT EXISTS settings (
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS cookies (
+                domain TEXT NOT NULL,
+                path TEXT NOT NULL,
+                name TEXT NOT NULL,
+                value TEXT NOT NULL,
+                secure INTEGER NOT NULL DEFAULT 0,
+                expires_at INTEGER,
+                PRIMARY KEY (domain, path, name)
             );
             CREATE TABLE IF NOT EXISTS categories (
                 name TEXT PRIMARY KEY,
@@ -211,6 +221,25 @@ impl Database {
                 [],
             )?;
         }
+        let has_cookie_jar = {
+            let mut statement = conn.prepare("PRAGMA table_info(downloads)")?;
+            let mut rows = statement.query([])?;
+            let mut found = false;
+            while let Some(row) = rows.next()? {
+                let name: String = row.get(1)?;
+                if name == "use_cookie_jar" {
+                    found = true;
+                    break;
+                }
+            }
+            found
+        };
+        if !has_cookie_jar {
+            conn.execute(
+                "ALTER TABLE downloads ADD COLUMN use_cookie_jar INTEGER NOT NULL DEFAULT 0",
+                [],
+            )?;
+        }
         Ok(Self {
             conn: Mutex::new(conn),
         })
@@ -222,10 +251,10 @@ impl Database {
         let tags = serde_json::to_string(&record.tags).unwrap_or_else(|_| "[]".into());
         self.conn.lock().execute(
             r"INSERT INTO downloads (
-                id,url,mirrors,media_variant,proxy,client_cert,digest_auth,use_ytdlp,final_url,destination,filename,category,tags,status,total_size,downloaded,
+                id,url,mirrors,media_variant,proxy,client_cert,digest_auth,use_ytdlp,use_cookie_jar,final_url,destination,filename,category,tags,status,total_size,downloaded,
                 speed_bps,connections,speed_limit,headers,checksum_algorithm,checksum_value,
                 etag,last_modified,error,priority,created_at_ms,updated_at_ms,completed_at_ms
-            ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23,?24,?25,?26,?27,?28,?29)",
+            ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23,?24,?25,?26,?27,?28,?29,?30)",
             params![
                 record.id.to_string(),
                 record.url,
@@ -238,6 +267,7 @@ impl Database {
                     .as_ref()
                     .map(|auth| serde_json::to_string(auth).unwrap_or_else(|_| "null".into())),
                 i64::from(record.use_ytdlp),
+                i64::from(record.use_cookie_jar),
                 record.final_url,
                 record.destination.to_string_lossy(),
                 record.filename,
@@ -270,10 +300,10 @@ impl Database {
         let tags = serde_json::to_string(&record.tags).unwrap_or_else(|_| "[]".into());
         self.conn.lock().execute(
             r"UPDATE downloads SET
-                url=?2, mirrors=?3, media_variant=?4, proxy=?5, client_cert=?6, digest_auth=?7, use_ytdlp=?8, final_url=?9, destination=?10, filename=?11, category=?12, tags=?13, status=?14,
-                total_size=?15, downloaded=?16, speed_bps=?17, connections=?18, speed_limit=?19,
-                headers=?20, checksum_algorithm=?21, checksum_value=?22, etag=?23,
-                last_modified=?24, error=?25, priority=?26, updated_at_ms=?27, completed_at_ms=?28
+                url=?2, mirrors=?3, media_variant=?4, proxy=?5, client_cert=?6, digest_auth=?7, use_ytdlp=?8, use_cookie_jar=?9, final_url=?10, destination=?11, filename=?12, category=?13, tags=?14, status=?15,
+                total_size=?16, downloaded=?17, speed_bps=?18, connections=?19, speed_limit=?20,
+                headers=?21, checksum_algorithm=?22, checksum_value=?23, etag=?24,
+                last_modified=?25, error=?26, priority=?27, updated_at_ms=?28, completed_at_ms=?29
               WHERE id=?1",
             params![
                 record.id.to_string(),
@@ -287,6 +317,7 @@ impl Database {
                     .as_ref()
                     .map(|auth| serde_json::to_string(auth).unwrap_or_else(|_| "null".into())),
                 i64::from(record.use_ytdlp),
+                i64::from(record.use_cookie_jar),
                 record.final_url,
                 record.destination.to_string_lossy(),
                 record.filename,
@@ -518,6 +549,100 @@ impl Database {
         Ok(())
     }
 
+    pub fn save_cookies(&self, host: &str, set_cookies: &[String]) -> rusqlite::Result<()> {
+        let now = chrono::Utc::now().timestamp();
+        let mut conn = self.conn.lock();
+        let transaction = conn.transaction()?;
+        for raw in set_cookies {
+            let mut parts = raw.split(';');
+            let Some(pair) = parts.next() else {
+                continue;
+            };
+            let Some((name, value)) = pair.split_once('=') else {
+                continue;
+            };
+            let name = name.trim();
+            let value = value.trim();
+            if name.is_empty() {
+                continue;
+            }
+            let mut domain = host.to_string();
+            let mut path = "/".to_string();
+            let mut secure = 0_i64;
+            let mut expires_at = None;
+            for attribute in parts {
+                let attribute = attribute.trim();
+                let (key, value) = attribute
+                    .split_once('=')
+                    .map_or((attribute, ""), |(key, value)| (key, value));
+                match key.to_ascii_lowercase().as_str() {
+                    "domain" if !value.is_empty() => {
+                        domain = value.trim_start_matches('.').to_ascii_lowercase();
+                    }
+                    "path" if value.starts_with('/') => path = value.to_string(),
+                    "secure" => secure = 1,
+                    "max-age" => {
+                        if let Ok(seconds) = value.parse::<i64>() {
+                            expires_at = Some(now + seconds);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            if let Some(expiry) = expires_at {
+                if expiry <= now {
+                    transaction.execute(
+                        "DELETE FROM cookies WHERE domain=?1 AND path=?2 AND name=?3",
+                        params![domain, path, name],
+                    )?;
+                    continue;
+                }
+            }
+            transaction.execute(
+                "INSERT INTO cookies(domain,path,name,value,secure,expires_at)
+                 VALUES(?1,?2,?3,?4,?5,?6)
+                 ON CONFLICT(domain,path,name) DO UPDATE SET
+                   value=excluded.value, secure=excluded.secure, expires_at=excluded.expires_at",
+                params![domain, path, name, value, secure, expires_at],
+            )?;
+        }
+        transaction.commit()
+    }
+
+    pub fn cookie_header(
+        &self,
+        host: &str,
+        path: &str,
+        secure: bool,
+    ) -> rusqlite::Result<Option<String>> {
+        let now = chrono::Utc::now().timestamp();
+        let conn = self.conn.lock();
+        conn.execute(
+            "DELETE FROM cookies WHERE expires_at IS NOT NULL AND expires_at <= ?1",
+            params![now],
+        )?;
+        let host = host.to_ascii_lowercase();
+        let mut statement = conn.prepare(
+            "SELECT domain,name,value FROM cookies
+             WHERE (?1 = domain OR ?1 LIKE '%.' || domain)
+               AND ?2 LIKE path || '%'
+               AND (secure = 0 OR ?3 = 1)
+             ORDER BY length(path) DESC, name",
+        )?;
+        let mut rows = statement.query(params![host, path, i64::from(secure)])?;
+        let mut cookies = Vec::new();
+        while let Some(row) = rows.next()? {
+            let name: String = row.get(1)?;
+            let value: String = row.get(2)?;
+            cookies.push(format!("{name}={value}"));
+        }
+        if cookies.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(cookies.join("; ")))
+        }
+    }
+
     pub fn set_setting(&self, key: &str, value: &str) -> rusqlite::Result<()> {
         self.conn.lock().execute(
             "INSERT INTO settings(key,value) VALUES(?1,?2) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
@@ -565,6 +690,7 @@ fn map_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<DownloadRecord> {
         client_cert: client_cert.map(PathBuf::from),
         digest_auth: digest_json.and_then(|value| serde_json::from_str(&value).ok()),
         use_ytdlp: row.get::<_, i64>("use_ytdlp")? != 0,
+        use_cookie_jar: row.get::<_, i64>("use_cookie_jar")? != 0,
         final_url: row.get("final_url")?,
         destination: PathBuf::from(destination),
         filename: row.get("filename")?,
@@ -606,6 +732,7 @@ mod tests {
             client_cert: Some(PathBuf::from("C:/certs/client.pem")),
             digest_auth: Some(("user".into(), "pass".into())),
             use_ytdlp: true,
+            use_cookie_jar: true,
             final_url: None,
             destination: PathBuf::from("C:/downloads/file.bin"),
             filename: "file.bin".into(),

@@ -251,6 +251,9 @@ struct AddArgs {
     /// Resolve the URL through the configured yt-dlp command.
     #[arg(long)]
     yt_dlp: bool,
+    /// Persist and reuse cookies in the local jar.
+    #[arg(long)]
+    cookie_jar: bool,
     /// Exact output path or directory.
     #[arg(short, long)]
     output: Option<PathBuf>,
@@ -584,6 +587,7 @@ async fn add(cli: &Cli, paths: &Paths, args: &AddArgs) -> Result<()> {
             _ => None,
         },
         use_ytdlp: args.yt_dlp,
+        use_cookie_jar: args.cookie_jar,
         allow_duplicate: args.allow_duplicate,
         destination: args.output.clone(),
         directory: Some(paths.download_dir.clone()),
@@ -1089,6 +1093,7 @@ async fn grab(
                     digest_user: None,
                     digest_password: None,
                     yt_dlp: false,
+                    cookie_jar: false,
                     allow_duplicate: false,
                     output: None,
                     connections,
@@ -1271,6 +1276,7 @@ async fn batch(
             digest_user: None,
             digest_password: None,
             yt_dlp: false,
+            cookie_jar: false,
             allow_duplicate: false,
             output: None,
             connections,

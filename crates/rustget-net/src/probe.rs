@@ -43,6 +43,7 @@ pub struct FileProbe {
     pub filename: String,
     pub http_version: String,
     pub status: u16,
+    pub set_cookies: Vec<String>,
 }
 
 /// Parse `bytes start-end/total` (total may be `*`).

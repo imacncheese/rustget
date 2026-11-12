@@ -118,6 +118,7 @@ pub struct DownloadSummary {
     pub resumed: bool,
     pub checksum_verified: bool,
     pub average_speed_bps: f64,
+    pub set_cookies: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -556,6 +557,7 @@ impl Downloader {
             } else {
                 0.0
             },
+            set_cookies: Vec::new(),
         };
         tracker.emit(
             DownloadState::Complete,
@@ -743,6 +745,7 @@ impl Downloader {
             } else {
                 0.0
             },
+            set_cookies: Vec::new(),
         };
         tracker.emit(
             DownloadState::Complete,
@@ -902,6 +905,7 @@ impl Downloader {
             } else {
                 0.0
             },
+            set_cookies: Vec::new(),
         };
         tracker.emit(
             DownloadState::Complete,
@@ -2160,6 +2164,7 @@ fn finish_empty(
         resumed: false,
         checksum_verified: false,
         average_speed_bps: 0.0,
+        set_cookies: Vec::new(),
     })
 }
 
@@ -2205,6 +2210,7 @@ async fn finalize(
         } else {
             0.0
         },
+        set_cookies: probe.set_cookies.clone(),
     };
     tracker.emit(
         DownloadState::Complete,
@@ -2250,6 +2256,7 @@ fn summary_without_transfer(
         resumed,
         checksum_verified: false,
         average_speed_bps: 0.0,
+        set_cookies: probe.set_cookies.clone(),
     }
 }
 

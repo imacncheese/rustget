@@ -923,6 +923,7 @@
     const digestPass = $("#addDigestPass").value;
     if (digestUser && digestPass) body.digest_auth = [digestUser, digestPass];
     if ($("#addYtdlp").checked) body.use_ytdlp = true;
+    if ($("#addCookieJar").checked) body.use_cookie_jar = true;
     const submit = $("#addSubmit");
     submit.disabled = true;
     submit.textContent = "Adding…";

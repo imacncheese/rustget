@@ -213,7 +213,7 @@ commands and output summary):
   mutual TLS, Digest, cross-host redirect auth stripping).
 - `rustget-queue`: 16 DB migration/manager/duplicate/tags/scheduler/power-hook/HLS/FTP/mirror tests.
 - `rustget-ipc`: 6 API tests (auth, origin/Host rejection, add/list/delete, probe/config bundles, logs).
-- `rustget-cli`: 4 pattern + 1 kill/resume + 2 scanner + 2 yt-dlp + 1 post-action tests.
+- `rustget-cli`: 4 pattern + 1 kill/resume + 2 scanner + 2 yt-dlp + 1 post-action + 1 cookie-jar tests.
 - `rustget-testkit`: 5 protocol tests.
 - `rustget-media`: 6 parser/discovery tests.
 - `rustget-crawler`: 2 discovery/robots tests.

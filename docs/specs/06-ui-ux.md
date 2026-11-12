@@ -224,7 +224,7 @@ ranges before the user commits the download.
 The details pane shows tag chips with a remove action and an **Add tag** input;
 the search box also matches tags. The add dialog accepts comma-separated tags, an optional HTTP proxy URL, Digest
 username/password, an optional PEM client-certificate path for mutual TLS, and a
-**Resolve with yt-dlp** checkbox.
+**Resolve with yt-dlp** checkbox and a **Use persistent cookie jar** checkbox.
 
 The details actions include **Move up/Move down**, which PATCH the queue priority.
 There is no drag reorder yet.

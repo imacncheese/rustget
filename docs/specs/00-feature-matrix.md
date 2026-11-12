@@ -197,7 +197,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | G06 | Plugin API for extractors | COULD | P2 | M7 | — | Planned |
 | G07 | yt-dlp adapter | COULD | P3 | M7 | ✅ | `ytdlp.command`, `use_ytdlp`, CLI/UI, 60 s timeout, stub resolver success/failure tests |
 | G08 | Site grabber | SHOULD | P2 | M6 | ◐ | Link discovery implemented; no mirroring, JS rendering or project persistence |
-| G09 | Cookie jar persistence | SHOULD | P1 | M6 | — | Header only |
+| G09 | Cookie jar persistence | SHOULD | P1 | M6 | ✅ | SQLite cookie jar, Set-Cookie capture, `use_cookie_jar`/CLI/UI, session reuse test |
 | G10 | PAC / system proxy | SHOULD | P2 | M6 | ◐ | Explicit per-download HTTP proxy (CLI/API/UI) verified through a local proxy fixture; PAC/system discovery missing |
 | G11 | Digest/NTLM | SHOULD | P2 | M6 | — | Planned |
 | G12 | HTTP/3 | COULD | P3 | M7 | — | Planned |
@@ -206,10 +206,10 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 85 |
+| ✅ implemented + verified | 86 |
 | ◐ partial | 47 |
 | ○ specified, not implemented | 1 |
-| — not started | 14 |
+| — not started | 13 |
 | **Total tracked** | **147** |
 
 By area:
@@ -222,7 +222,7 @@ By area:
 | D. UI/UX | 12 | 10 | 2 | 0 | 0 |
 | E. Quality/security | 15 | 10 | 3 | 1 | 1 |
 | F. Platform/packaging | 10 | 2 | 3 | 0 | 5 |
-| G. Protocols/extensibility | 12 | 4 | 4 | 0 | 4 |
+| G. Protocols/extensibility | 12 | 5 | 4 | 0 | 3 |
 
 The count is maintained manually alongside the table; the parity scorecard gives
 the higher-level roll-up and accepted gaps.

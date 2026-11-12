@@ -26,14 +26,14 @@ the public internet.
 | `rustget-storage` | 16 | journal recovery, preallocation, positional writes, path safety |
 | `rustget-testkit` | 5 | range parsing, 206, no-range, flaky, redirect |
 | `rustget-net` | 7 unit + 8 HTTP + 2 work/adaptive + 2 mirrors + 2 HLS + 2 encrypted HLS + 3 DASH + 1 host cap + 1 FTP + 1 proxy + 2 client cert + 2 digest + 1 redirect-auth | probe/checksum, host semaphore, download, fallback, redirects, retries, validator, resume, work stealing, adaptive growth, mirror failover, host caps, HLS quality/AES-128, DASH timeline, FTP, HTTP proxy, mutual TLS, Digest auth, cross-host header stripping |
-| `rustget-queue` | 16 | DB migration/persistence, queue order, interruption, duplicate URL, tags, manager completion, scheduler, power hook, category/HLS/FTP routing, mirror probe |
+| `rustget-queue` | 17 | DB migration/persistence, 10k load, queue order, interruption, duplicate URL, tags, manager completion, scheduler, power hook, category/HLS/FTP routing, mirror probe |
 | `rustget-ipc` | 6 | bearer auth, UI serving, add/list/delete, probe/config bundles, logs, origin and Host rejection |
 | `rustget-cli` | 4 + 11 | pattern expansion, kill/resume, scanner, yt-dlp, post-action, cookie jar, plugin, basic auth success/rejection |
 | `rustget-media` | 6 | HLS master/media/encryption, DASH duration/timeline, FFmpeg discovery |
 | `rustget-crawler` | 2 | robots parsing, origin/extension filters |
 | `rustget-native-host` | 2 | framing, oversize rejection |
 | `rustget-platform` | 3 | single-instance lock, power/autostart command construction |
-| **Total** | **122** | |
+| **Total** | **123** | |
 
 ## 3. Commands
 

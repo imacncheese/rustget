@@ -853,6 +853,26 @@ mod tests {
     }
 
     #[test]
+    fn lists_ten_thousand_records_without_slowdown() {
+        let dir = tempfile::tempdir().unwrap();
+        let db = Database::open(dir.path().join("large.db")).unwrap();
+        for index in 0..10_000 {
+            let mut item = record(&format!("https://example.test/file-{index}.bin"));
+            item.filename = format!("file-{index}.bin");
+            item.destination = dir.path().join(&item.filename);
+            db.insert(&item).unwrap();
+        }
+        let started = std::time::Instant::now();
+        let rows = db.list(None).unwrap();
+        assert_eq!(rows.len(), 10_000);
+        assert!(
+            started.elapsed() < std::time::Duration::from_secs(5),
+            "list took {:?}",
+            started.elapsed()
+        );
+    }
+
+    #[test]
     fn migrates_legacy_database_without_mirrors_column() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("legacy.db");

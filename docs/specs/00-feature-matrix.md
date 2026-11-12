@@ -68,7 +68,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | A42 | Mid-stream reset recovery | MUST | P0 | M2 | ✅ | Flaky-origin test retries and verifies bytes |
 | A43 | DNS failure, captive portal classification | SHOULD | P1 | M2 | ◐ | Error classes exist; no portal detection |
 | A44 | Path-too-long / reserved names / case collisions | MUST | P0 | M1 | ✅ | Long-name, reserved-name and Windows case-collision tests |
-| A45 | 10k+ queued downloads without UI lag | SHOULD | P1 | M4 | ◐ | Virtualized list and SQLite; not load-tested at 10k |
+| A45 | 10k+ queued downloads without UI lag | SHOULD | P1 | M4 | ✅ | Virtualized list plus 10k-record insert/list regression test |
 | A46 | Saturate 1 Gbps / beat `aria2c -x16 -s16` | SHOULD | P1 | M2 | ✅ | Local 128 MiB: 167.5 vs 119.9 MiB/s wall (1.40×), byte-exact; WAN/1 Gbps unproven |
 
 ## B. Capture and integration
@@ -206,8 +206,8 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 91 |
-| ◐ partial | 43 |
+| ✅ implemented + verified | 92 |
+| ◐ partial | 42 |
 | ○ specified, not implemented | 1 |
 | — not started | 12 |
 | **Total tracked** | **147** |
@@ -216,7 +216,7 @@ By area:
 
 | Area | Rows | ✅ | ◐ | ○ | — |
 |---|---:|---:|---:|---:|---:|
-| A. Download engine | 46 | 27 | 16 | 0 | 3 |
+| A. Download engine | 46 | 28 | 15 | 0 | 3 |
 | B. Capture/integration | 22 | 13 | 8 | 0 | 1 |
 | C. Management | 30 | 23 | 7 | 0 | 0 |
 | D. UI/UX | 12 | 10 | 2 | 0 | 0 |

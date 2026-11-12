@@ -11,8 +11,15 @@ fn hls_config() -> TestkitConfig {
         .with_file(TestFile::inline(
             "master.m3u8",
             "application/vnd.apple.mpegurl",
-            b"#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=800000,RESOLUTION=640x360\nmedia.m3u8\n",
+            b"#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=400000,RESOLUTION=320x180\nlow.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=800000,RESOLUTION=640x360\nmedia.m3u8\n",
         ))
+        .with_file(TestFile::inline(
+            "low.m3u8",
+            "application/vnd.apple.mpegurl",
+            b"#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-TARGETDURATION:2\n#EXT-X-MAP:URI=\"low-init.mp4\"\n#EXTINF:2.0,\nlow0.m4s\n#EXT-X-ENDLIST\n",
+        ))
+        .with_file(TestFile::inline("low-init.mp4", "video/mp4", b"LINIT"))
+        .with_file(TestFile::inline("low0.m4s", "video/iso.segment", b"LLL"))
         .with_file(TestFile::inline(
             "media.m3u8",
             "application/vnd.apple.mpegurl",
@@ -33,6 +40,7 @@ async fn downloads_master_playlist_and_concatenates_segments() {
         id: Uuid::new_v4(),
         url: url::Url::parse(&server.file_url("master.m3u8")).unwrap(),
         mirrors: Vec::new(),
+        media_variant: None,
         destination: None,
         directory: temp.path().to_path_buf(),
         resume: false,
@@ -68,4 +76,46 @@ async fn downloads_master_playlist_and_concatenates_segments() {
             .iter()
             .any(|entry| entry.path.ends_with("seg2.m4s"))
     );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn selects_a_lower_quality_variant_and_lists_the_catalog() {
+    let server = TestServer::start(hls_config()).await.unwrap();
+    let catalog = Downloader::new(EngineConfig::default(), RequestOptions::default())
+        .unwrap()
+        .media_catalog(&url::Url::parse(&server.file_url("master.m3u8")).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(catalog.len(), 2);
+    assert_eq!(catalog[0].label, "320x180");
+    assert_eq!(catalog[1].label, "640x360");
+
+    let temp = tempfile::tempdir().unwrap();
+    let downloader = Downloader::new(EngineConfig::default(), RequestOptions::default()).unwrap();
+    let mut req = DownloadRequest {
+        id: Uuid::new_v4(),
+        url: url::Url::parse(&server.file_url("master.m3u8")).unwrap(),
+        mirrors: Vec::new(),
+        media_variant: Some(0),
+        destination: None,
+        directory: temp.path().to_path_buf(),
+        resume: false,
+        overwrite: false,
+        checksum: None,
+    };
+    let (handle, tx) = downloader.handle(req.id);
+    let summary = timeout(
+        Duration::from_secs(15),
+        downloader.download(req.clone(), handle.cancel, tx),
+    )
+    .await
+    .expect("HLS variant timed out")
+    .unwrap();
+    assert_eq!(
+        tokio::fs::read(&summary.destination).await.unwrap(),
+        b"LINITLLL"
+    );
+    req.media_variant = Some(99);
+    let (handle, tx) = downloader.handle(req.id);
+    assert!(downloader.download(req, handle.cancel, tx).await.is_err());
 }

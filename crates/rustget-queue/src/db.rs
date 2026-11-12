@@ -28,6 +28,7 @@ impl Database {
                 id TEXT PRIMARY KEY,
                 url TEXT NOT NULL,
                 mirrors TEXT NOT NULL DEFAULT '[]',
+                media_variant INTEGER,
                 final_url TEXT,
                 destination TEXT NOT NULL,
                 filename TEXT NOT NULL,
@@ -103,6 +104,22 @@ impl Database {
                 [],
             )?;
         }
+        let has_media_variant = {
+            let mut statement = conn.prepare("PRAGMA table_info(downloads)")?;
+            let mut rows = statement.query([])?;
+            let mut found = false;
+            while let Some(row) = rows.next()? {
+                let name: String = row.get(1)?;
+                if name == "media_variant" {
+                    found = true;
+                    break;
+                }
+            }
+            found
+        };
+        if !has_media_variant {
+            conn.execute("ALTER TABLE downloads ADD COLUMN media_variant INTEGER", [])?;
+        }
         Ok(Self {
             conn: Mutex::new(conn),
         })
@@ -113,14 +130,15 @@ impl Database {
         let mirrors = serde_json::to_string(&record.mirrors).unwrap_or_else(|_| "[]".into());
         self.conn.lock().execute(
             r"INSERT INTO downloads (
-                id,url,mirrors,final_url,destination,filename,category,status,total_size,downloaded,
+                id,url,mirrors,media_variant,final_url,destination,filename,category,status,total_size,downloaded,
                 speed_bps,connections,speed_limit,headers,checksum_algorithm,checksum_value,
                 etag,last_modified,error,priority,created_at_ms,updated_at_ms,completed_at_ms
-            ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23)",
+            ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23,?24)",
             params![
                 record.id.to_string(),
                 record.url,
                 mirrors,
+                record.media_variant.map(|v| i64::try_from(v).unwrap_or(i64::MAX)),
                 record.final_url,
                 record.destination.to_string_lossy(),
                 record.filename,
@@ -151,15 +169,16 @@ impl Database {
         let mirrors = serde_json::to_string(&record.mirrors).unwrap_or_else(|_| "[]".into());
         self.conn.lock().execute(
             r"UPDATE downloads SET
-                url=?2, mirrors=?3, final_url=?4, destination=?5, filename=?6, category=?7, status=?8,
-                total_size=?9, downloaded=?10, speed_bps=?11, connections=?12, speed_limit=?13,
-                headers=?14, checksum_algorithm=?15, checksum_value=?16, etag=?17,
-                last_modified=?18, error=?19, priority=?20, updated_at_ms=?21, completed_at_ms=?22
+                url=?2, mirrors=?3, media_variant=?4, final_url=?5, destination=?6, filename=?7, category=?8, status=?9,
+                total_size=?10, downloaded=?11, speed_bps=?12, connections=?13, speed_limit=?14,
+                headers=?15, checksum_algorithm=?16, checksum_value=?17, etag=?18,
+                last_modified=?19, error=?20, priority=?21, updated_at_ms=?22, completed_at_ms=?23
               WHERE id=?1",
             params![
                 record.id.to_string(),
                 record.url,
                 mirrors,
+                record.media_variant.map(|v| i64::try_from(v).unwrap_or(i64::MAX)),
                 record.final_url,
                 record.destination.to_string_lossy(),
                 record.filename,
@@ -425,6 +444,9 @@ fn map_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<DownloadRecord> {
         id: Uuid::parse_str(&id).unwrap_or_else(|_| Uuid::nil()),
         url: row.get("url")?,
         mirrors: serde_json::from_str(&mirrors_json).unwrap_or_default(),
+        media_variant: row
+            .get::<_, Option<i64>>("media_variant")?
+            .and_then(|value| usize::try_from(value).ok()),
         final_url: row.get("final_url")?,
         destination: PathBuf::from(destination),
         filename: row.get("filename")?,
@@ -460,6 +482,7 @@ mod tests {
             id: Uuid::new_v4(),
             url: url.into(),
             mirrors: vec!["https://mirror.example/file.bin".into()],
+            media_variant: Some(1),
             final_url: None,
             destination: PathBuf::from("C:/downloads/file.bin"),
             filename: "file.bin".into(),
@@ -498,6 +521,7 @@ mod tests {
         assert_eq!(loaded.status, DownloadStatus::Downloading);
         assert_eq!(loaded.headers.len(), 1);
         assert_eq!(loaded.mirrors.len(), 1);
+        assert_eq!(loaded.media_variant, Some(1));
     }
 
     #[test]

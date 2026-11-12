@@ -37,6 +37,7 @@ async fn shared_limit_caps_requests_across_two_downloads() {
             id: Uuid::new_v4(),
             url: url::Url::parse(&server.file_url("shared.bin")).unwrap(),
             mirrors: Vec::new(),
+            media_variant: None,
             destination: None,
             directory,
             resume: false,

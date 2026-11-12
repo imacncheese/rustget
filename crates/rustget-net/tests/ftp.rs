@@ -11,6 +11,7 @@ fn request(url: String, temp: &std::path::Path) -> DownloadRequest {
         id: Uuid::new_v4(),
         url: url::Url::parse(&url).unwrap(),
         mirrors: Vec::new(),
+        media_variant: None,
         destination: None,
         directory: temp.to_path_buf(),
         resume: true,

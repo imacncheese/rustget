@@ -51,6 +51,7 @@
 - [x] Opt-in scheduler power actions with platform command planning.
 - [x] Versioned JSON export/import for downloads, settings, categories and schedules.
 - [x] Drag-and-drop http(s) links into the add dialog.
+- [x] HLS/DASH quality catalog and variant picker.
 - [~] Autostart CLI/platform entries; Windows registry writes blocked here.
 - [x] Scheduler weekly timeline and add/delete form in the web UI.
 - [x] Chromium/Firefox extension + native-messaging host (live tested).
@@ -103,7 +104,7 @@ rustget-native-host 2                    PASS
 rustget-platform  3                     PASS
 clippy -D warnings                       PASS
 cargo fmt --check                        PASS
-total                                  102 tests
+total                                  103 tests
 ```
 
 Commands:

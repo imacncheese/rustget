@@ -193,6 +193,10 @@ Dropping an `http(s)` URI list anywhere on the window opens the add dialog with
 the first link prefilled and a drop overlay. Local files are rejected with an
 explanation; RustGet has no local-file import path yet.
 
+For `.m3u8`/`.mpd` URLs the **Check** action also loads the quality catalog and
+reveals a **Media quality** select. The chosen index is persisted as
+`media_variant`; Auto keeps the previous highest-bandwidth behavior.
+
 The add dialog has a **Check** action next to the URL. It calls
 `POST /api/v1/probe` and shows the filename, size and whether the origin supports
 ranges before the user commits the download.

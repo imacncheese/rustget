@@ -66,6 +66,8 @@ pub struct NewDownload {
     pub url: String,
     #[serde(default)]
     pub mirrors: Vec<String>,
+    #[serde(default)]
+    pub media_variant: Option<usize>,
     pub destination: Option<PathBuf>,
     pub directory: Option<PathBuf>,
     #[serde(default)]
@@ -93,6 +95,7 @@ impl NewDownload {
         Self {
             url: record.url.clone(),
             mirrors: record.mirrors.clone(),
+            media_variant: record.media_variant,
             destination: Some(record.destination.clone()),
             directory: record
                 .destination
@@ -116,6 +119,7 @@ impl Default for NewDownload {
         Self {
             url: String::new(),
             mirrors: Vec::new(),
+            media_variant: None,
             destination: None,
             directory: None,
             allow_duplicate: false,
@@ -345,6 +349,7 @@ impl DownloadManager {
                 .iter()
                 .map(std::string::ToString::to_string)
                 .collect(),
+            media_variant: request.media_variant,
             final_url: Some(final_url),
             destination,
             filename,
@@ -425,6 +430,17 @@ impl DownloadManager {
         }
         let downloader = Downloader::new(self.engine_for(None, None), RequestOptions::default())?;
         Ok(downloader.probe(&url).await?)
+    }
+
+    pub async fn media_catalog(&self, url: &str) -> Result<Vec<rustget_net::MediaVariant>> {
+        let url = Url::parse(url)?;
+        if !matches!(url.scheme(), "http" | "https") {
+            return Err(ManagerError::InvalidState(
+                "media probe supports http and https only".into(),
+            ));
+        }
+        let downloader = Downloader::new(self.engine_for(None, None), RequestOptions::default())?;
+        Ok(downloader.media_catalog(&url).await?)
     }
 
     pub fn set_priority(&self, id: Uuid, priority: i32) -> Result<DownloadRecord> {
@@ -711,6 +727,7 @@ impl DownloadManager {
                 .iter()
                 .filter_map(|mirror| Url::parse(mirror).ok())
                 .collect(),
+            media_variant: record.media_variant,
             destination: Some(record.destination.clone()),
             directory: self.config.download_dir.clone(),
             resume: was_paused || DownloadPaths::new(&record.destination).part.exists(),
@@ -1113,6 +1130,7 @@ mod tests {
             id: Uuid::new_v4(),
             url: String::new(),
             mirrors: Vec::new(),
+            media_variant: None,
             final_url: None,
             destination: PathBuf::new(),
             filename: String::new(),

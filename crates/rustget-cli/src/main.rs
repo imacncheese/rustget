@@ -160,6 +160,9 @@ struct AddArgs {
     /// Allow another row with the same URL.
     #[arg(long)]
     allow_duplicate: bool,
+    /// Zero-based media variant index (HLS/DASH); default is best quality.
+    #[arg(long)]
+    variant: Option<usize>,
     /// Exact output path or directory.
     #[arg(short, long)]
     output: Option<PathBuf>,
@@ -414,6 +417,7 @@ async fn add(cli: &Cli, paths: &Paths, args: &AddArgs) -> Result<()> {
     let request = NewDownload {
         url: args.url.clone(),
         mirrors: args.mirrors.clone(),
+        media_variant: args.variant,
         allow_duplicate: args.allow_duplicate,
         destination: args.output.clone(),
         directory: Some(paths.download_dir.clone()),
@@ -877,6 +881,7 @@ async fn grab(
                 &AddArgs {
                     url: file.url,
                     mirrors: Vec::new(),
+                    variant: None,
                     allow_duplicate: false,
                     output: None,
                     connections,
@@ -1052,6 +1057,7 @@ async fn batch(
         let args = AddArgs {
             url,
             mirrors: Vec::new(),
+            variant: None,
             allow_duplicate: false,
             output: None,
             connections,

@@ -668,6 +668,8 @@
   // ---------- dialogs ----------
   function openAdd() {
     $("#addForm").reset();
+    $("#variantField").hidden = true;
+    $("#addVariant").innerHTML = '<option value="">Auto (best)</option>';
     $("#addConns").value = "8";
     $("#addLimit").value = "0";
     $("#addCategory").value = "General";
@@ -727,6 +729,27 @@
       const size = probe.total_size ? bytes(probe.total_size) : "unknown size";
       const ranges = probe.range_supported ? "resumable" : "single stream";
       hint.textContent = `${probe.filename} · ${size} · ${ranges}`;
+      if (/\.(m3u8|mpd)(\?|$)/i.test(url)) {
+        try {
+          const media = await api("/api/v1/media/probe", {
+            method: "POST",
+            body: JSON.stringify({ url }),
+          });
+          const select = $("#addVariant");
+          select.innerHTML = '<option value="">Auto (best)</option>';
+          for (const variant of media.variants || []) {
+            const option = document.createElement("option");
+            option.value = String(variant.index);
+            option.textContent = variant.label;
+            select.appendChild(option);
+          }
+          $("#variantField").hidden = !(media.variants || []).length;
+        } catch {
+          $("#variantField").hidden = true;
+        }
+      } else {
+        $("#variantField").hidden = true;
+      }
     } catch (error) {
       hint.textContent = error.message;
     }
@@ -748,6 +771,8 @@
     if (directory) body.directory = directory;
     const mirrors = $("#addMirrors").value.split(/[\s,]+/).map((item) => item.trim()).filter(Boolean);
     if (mirrors.length) body.mirrors = mirrors;
+    const variant = $("#addVariant").value;
+    if (variant !== "") body.media_variant = Number(variant);
     const submit = $("#addSubmit");
     submit.disabled = true;
     submit.textContent = "Adding…";

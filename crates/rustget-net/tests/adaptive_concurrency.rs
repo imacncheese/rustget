@@ -30,6 +30,7 @@ async fn grows_connections_when_throughput_improves() {
         id: Uuid::new_v4(),
         url: url::Url::parse(&server.file_url("adaptive.bin")).unwrap(),
         mirrors: Vec::new(),
+        media_variant: None,
         destination: None,
         directory: temp.path().to_path_buf(),
         resume: false,

@@ -54,7 +54,9 @@ probe and routes to `download_hls` or `download_dash`.
 HLS:
 
 1. GET the playlist with the normal headers, cookies and redirect policy.
-2. For a master playlist, choose the highest-bandwidth variant and fetch it.
+2. For a master playlist, use `media_variant` when supplied (zero-based,
+   ascending bandwidth) or the highest-bandwidth variant, then fetch it. The API
+   exposes the same catalog through `/api/v1/media/probe`.
 3. For `METHOD=AES-128` with `KEYFORMAT=identity`, fetch the 16-byte key, derive
    the IV from `IV=0x...` or the segment sequence, and decrypt each segment with
    AES-128-CBC/PKCS7. Non-identity key formats are rejected.
@@ -96,6 +98,7 @@ a single identity AES-128 key is supported.
 - HLS end-to-end: master → media → init → three segments, byte-exact output.
 - HLS AES-128 decryption with a fixed key/IV and byte-exact plaintext.
 - HLS invalid PKCS7 padding rejection.
+- HLS variant catalog and explicit lower-quality selection.
 - DASH end-to-end: duration template → init + three segments, byte-exact output.
 - DASH DRM rejection.
 - Manager HLS routing updates the final `.ts` path/filename.

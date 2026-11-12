@@ -5,7 +5,7 @@ use std::time::Duration;
 use rustget_core::EngineConfig;
 use rustget_ipc::{ApiConfig, router};
 use rustget_queue::{Category, DownloadManager, ManagerConfig, PowerAction, Schedule};
-use rustget_testkit::TestServer;
+use rustget_testkit::{TestFile, TestServer, TestkitConfig};
 use tokio::net::TcpListener;
 
 async fn start_api() -> (
@@ -93,6 +93,26 @@ async fn add_list_and_delete_download() {
     assert_eq!(probed["filename"], "file.bin");
     assert_eq!(probed["total_size"], 256 * 1024);
     assert_eq!(probed["range_supported"], true);
+
+    let media_origin = TestServer::start(TestkitConfig::default().with_file(TestFile::inline(
+        "master.m3u8",
+        "application/vnd.apple.mpegurl",
+        b"#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=400000,RESOLUTION=320x180\nlow.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=800000,RESOLUTION=640x360\nhigh.m3u8\n",
+    )))
+    .await
+    .unwrap();
+    let media: serde_json::Value = client
+        .post(format!("{base}/api/v1/media/probe"))
+        .bearer_auth(&token)
+        .json(&serde_json::json!({"url": media_origin.file_url("master.m3u8")}))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(media["variants"].as_array().unwrap().len(), 2);
+    assert_eq!(media["variants"][0]["label"], "320x180");
 
     let response = client
         .post(format!("{base}/api/v1/downloads"))

@@ -16,8 +16,8 @@ pub mod probe;
 pub use checksum::{ChecksumAlgorithm, ChecksumSpec, verify_checksum};
 pub use client::{NetClient, RequestOptions};
 pub use engine::{
-    DownloadProgress, DownloadRequest, DownloadState, DownloadSummary, Downloader, ProgressHandle,
-    SegmentProgress,
+    DownloadProgress, DownloadRequest, DownloadState, DownloadSummary, Downloader, MediaVariant,
+    ProgressHandle, SegmentProgress,
 };
 pub use error::{NetError, Result};
 pub use host::HostLimiter;

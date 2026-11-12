@@ -14,6 +14,7 @@ fn request(url: String, mirrors: Vec<String>, temp: &std::path::Path) -> Downloa
             .into_iter()
             .map(|mirror| url::Url::parse(&mirror).unwrap())
             .collect(),
+        media_variant: None,
         destination: None,
         directory: temp.to_path_buf(),
         resume: false,

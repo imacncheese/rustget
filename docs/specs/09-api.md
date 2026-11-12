@@ -171,6 +171,16 @@ journal. Returns `204`.
 Opens the containing folder using the OS default handler. Returns `204` or
 `500`.
 
+### `POST /api/v1/media/probe`
+
+```json
+{"url":"https://example.test/master.m3u8"}
+```
+
+Returns `{"variants":[{"index":0,"label":"320x180","bandwidth":400000,...}]}`
+for HLS masters and DASH manifests. Unknown/plain URLs return an empty array.
+The index can be supplied as `media_variant` when adding a download.
+
 ### `POST /api/v1/probe`
 
 ```json

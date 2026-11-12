@@ -63,6 +63,8 @@ pub struct DownloadRecord {
     pub url: String,
     #[serde(default)]
     pub mirrors: Vec<String>,
+    #[serde(default)]
+    pub media_variant: Option<usize>,
     pub final_url: Option<String>,
     pub destination: PathBuf,
     pub filename: String,

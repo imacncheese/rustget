@@ -95,6 +95,8 @@ pub struct DownloadRequest {
     pub url: Url,
     /// Alternate URLs expected to expose the same bytes. Used for failover.
     pub mirrors: Vec<Url>,
+    /// Zero-based media representation index; `None` selects the highest.
+    pub media_variant: Option<usize>,
     /// Explicit file path, or `None` to derive a sanitized name in `directory`.
     pub destination: Option<PathBuf>,
     pub directory: PathBuf,
@@ -124,6 +126,15 @@ pub struct ProgressHandle {
     pub cancel: CancellationToken,
 }
 
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct MediaVariant {
+    pub index: usize,
+    pub label: String,
+    pub bandwidth: u64,
+    pub width: Option<u32>,
+    pub height: Option<u32>,
+}
+
 #[derive(Debug, Clone)]
 pub struct Downloader {
     client: Arc<NetClient>,
@@ -142,6 +153,59 @@ impl Downloader {
             config,
             host_limiter: None,
         })
+    }
+
+    pub async fn media_catalog(&self, url: &Url) -> Result<Vec<MediaVariant>> {
+        let cancel = CancellationToken::new();
+        if is_hls_url(url) {
+            let playlist = self.fetch_hls_playlist(url, &cancel).await?;
+            let rustget_media::HlsPlaylist::Master(variants) = playlist else {
+                return Ok(Vec::new());
+            };
+            return Ok(variants
+                .into_iter()
+                .enumerate()
+                .map(|(index, variant)| MediaVariant {
+                    index,
+                    label: variant.resolution.map_or_else(
+                        || format!("{} kbps", variant.bandwidth / 1000),
+                        |(width, height)| format!("{width}x{height}"),
+                    ),
+                    bandwidth: variant.bandwidth,
+                    width: variant.resolution.map(|(width, _)| width),
+                    height: variant.resolution.map(|(_, height)| height),
+                })
+                .collect());
+        }
+        if is_mpd_url(url) {
+            let text = self
+                .fetch_media_text(url, &cancel, "DASH manifest", 16 * 1024 * 1024)
+                .await?;
+            let manifest = rustget_media::parse_mpd(&text, url)
+                .map_err(|error| NetError::Protocol(error.to_string()))?;
+            return Ok(manifest
+                .representations
+                .into_iter()
+                .enumerate()
+                .map(|(index, representation)| MediaVariant {
+                    index,
+                    label: representation.width.zip(representation.height).map_or_else(
+                        || {
+                            format!(
+                                "{} · {} kbps",
+                                representation.id,
+                                representation.bandwidth / 1000
+                            )
+                        },
+                        |(width, height)| format!("{width}x{height} · {}", representation.id),
+                    ),
+                    bandwidth: representation.bandwidth,
+                    width: representation.width,
+                    height: representation.height,
+                })
+                .collect());
+        }
+        Ok(Vec::new())
     }
 
     #[must_use]
@@ -529,10 +593,15 @@ impl Downloader {
         let playlist = self.fetch_hls_playlist(&playlist_url, &cancel).await?;
         let media = match playlist {
             HlsPlaylist::Master(variants) => {
-                let variant = variants
-                    .into_iter()
-                    .max_by_key(|variant| variant.bandwidth)
-                    .ok_or(NetError::Protocol("HLS master has no variants".into()))?;
+                let index = request
+                    .media_variant
+                    .unwrap_or_else(|| variants.len().saturating_sub(1));
+                let variant = variants.get(index).cloned().ok_or_else(|| {
+                    NetError::Protocol(format!(
+                        "HLS variant {index} is out of range (0..{})",
+                        variants.len()
+                    ))
+                })?;
                 playlist_url = Url::parse(&variant.url)
                     .map_err(|error| NetError::InvalidUrl(error.to_string()))?;
                 match self.fetch_hls_playlist(&playlist_url, &cancel).await? {
@@ -710,13 +779,19 @@ impl Downloader {
             .await?;
         let manifest = rustget_media::parse_mpd(&text, &request.url)
             .map_err(|error| NetError::Protocol(error.to_string()))?;
+        let index = request
+            .media_variant
+            .unwrap_or_else(|| manifest.representations.len().saturating_sub(1));
         let representation = manifest
             .representations
-            .into_iter()
-            .max_by_key(|representation| representation.bandwidth)
-            .ok_or(NetError::Protocol(
-                "DASH manifest has no representations".into(),
-            ))?;
+            .get(index)
+            .cloned()
+            .ok_or_else(|| {
+                NetError::Protocol(format!(
+                    "DASH representation {index} is out of range (0..{})",
+                    manifest.representations.len()
+                ))
+            })?;
         if representation.drm {
             return Err(NetError::Protocol(
                 "DRM-protected DASH representations are not supported".into(),

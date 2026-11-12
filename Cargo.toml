@@ -1,0 +1,108 @@
+[workspace]
+resolver = "2"
+exclude = ["fuzz"]
+members = [
+    "crates/rustget-core",
+    "crates/rustget-storage",
+    "crates/rustget-net",
+    "crates/rustget-testkit",
+    "crates/rustget-queue",
+    "crates/rustget-ipc",
+    "crates/rustget-cli",
+    "crates/rustget-app",
+    "crates/rustget-native-host",
+    "crates/rustget-platform",
+    "crates/rustget-media",
+    "crates/rustget-crawler",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/rustget/rustget"
+authors = ["RustGet Contributors"]
+description = "A fast, open-source, cross-platform download manager"
+keywords = ["download-manager", "http", "resume", "segmented-download"]
+categories = ["command-line-utilities", "network-programming"]
+
+[workspace.dependencies]
+rustget-core = { path = "crates/rustget-core" }
+rustget-storage = { path = "crates/rustget-storage" }
+rustget-net = { path = "crates/rustget-net" }
+rustget-testkit = { path = "crates/rustget-testkit" }
+rustget-queue = { path = "crates/rustget-queue" }
+rustget-ipc = { path = "crates/rustget-ipc" }
+rustget-app = { path = "crates/rustget-app" }
+rustget-native-host = { path = "crates/rustget-native-host" }
+rustget-platform = { path = "crates/rustget-platform" }
+rustget-media = { path = "crates/rustget-media" }
+rustget-crawler = { path = "crates/rustget-crawler" }
+
+anyhow = "1.0.104"
+async-trait = "0.1.92"
+axum = { version = "0.8.9", features = ["ws", "macros"] }
+base64 = "0.23.1"
+blake3 = "1.8.7"
+bytes = "1.12.1"
+chrono = { version = "0.4.45", features = ["serde"] }
+clap = { version = "4.6.7", features = ["derive", "env", "wrap_help"] }
+criterion = { version = "0.8.2", features = ["async_tokio", "html_reports"] }
+dirs = "7.0.0"
+fastrand = "2.3.0"
+futures-util = "0.3.34"
+hex = "0.4.3"
+http = "1.5.0"
+httpdate = "1.0.3"
+libc = "0.2.191"
+md-5 = "0.10.6"
+mime_guess = "2.0.5"
+open = "5.4.5"
+parking_lot = "0.13.0"
+percent-encoding = "2.3.2"
+proptest = "1.12.0"
+regex = "1.13.1"
+reqwest = { version = "0.12.28", default-features = false, features = ["rustls-tls", "stream", "gzip", "brotli", "json", "http2", "charset"] }
+rusqlite = { version = "0.42.0", features = ["bundled", "chrono", "serde_json"] }
+rustls = { version = "0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+sha2 = "0.10.9"
+sha1 = "0.10.6"
+tempfile = "3.27.0"
+thiserror = "2.0.21"
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "fs", "net", "time", "sync", "signal", "io-util", "process", "test-util"] }
+tokio-util = { version = "0.7.20", features = ["io", "rt"] }
+toml = "1.2.1"
+tower-http = { version = "0.6.8", features = ["trace", "fs", "cors"] }
+tracing = "0.1.44"
+tracing-appender = "0.2.5"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "json"] }
+url = "2.5.8"
+uuid = { version = "1.29.2", features = ["v4", "serde"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+
+[profile.bench]
+lto = "thin"
+codegen-units = 1
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+unused_must_use = "deny"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+too_many_lines = "allow"
+cast_precision_loss = "allow"
+cast_possible_truncation = "allow"
+cast_sign_loss = "allow"

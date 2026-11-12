@@ -1,0 +1,16 @@
+/target
+/.rustget
+/.tools
+**/*.rs.bk
+*.part
+*.rustget
+*.log
+.DS_Store
+node_modules/
+dist/
+coverage/
+*.profraw
+*.profdata
+/benchmarks/results
+
+/.tmp/

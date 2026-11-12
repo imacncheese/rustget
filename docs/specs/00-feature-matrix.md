@@ -57,7 +57,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | A31 | Digest / NTLM / Negotiate / Kerberos | SHOULD | P2 | M6 | — | Planned |
 | A32 | Cookies | MUST | P1 | M1 | ◐ | Native host passes cookie header; no cookie jar/refresh |
 | A33 | Custom headers, Referer, User-Agent | MUST | P1 | M1 | ✅ | CLI `-H`, manager persists headers; UA config |
-| A34 | Client certificates | COULD | P2 | M6 | — | Planned |
+| A34 | Client certificates | COULD | P2 | M6 | ✅ | PEM client cert+key (`client_cert`/`--client-cert`), mutual-TLS success and rejection tests |
 | A35 | HTTP/HTTPS/SOCKS5 proxy, system proxy, PAC | SHOULD | P2 | M6 | ◐ | Explicit HTTP proxy in `RequestOptions`; no SOCKS/PAC/system detection |
 | A36 | Per-download proxy | COULD | P2 | M6 | ◐ | Field exists only at client construction |
 | A37 | MD5 / SHA-1 / SHA-256 / BLAKE3 verification | MUST | P1 | M1 | ✅ | Streaming hashes, pre-rename verification; tests |
@@ -206,17 +206,17 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 82 |
+| ✅ implemented + verified | 83 |
 | ◐ partial | 45 |
 | ○ specified, not implemented | 1 |
-| — not started | 19 |
+| — not started | 18 |
 | **Total tracked** | **147** |
 
 By area:
 
 | Area | Rows | ✅ | ◐ | ○ | — |
 |---|---:|---:|---:|---:|---:|
-| A. Download engine | 46 | 23 | 18 | 0 | 5 |
+| A. Download engine | 46 | 24 | 18 | 0 | 4 |
 | B. Capture/integration | 22 | 12 | 8 | 0 | 2 |
 | C. Management | 30 | 23 | 7 | 0 | 0 |
 | D. UI/UX | 12 | 10 | 2 | 0 | 0 |

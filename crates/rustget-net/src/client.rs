@@ -15,6 +15,8 @@ pub struct RequestOptions {
     pub bearer_token: Option<String>,
     pub cookie: Option<String>,
     pub proxy: Option<String>,
+    /// PEM containing a client certificate and private key.
+    pub client_identity_pem: Option<Vec<u8>>,
     /// Development only; never persisted by the CLI.
     pub accept_invalid_certs: bool,
     pub timeout_secs: Option<u64>,
@@ -45,6 +47,12 @@ impl NetClient {
                 reqwest::Proxy::all(proxy)
                     .map_err(|error| NetError::Config(format!("invalid proxy: {error}")))?,
             );
+        }
+        if let Some(pem) = &options.client_identity_pem {
+            let identity = reqwest::Identity::from_pem(pem).map_err(|error| {
+                NetError::Config(format!("invalid client certificate: {error}"))
+            })?;
+            builder = builder.identity(identity);
         }
         let client = builder
             .build()

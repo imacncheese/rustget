@@ -227,6 +227,9 @@ struct AddArgs {
     /// HTTP proxy URL for this download.
     #[arg(long)]
     proxy: Option<String>,
+    /// PEM client certificate + private key for mutual TLS.
+    #[arg(long)]
+    client_cert: Option<PathBuf>,
     /// Exact output path or directory.
     #[arg(short, long)]
     output: Option<PathBuf>,
@@ -517,6 +520,7 @@ async fn add(cli: &Cli, paths: &Paths, args: &AddArgs) -> Result<()> {
         media_variant: args.variant,
         tags: args.tags.clone(),
         proxy: args.proxy.clone(),
+        client_cert: args.client_cert.clone(),
         allow_duplicate: args.allow_duplicate,
         destination: args.output.clone(),
         directory: Some(paths.download_dir.clone()),
@@ -1018,6 +1022,7 @@ async fn grab(
                     variant: None,
                     tags: Vec::new(),
                     proxy: None,
+                    client_cert: None,
                     allow_duplicate: false,
                     output: None,
                     connections,
@@ -1196,6 +1201,7 @@ async fn batch(
             variant: None,
             tags: Vec::new(),
             proxy: None,
+            client_cert: None,
             allow_duplicate: false,
             output: None,
             connections,

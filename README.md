@@ -52,6 +52,7 @@ Rust 1.85+ is required. On Linux, install a C toolchain and OpenSSL-free
 rustget add https://example.com/archive.zip --connections 16
 rustget add https://example.com/archive.zip --output ./archive.zip --limit 8
 rustget add https://primary.example/file.bin --mirror https://mirror.example/file.bin
+rustget add https://mtls.example/file.bin --client-cert ./client.pem
 rustget add ftp://user:pass@ftp.example/file.bin
 rustget export queue.json
 rustget-tray   # optional Windows tray; RUSTGET_UI_URL overrides the URL
@@ -207,8 +208,9 @@ commands and output summary):
   gap/overlap invariants.
 - `rustget-storage`: 15 tests, including torn-journal recovery and out-of-order
   positional writes.
-- `rustget-net`: 7 unit + 22 integration tests (engine, work stealing, adaptive
-  growth, mirrors, host caps, HLS quality/AES, DASH timeline, FTP, HTTP proxy).
+- `rustget-net`: 7 unit + 24 integration tests (engine, work stealing, adaptive
+  growth, mirrors, host caps, HLS quality/AES, DASH timeline, FTP, HTTP proxy,
+  mutual TLS).
 - `rustget-queue`: 16 DB migration/manager/duplicate/tags/scheduler/power-hook/HLS/FTP/mirror tests.
 - `rustget-ipc`: 6 API tests (auth, origin/Host rejection, add/list/delete, probe/config bundles, logs).
 - `rustget-cli`: 4 pattern tests + 1 kill-process/resume + 2 scanner-hook tests.

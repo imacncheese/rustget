@@ -69,6 +69,7 @@ pub struct NewDownload {
     #[serde(default)]
     pub media_variant: Option<usize>,
     pub proxy: Option<String>,
+    pub client_cert: Option<PathBuf>,
     pub destination: Option<PathBuf>,
     pub directory: Option<PathBuf>,
     #[serde(default)]
@@ -100,6 +101,7 @@ impl NewDownload {
             mirrors: record.mirrors.clone(),
             media_variant: record.media_variant,
             proxy: record.proxy.clone(),
+            client_cert: record.client_cert.clone(),
             destination: Some(record.destination.clone()),
             directory: record
                 .destination
@@ -126,6 +128,7 @@ impl Default for NewDownload {
             mirrors: Vec::new(),
             media_variant: None,
             proxy: None,
+            client_cert: None,
             destination: None,
             directory: None,
             allow_duplicate: false,
@@ -381,6 +384,7 @@ impl DownloadManager {
                 .collect(),
             media_variant: request.media_variant,
             proxy: request.proxy,
+            client_cert: request.client_cert,
             final_url: Some(final_url),
             destination,
             filename,
@@ -728,9 +732,26 @@ impl DownloadManager {
         let id = record.id;
         let was_paused = record.status == DownloadStatus::Paused;
         let engine = self.engine_for(Some(record.connections), record.speed_limit);
+        let client_identity_pem = match record.client_cert.as_deref().map(std::fs::read).transpose()
+        {
+            Ok(pem) => pem,
+            Err(error) => {
+                record.status = DownloadStatus::Failed;
+                record.error = Some(format!("cannot read client certificate: {error}"));
+                record.updated_at_ms = chrono::Utc::now().timestamp_millis();
+                let _ = self.db.update(&record);
+                let _ = self.events.send(ManagerEvent::Updated(record.clone()));
+                let _ = self.events.send(ManagerEvent::Finished {
+                    id: record.id,
+                    status: DownloadStatus::Failed,
+                });
+                return;
+            }
+        };
         let options = RequestOptions {
             headers: record.headers.clone(),
             proxy: record.proxy.clone(),
+            client_identity_pem,
             ..RequestOptions::default()
         };
         let downloader = match Downloader::new(engine, options)
@@ -1252,6 +1273,7 @@ mod tests {
             tags: Vec::new(),
             media_variant: None,
             proxy: None,
+            client_cert: None,
             final_url: None,
             destination: PathBuf::new(),
             filename: String::new(),

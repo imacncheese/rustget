@@ -917,6 +917,8 @@
     if (tags.length) body.tags = tags;
     const proxy = $("#addProxy").value.trim();
     if (proxy) body.proxy = proxy;
+    const clientCert = $("#addClientCert").value.trim();
+    if (clientCert) body.client_cert = clientCert;
     const submit = $("#addSubmit");
     submit.disabled = true;
     submit.textContent = "Adding…";

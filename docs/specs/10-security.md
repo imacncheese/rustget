@@ -110,6 +110,8 @@ implemented, will be opt-in.
   future redesign will store sensitive headers in the OS keyring or redact them
   after the transfer.
 - Basic auth fields are not persisted today (and not exposed in the UI).
+- Client certificates are read from a local PEM path supplied per download; the
+  private key is not copied into the database, only the path is persisted.
 - The antivirus scan hook executes an operator-configured argv with the completed
   file appended, no shell, stdout suppressed, stderr capped, and a 60 s timeout.
   A non-zero exit marks the download failed but does not delete the file.

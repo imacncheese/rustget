@@ -36,6 +36,9 @@ url.workspace = true
 uuid.workspace = true
 
 [dev-dependencies]
+rcgen.workspace = true
+rustls.workspace = true
+tokio-rustls.workspace = true
 rustget-testkit.workspace = true
 tempfile.workspace = true
 

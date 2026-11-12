@@ -346,6 +346,9 @@ struct ServeArgs {
     /// Resolver plugin as NAME=PROGRAM; repeatable. The URL is appended.
     #[arg(long = "plugin")]
     plugins: Vec<String>,
+    /// Per-error-class retry cap as CLASS=N; repeatable.
+    #[arg(long = "retry-override")]
+    retry_overrides: Vec<String>,
 }
 
 struct PlatformPower;
@@ -611,6 +614,18 @@ async fn serve(
     let token = load_or_create_token(&paths.data_dir)?;
     let mut config = paths.manager_config();
     config.max_concurrent = args.concurrency.max(1);
+    for entry in &args.retry_overrides {
+        let Some((class, value)) = entry.split_once('=') else {
+            bail!("--retry-override must be CLASS=N, got {entry}");
+        };
+        let value: u32 = value
+            .parse()
+            .with_context(|| format!("invalid retry count in {entry}"))?;
+        config
+            .engine
+            .retry_overrides
+            .insert(class.to_string(), value);
+    }
     let manager = DownloadManager::new(config)?;
     if let Some(scanner) = &args.scanner {
         let mut command = vec![scanner.to_string_lossy().to_string()];

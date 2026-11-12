@@ -22,7 +22,7 @@ the public internet.
 
 | Crate | Tests | What they prove |
 |---|---:|---|
-| `rustget-core` | 14 unit + 3 proptest | partition, split, scheduling, rate, retry |
+| `rustget-core` | 15 unit + 3 proptest | partition, split, scheduling, rate, retry overrides |
 | `rustget-storage` | 16 | journal recovery, preallocation, positional writes, path safety |
 | `rustget-testkit` | 5 | range parsing, 206, no-range, flaky, redirect |
 | `rustget-net` | 7 unit + 8 HTTP + 2 work/adaptive + 2 mirrors + 2 HLS + 2 encrypted HLS + 3 DASH + 1 host cap + 1 FTP + 1 proxy + 2 client cert + 2 digest + 1 redirect-auth + 1 keep-alive + 1 disk-space | probe/checksum, host semaphore, download, fallback, redirects, retries, validator, resume, work stealing, adaptive growth, mirror failover, host caps, HLS quality/AES-128, DASH timeline, FTP, HTTP proxy, mutual TLS, Digest auth, cross-host header stripping, pooled connection reuse, free-space preflight |
@@ -33,7 +33,7 @@ the public internet.
 | `rustget-crawler` | 2 | robots parsing, origin/extension filters |
 | `rustget-native-host` | 2 | framing, oversize rejection |
 | `rustget-platform` | 5 | single-instance lock, power/autostart, scheme URL parsing, extension normalization |
-| **Total** | **129** | |
+| **Total** | **130** | |
 
 ## 3. Commands
 

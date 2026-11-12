@@ -1,10 +1,11 @@
+use std::collections::HashMap;
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
 /// Classification drives whether a request is retried, how long we wait, and
 /// whether the whole download must restart.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ErrorClass {
     /// DNS failure, reset, timeout, 5xx. Retry the same byte range.
@@ -30,6 +31,9 @@ pub struct RetryPolicy {
     pub max_delay_ms: u64,
     /// Multiplicative jitter in `[1-jitter, 1+jitter]`.
     pub jitter: f64,
+    /// Per-class retry caps overriding `max_retries`.
+    #[serde(default)]
+    pub overrides: HashMap<ErrorClass, u32>,
 }
 
 impl Default for RetryPolicy {
@@ -39,6 +43,7 @@ impl Default for RetryPolicy {
             base_delay_ms: 250,
             max_delay_ms: 30_000,
             jitter: 0.25,
+            overrides: HashMap::new(),
         }
     }
 }
@@ -46,11 +51,28 @@ impl Default for RetryPolicy {
 impl RetryPolicy {
     #[must_use]
     pub fn from_engine(config: &crate::EngineConfig) -> Self {
+        let mut overrides = HashMap::new();
+        for (name, value) in &config.retry_overrides {
+            let class = match name.as_str() {
+                "transient" => Some(ErrorClass::Transient),
+                "rate_limited" => Some(ErrorClass::RateLimited),
+                "auth" => Some(ErrorClass::Auth),
+                "not_found" => Some(ErrorClass::NotFound),
+                "range_changed" => Some(ErrorClass::RangeChanged),
+                "range_unsupported" => Some(ErrorClass::RangeUnsupported),
+                "fatal" => Some(ErrorClass::Fatal),
+                _ => None,
+            };
+            if let Some(class) = class {
+                overrides.insert(class, *value);
+            }
+        }
         Self {
             max_retries: config.max_retries,
             base_delay_ms: config.retry_base_ms,
             max_delay_ms: config.retry_max_ms,
             jitter: 0.25,
+            overrides,
         }
     }
 
@@ -71,10 +93,15 @@ impl RetryPolicy {
 
     #[must_use]
     pub fn should_retry(&self, class: ErrorClass, attempt: u32) -> bool {
+        let max_retries = self
+            .overrides
+            .get(&class)
+            .copied()
+            .unwrap_or(self.max_retries);
         matches!(
             class,
             ErrorClass::Transient | ErrorClass::RateLimited | ErrorClass::RangeChanged
-        ) && attempt <= self.max_retries
+        ) && attempt <= max_retries
     }
 
     /// Exponential backoff with full-period jitter. Rate limits start at four
@@ -114,6 +141,7 @@ mod tests {
             base_delay_ms: 100,
             max_delay_ms: 2_000,
             jitter: 0.0,
+            overrides: HashMap::new(),
         };
         assert_eq!(
             policy.delay(ErrorClass::Transient, 1),
@@ -127,6 +155,22 @@ mod tests {
             policy.delay(ErrorClass::Transient, 9),
             Duration::from_millis(2_000)
         );
+    }
+
+    #[test]
+    fn per_class_overrides_change_the_retry_cap() {
+        let mut overrides = HashMap::new();
+        overrides.insert(ErrorClass::RateLimited, 1);
+        let policy = RetryPolicy {
+            max_retries: 6,
+            base_delay_ms: 250,
+            max_delay_ms: 30_000,
+            jitter: 0.0,
+            overrides,
+        };
+        assert!(policy.should_retry(ErrorClass::RateLimited, 1));
+        assert!(!policy.should_retry(ErrorClass::RateLimited, 2));
+        assert!(policy.should_retry(ErrorClass::Transient, 6));
     }
 
     #[test]

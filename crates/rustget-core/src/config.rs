@@ -45,6 +45,8 @@ pub struct EngineConfig {
     pub restart_on_change: bool,
     /// Follow redirects while probing and downloading.
     pub max_redirects: usize,
+    /// Per-error-class retry caps keyed by class name.
+    pub retry_overrides: std::collections::BTreeMap<String, u32>,
     /// Free space reserved in addition to the declared download size.
     pub reserve_bytes: u64,
     /// User-Agent used when the caller does not supply one.
@@ -73,6 +75,7 @@ impl Default for EngineConfig {
             validate_on_resume: true,
             restart_on_change: false,
             max_redirects: 10,
+            retry_overrides: std::collections::BTreeMap::new(),
             reserve_bytes: 64 * 1024 * 1024,
             user_agent: format!("RustGet/{}", env!("CARGO_PKG_VERSION")),
         }

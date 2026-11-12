@@ -26,6 +26,7 @@ Keep a Changelog and the project uses Semantic Versioning.
 - Opt-in scheduler power actions (`--allow-power-actions`) with tested command
   planning and a fake-hook test.
 - Cross-process single-instance lock for `rustget serve`.
+- Per-error-class retry overrides via config and `--retry-override`.
 - Searchable settings dialog with collapsible Advanced section.
 - Daemon single-instance status documented as complete.
 - Process-wide shared speed limiter with per-download overrides.

@@ -10,6 +10,7 @@ description = "Tray, autostart, clipboard and power integration"
 fs2.workspace = true
 serde.workspace = true
 thiserror.workspace = true
+url.workspace = true
 
 [lints]
 workspace = true

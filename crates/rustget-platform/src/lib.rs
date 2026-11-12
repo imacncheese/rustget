@@ -1,6 +1,8 @@
 //! Tray, autostart, clipboard and power integration
 #![forbid(unsafe_code)]
 
+pub mod scheme;
+
 use std::fs::{File, OpenOptions};
 use std::io::{Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};

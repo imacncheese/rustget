@@ -195,6 +195,11 @@ Settings has **Export config** and **Import config** actions. The export is the
 same JSON bundle as the API (downloads, settings, categories, schedules); import
 reloads the queue after applying the bundle.
 
+`rustget handle-url "rustget://add?url=..."` parses the custom scheme and submits
+the download to the running local API. `rustget scheme install|status|remove`
+and `rustget associate install|status|remove <ext>` register the scheme or a
+file extension; registration writes are unverified in the sandbox.
+
 On Windows, `rustget-tray` provides a native tray icon with **Open RustGet**
 (opens `http://127.0.0.1:8765`, or `RUSTGET_UI_URL`) and **Quit**. It is a
 separate optional binary; menu interaction is not automated yet.

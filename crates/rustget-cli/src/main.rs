@@ -153,6 +153,16 @@ enum Command {
     Import { path: PathBuf },
     /// Replace the tags on a download.
     Tag { id: String, tags: Vec<String> },
+    /// Handle a `rustget://add?url=...` custom-scheme invocation.
+    HandleUrl { url: String },
+    /// Install, remove or inspect the `rustget:` URL scheme.
+    Scheme {
+        action: String,
+        #[arg(long, default_value = "rustget")]
+        scheme: String,
+    },
+    /// Install, remove or inspect a file association.
+    Associate { action: String, extension: String },
     /// Verify that a completed file exists and is readable (scanner hook helper).
     Scan { path: PathBuf },
     /// Test-only yt-dlp resolver stub; prints the supplied URL with a marker.
@@ -379,6 +389,59 @@ async fn main() -> Result<()> {
     if let Command::Scan { path } = &cli.command {
         return scan_file(path);
     }
+    if let Command::Scheme { action, scheme } = &cli.command {
+        let executable = std::env::current_exe()?;
+        match action.as_str() {
+            "install" => {
+                rustget_platform::scheme::install_scheme(&executable, scheme)
+                    .map_err(anyhow::Error::msg)?;
+            }
+            "remove" => {
+                rustget_platform::scheme::remove_scheme(scheme).map_err(anyhow::Error::msg)?;
+            }
+            "status" => {
+                let installed = rustget_platform::scheme::scheme_installed(scheme)
+                    .map_err(anyhow::Error::msg)?;
+                println!(
+                    "{scheme}: {}",
+                    if installed {
+                        "installed"
+                    } else {
+                        "not installed"
+                    }
+                );
+            }
+            other => bail!("unknown scheme action: {other}"),
+        }
+        return Ok(());
+    }
+    if let Command::Associate { action, extension } = &cli.command {
+        let executable = std::env::current_exe()?;
+        match action.as_str() {
+            "install" => {
+                rustget_platform::scheme::install_association(&executable, extension)
+                    .map_err(anyhow::Error::msg)?;
+            }
+            "remove" => {
+                rustget_platform::scheme::remove_association(extension)
+                    .map_err(anyhow::Error::msg)?;
+            }
+            "status" => {
+                let installed = rustget_platform::scheme::association_installed(extension)
+                    .map_err(anyhow::Error::msg)?;
+                println!(
+                    ".{extension}: {}",
+                    if installed {
+                        "associated"
+                    } else {
+                        "not associated"
+                    }
+                );
+            }
+            other => bail!("unknown associate action: {other}"),
+        }
+        return Ok(());
+    }
     if let Command::YtdlpStub { url, .. } = &cli.command {
         println!("{url}?resolved=1");
         return Ok(());
@@ -439,6 +502,28 @@ async fn main() -> Result<()> {
         Command::Import { path } => import_downloads(&cli, &paths, path).await,
         Command::Tag { id, tags } => tag_download(&cli, &paths, id, tags).await,
         Command::Autostart { action, dry_run } => autostart(&paths, action, *dry_run),
+        Command::HandleUrl { url } => {
+            let request =
+                rustget_platform::scheme::parse_scheme_request(url).map_err(anyhow::Error::msg)?;
+            let body = serde_json::json!({
+                "url": request.url,
+                "category": request.category,
+                "tags": request.tags,
+            });
+            let response = api_json(
+                &cli.api,
+                &paths,
+                reqwest::Method::POST,
+                "/api/v1/downloads",
+                Some(&body),
+            )
+            .await?;
+            println!("{}", serde_json::to_string_pretty(&response)?);
+            Ok(())
+        }
+        Command::Scheme { .. } | Command::Associate { .. } => {
+            unreachable!("scheme/association handled before path resolution")
+        }
         Command::Scan { .. } | Command::YtdlpStub { .. } | Command::PostStub { .. } => {
             unreachable!("local helper handled before path resolution")
         }

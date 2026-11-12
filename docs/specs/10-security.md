@@ -110,6 +110,8 @@ implemented, will be opt-in.
   future redesign will store sensitive headers in the OS keyring or redact them
   after the transfer.
 - Basic auth fields are not persisted today (and not exposed in the UI).
+- The `rustget:` handler accepts only `rustget://add?url=...`, requires a valid
+  absolute download URL, and posts through the bearer-authenticated local API.
 - Resolver plugins are operator-configured argv entries, run without a shell,
   with a 60 s timeout and a capped stderr excerpt.
 - The optional cookie jar stores cookie values in plaintext SQLite and sends

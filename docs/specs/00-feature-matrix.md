@@ -96,7 +96,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | B19 | Filename sanitization and collisions | MUST | P0 | M1 | ✅ | Traversal, reserved names, truncation, `(1)` suffix; tests |
 | B20 | Content-Disposition / RFC 5987 | MUST | P0 | M1 | ✅ | Quoted + `filename*`; tests |
 | B21 | Redirect resolution (301/302/303/307/308) | MUST | P0 | M1 | ✅ | `reqwest` policy; 2-hop test |
-| B22 | Custom protocol schemes (`idmreg:` etc.) | COULD | P3 | M5 | — | RustGet does not imitate IDM schemes |
+| B22 | Custom protocol schemes (`idmreg:` etc.) | COULD | P3 | M5 | ◐ | `rustget://add` parser/handler and Windows/Linux registration helpers; live registry write blocked in sandbox |
 
 ## C. Management
 
@@ -180,7 +180,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | F04 | MSI/NSIS installer | SHOULD | P1 | M7 | — | Planned |
 | F05 | AppImage/deb/rpm | SHOULD | P1 | M7 | — | Planned |
 | F06 | DMG | SHOULD | P1 | M7 | — | Planned |
-| F07 | File association | COULD | P2 | M7 | — | Planned |
+| F07 | File association | COULD | P2 | M7 | ◐ | Windows HKCU/Linux xdg-mime association helpers and CLI; live write unverified in sandbox |
 | F08 | Auto-update | SHOULD | P3 | M7 | — | Opt-in only; not implemented |
 | F09 | Native tray/shell | SHOULD | P1 | M4 | ◐ | Windows tray shell implemented; no tray state/minimize-to-tray or macOS/Linux backend |
 | F10 | Single-instance lock | MUST | P1 | M4 | ✅ | Cross-process lock file; second daemon exits with a clear error |
@@ -207,9 +207,9 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | State | Count |
 |---|---:|
 | ✅ implemented + verified | 93 |
-| ◐ partial | 41 |
+| ◐ partial | 43 |
 | ○ specified, not implemented | 1 |
-| — not started | 12 |
+| — not started | 10 |
 | **Total tracked** | **147** |
 
 By area:
@@ -217,11 +217,11 @@ By area:
 | Area | Rows | ✅ | ◐ | ○ | — |
 |---|---:|---:|---:|---:|---:|
 | A. Download engine | 46 | 28 | 15 | 0 | 3 |
-| B. Capture/integration | 22 | 13 | 8 | 0 | 1 |
+| B. Capture/integration | 22 | 13 | 9 | 0 | 0 |
 | C. Management | 30 | 23 | 7 | 0 | 0 |
 | D. UI/UX | 12 | 10 | 2 | 0 | 0 |
 | E. Quality/security | 15 | 11 | 2 | 1 | 1 |
-| F. Platform/packaging | 10 | 2 | 3 | 0 | 5 |
+| F. Platform/packaging | 10 | 2 | 4 | 0 | 4 |
 | G. Protocols/extensibility | 12 | 6 | 4 | 0 | 2 |
 
 The count is maintained manually alongside the table; the parity scorecard gives

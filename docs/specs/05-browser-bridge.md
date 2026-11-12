@@ -1,6 +1,7 @@
 # Browser bridge specification
 
-**Status:** Chromium/Firefox MV3 source, native host and loopback API implemented
+**Status:** Chromium/Firefox MV3 source, native host, loopback API and opt-in
+download takeover implemented
 **Code:** `extensions/chromium`, `extensions/firefox`,
 `crates/rustget-native-host`, `crates/rustget-ipc`
 **Related:** [ADR-0014](../adr/0014-browser-bridge.md)
@@ -20,8 +21,8 @@
 
 - Reproducing IDM's proprietary array-opcode protocol or custom `idmreg:`/
   `idmdwnlmfv9://` schemes.
-- Silently cancelling every browser download. That requires broad permissions and
-  is a UX/security decision deferred to an explicit opt-in feature.
+- Silently cancelling every browser download. Takeover is **default off** and
+  only occurs after RustGet accepts the request.
 - DRM circumvention or media decryption.
 
 ## 2. Components
@@ -94,15 +95,19 @@ Chromium manifest:
 
 ```json
 {
-  "permissions": ["contextMenus", "nativeMessaging", "storage", "cookies", "activeTab"],
+  "permissions": ["contextMenus", "nativeMessaging", "storage", "cookies", "activeTab", "downloads"],
   "host_permissions": ["<all_urls>"],
   "background": { "service_worker": "background.js" },
+  "options_ui": { "page": "options.html", "open_in_tab": false },
   "content_scripts": [{ "matches": ["http://*/*", "https://*/*"], "js": ["content.js"] }]
 }
 ```
 
 Firefox uses the same sources with `background.scripts` and a
 `browser_specific_settings.gecko.id`.
+
+`downloads` is used only for the opt-in takeover path. Without the option enabled,
+the extension never cancels or erases a browser download.
 
 No remote code is loaded. The content script is plain JavaScript shipped in the
 package. There is no eval, no `fetch` to a vendor, and no telemetry.
@@ -160,6 +165,14 @@ Store packaging is intentionally not performed.
 - Context menu on links, video and audio: “Download with RustGet”.
 - Context menu on the page: “Download page with RustGet”.
 - Toolbar action downloads the first detected media, or the current page.
+- Options page:
+  - “Take over browser downloads” (default **off**): on `downloads.onCreated`,
+    send the URL to RustGet, wait for acceptance, then cancel the browser item.
+    `blob:`/`data:` and extension-originated downloads are ignored. On any native
+    host error the browser download is left untouched.
+  - “Show media panel” (default on): content script checks the stored setting
+    before rendering and reacts to changes.
+  - “Test daemon connection”: sends a `ping` through the native host.
 - Content script:
   - scans `video`/`audio`/`source` and links ending in common media/manifest
     extensions;
@@ -204,8 +217,7 @@ Store packaging is intentionally not performed.
 
 ## 10. Future work
 
-- Optional download interception with an explicit “take over browser downloads”
-  setting.
+- Browser-driven tests for the takeover flow (Playwright/WebDriver).
 - `webRequest` sniffing for HLS/DASH manifests, gated behind an optional
   permission.
 - Signed store packages and native host installers.

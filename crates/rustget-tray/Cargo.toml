@@ -1,0 +1,19 @@
+[package]
+name = "rustget-tray"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Optional native tray shell for a running RustGet daemon"
+
+[[bin]]
+name = "rustget-tray"
+path = "src/main.rs"
+
+[target.'cfg(windows)'.dependencies]
+open.workspace = true
+tray-icon.workspace = true
+winit.workspace = true
+
+[lints]
+workspace = true

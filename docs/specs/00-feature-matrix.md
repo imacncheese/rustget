@@ -118,7 +118,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | C14 | Filter | MUST | P1 | M4 | ✅ | Status filters |
 | C15 | Sort | MUST | P1 | M4 | ✅ | Name/size/progress/speed/status |
 | C16 | Tags | COULD | P2 | M6 | ✅ | Persisted/normalized tags, API PATCH, CLI `tag`/`--tag`, details chips, search includes tags |
-| C17 | Tray icon | SHOULD | P1 | M4 | — | Planned; no native shell |
+| C17 | Tray icon | SHOULD | P1 | M4 | ◐ | Windows `rustget-tray` binary (open UI/quit) starts and stays alive; menu interaction not automated, other OS stubs |
 | C18 | Desktop notifications | SHOULD | P1 | M4 | ◐ | Browser Notification API; no OS integration |
 | C19 | Start with system | SHOULD | P2 | M6 | ◐ | Windows registry / Linux .desktop / macOS LaunchAgent code + `autostart` CLI; Windows registry write is denied in this environment, Unix paths not executed |
 | C20 | Single instance | MUST | P1 | M4 | ◐ | Daemon lock file enforced; no native desktop shell yet |
@@ -182,7 +182,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | F06 | DMG | SHOULD | P1 | M7 | — | Planned |
 | F07 | File association | COULD | P2 | M7 | — | Planned |
 | F08 | Auto-update | SHOULD | P3 | M7 | — | Opt-in only; not implemented |
-| F09 | Native tray/shell | SHOULD | P1 | M4 | — | Web UI only |
+| F09 | Native tray/shell | SHOULD | P1 | M4 | ◐ | Windows tray shell implemented; no tray state/minimize-to-tray or macOS/Linux backend |
 | F10 | Single-instance lock | MUST | P1 | M4 | ✅ | Cross-process lock file; second daemon exits with a clear error |
 
 ## G. Protocols, media and extensibility
@@ -207,9 +207,9 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | State | Count |
 |---|---:|
 | ✅ implemented + verified | 81 |
-| ◐ partial | 43 |
+| ◐ partial | 45 |
 | ○ specified, not implemented | 1 |
-| — not started | 22 |
+| — not started | 20 |
 | **Total tracked** | **147** |
 
 By area:
@@ -218,10 +218,10 @@ By area:
 |---|---:|---:|---:|---:|---:|
 | A. Download engine | 46 | 22 | 18 | 0 | 6 |
 | B. Capture/integration | 22 | 12 | 8 | 0 | 2 |
-| C. Management | 30 | 23 | 6 | 0 | 1 |
+| C. Management | 30 | 23 | 7 | 0 | 0 |
 | D. UI/UX | 12 | 10 | 2 | 0 | 0 |
 | E. Quality/security | 15 | 9 | 3 | 1 | 2 |
-| F. Platform/packaging | 10 | 2 | 2 | 0 | 6 |
+| F. Platform/packaging | 10 | 2 | 3 | 0 | 5 |
 | G. Protocols/extensibility | 12 | 3 | 4 | 0 | 5 |
 
 The count is maintained manually alongside the table; the parity scorecard gives

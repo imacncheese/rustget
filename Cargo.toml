@@ -14,6 +14,7 @@ members = [
     "crates/rustget-platform",
     "crates/rustget-media",
     "crates/rustget-crawler",
+    "crates/rustget-tray",
 ]
 
 [workspace.package]
@@ -63,6 +64,8 @@ libc = "0.2.191"
 md-5 = "0.10.6"
 mime_guess = "2.0.5"
 open = "5.4.5"
+tray-icon = "0.26.1"
+winit = "0.30.13"
 parking_lot = "0.13.0"
 percent-encoding = "2.3.2"
 proptest = "1.12.0"

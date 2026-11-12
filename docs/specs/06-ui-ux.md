@@ -195,6 +195,10 @@ Settings has **Export config** and **Import config** actions. The export is the
 same JSON bundle as the API (downloads, settings, categories, schedules); import
 reloads the queue after applying the bundle.
 
+On Windows, `rustget-tray` provides a native tray icon with **Open RustGet**
+(opens `http://127.0.0.1:8765`, or `RUSTGET_UI_URL`) and **Quit**. It is a
+separate optional binary; menu interaction is not automated yet.
+
 The language selector in Settings switches the core UI between English and
 German using `assets/i18n.js` and `data-i18n` attributes; the choice is persisted
 in `localStorage` and `?lang=de` is supported for testing. Dynamic strings and

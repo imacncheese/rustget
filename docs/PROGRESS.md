@@ -56,6 +56,7 @@
 - [x] In-app log viewer over a bounded tracing buffer.
 - [x] Two-step first-run wizard with token validation.
 - [~] English/German UI catalog and language selector (partial, non-Fluent).
+- [~] Windows tray shell (`rustget-tray`); startup verified, menu not automated.
 - [x] Explicit per-download HTTP proxy with a live proxy fixture.
 - [~] Autostart CLI/platform entries; Windows registry writes blocked here.
 - [x] Scheduler weekly timeline and add/delete form in the web UI.

@@ -54,6 +54,7 @@ rustget add https://example.com/archive.zip --output ./archive.zip --limit 8
 rustget add https://primary.example/file.bin --mirror https://mirror.example/file.bin
 rustget add ftp://user:pass@ftp.example/file.bin
 rustget export queue.json
+rustget-tray   # optional Windows tray; RUSTGET_UI_URL overrides the URL
 rustget import queue.json
 ```
 
@@ -169,6 +170,7 @@ crates/
   rustget-app       web UI assets
   rustget-cli       `rustget` binary
   rustget-native-host  browser native-messaging binary
+  rustget-tray      optional Windows tray shell (open UI/quit)
   rustget-media     HLS/DASH parsers, FFmpeg sidecar boundary
   rustget-testkit   instrumented adversarial origin
   rustget-crawler   same-origin site crawler

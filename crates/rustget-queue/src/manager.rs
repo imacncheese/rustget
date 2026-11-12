@@ -73,6 +73,8 @@ pub struct NewDownload {
     #[serde(default)]
     pub allow_duplicate: bool,
     pub category: Option<String>,
+    #[serde(default)]
+    pub tags: Vec<String>,
     pub connections: Option<u8>,
     pub speed_limit: Option<u64>,
     #[serde(default)]
@@ -103,6 +105,7 @@ impl NewDownload {
                 .map(std::path::Path::to_path_buf),
             allow_duplicate: true,
             category: Some(record.category.clone()),
+            tags: record.tags.clone(),
             connections: Some(record.connections),
             speed_limit: record.speed_limit,
             headers: record.headers.clone(),
@@ -124,6 +127,7 @@ impl Default for NewDownload {
             directory: None,
             allow_duplicate: false,
             category: None,
+            tags: Vec::new(),
             connections: None,
             speed_limit: None,
             headers: Vec::new(),
@@ -137,6 +141,7 @@ impl Default for NewDownload {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
+#[allow(clippy::large_enum_variant)]
 pub enum ManagerEvent {
     Updated(DownloadRecord),
     Progress {
@@ -155,6 +160,27 @@ pub enum ManagerEvent {
 struct TaskEntry {
     cancel: CancellationToken,
     _join: JoinHandle<()>,
+}
+
+fn normalize_tags(tags: Vec<String>) -> Vec<String> {
+    let mut out = Vec::new();
+    for tag in tags {
+        let tag = tag.trim();
+        if tag.is_empty() || tag.chars().count() > 40 {
+            continue;
+        }
+        if out
+            .iter()
+            .any(|existing: &String| existing.eq_ignore_ascii_case(tag))
+        {
+            continue;
+        }
+        out.push(tag.to_string());
+        if out.len() == 32 {
+            break;
+        }
+    }
+    out
 }
 
 pub trait PowerHook: Send + Sync {
@@ -354,6 +380,7 @@ impl DownloadManager {
             destination,
             filename,
             category,
+            tags: normalize_tags(request.tags),
             status: DownloadStatus::Queued,
             total_size,
             downloaded: 0,
@@ -441,6 +468,15 @@ impl DownloadManager {
         }
         let downloader = Downloader::new(self.engine_for(None, None), RequestOptions::default())?;
         Ok(downloader.media_catalog(&url).await?)
+    }
+
+    pub fn set_tags(&self, id: Uuid, tags: Vec<String>) -> Result<DownloadRecord> {
+        let mut record = self.get(id)?;
+        record.tags = normalize_tags(tags);
+        record.updated_at_ms = chrono::Utc::now().timestamp_millis();
+        self.db.update(&record)?;
+        let _ = self.events.send(ManagerEvent::Updated(record.clone()));
+        Ok(record)
     }
 
     pub fn set_priority(&self, id: Uuid, priority: i32) -> Result<DownloadRecord> {
@@ -1124,12 +1160,42 @@ mod tests {
         assert_eq!(manager.list(None).unwrap().len(), 2);
     }
 
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn tags_are_normalized_and_editable() {
+        let server = TestServer::start(TestkitConfig::single(64 * 1024))
+            .await
+            .unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        let manager = DownloadManager::new(ManagerConfig {
+            data_dir: directory.path().join("data"),
+            download_dir: directory.path().join("downloads"),
+            engine: EngineConfig::default(),
+            max_concurrent: 1,
+        })
+        .unwrap();
+        let record = manager
+            .add(NewDownload {
+                url: server.file_url("file.bin"),
+                tags: vec![" Linux ".into(), "linux".into(), "".into(), "iso".into()],
+                start: false,
+                ..NewDownload::default()
+            })
+            .await
+            .unwrap();
+        assert_eq!(record.tags, ["Linux", "iso"]);
+        let updated = manager
+            .set_tags(record.id, vec!["media".into(), "Linux".into()])
+            .unwrap();
+        assert_eq!(updated.tags, ["media", "Linux"]);
+    }
+
     #[test]
     fn progress_is_mapped_to_record() {
         let mut record = DownloadRecord {
             id: Uuid::new_v4(),
             url: String::new(),
             mirrors: Vec::new(),
+            tags: Vec::new(),
             media_variant: None,
             final_url: None,
             destination: PathBuf::new(),

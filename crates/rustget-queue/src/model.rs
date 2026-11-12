@@ -69,6 +69,8 @@ pub struct DownloadRecord {
     pub destination: PathBuf,
     pub filename: String,
     pub category: String,
+    #[serde(default)]
+    pub tags: Vec<String>,
     pub status: DownloadStatus,
     pub total_size: Option<u64>,
     pub downloaded: u64,

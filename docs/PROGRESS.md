@@ -52,6 +52,7 @@
 - [x] Versioned JSON export/import for downloads, settings, categories and schedules.
 - [x] Drag-and-drop http(s) links into the add dialog.
 - [x] HLS/DASH quality catalog and variant picker.
+- [x] Persisted tags with API/CLI/UI editing and tag search.
 - [~] Autostart CLI/platform entries; Windows registry writes blocked here.
 - [x] Scheduler weekly timeline and add/delete form in the web UI.
 - [x] Chromium/Firefox extension + native-messaging host (live tested).
@@ -95,7 +96,7 @@ rustget-core     14 unit + 3 proptest   PASS
 rustget-storage  15                      PASS
 rustget-testkit   5                      PASS
 rustget-net       7 unit + 8 HTTP + 2 work/adaptive + 2 mirrors + 2 HLS + 2 AES-HLS + 3 DASH + 1 host cap + 1 FTP  PASS
-rustget-queue     15                     PASS
+rustget-queue     16                     PASS
 rustget-ipc       5                      PASS
 rustget-cli       4 + 1 crash safety     PASS
 rustget-media     6                      PASS
@@ -104,7 +105,7 @@ rustget-native-host 2                    PASS
 rustget-platform  3                     PASS
 clippy -D warnings                       PASS
 cargo fmt --check                        PASS
-total                                  103 tests
+total                                  104 tests
 ```
 
 Commands:

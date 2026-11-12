@@ -133,7 +133,7 @@ async fn add_list_and_delete_download() {
     let patched: serde_json::Value = client
         .patch(format!("{base}/api/v1/downloads/{id}"))
         .bearer_auth(&token)
-        .json(&serde_json::json!({"priority": 7}))
+        .json(&serde_json::json!({"priority": 7, "tags": ["linux", "iso"]}))
         .send()
         .await
         .unwrap()
@@ -141,6 +141,8 @@ async fn add_list_and_delete_download() {
         .await
         .unwrap();
     assert_eq!(patched["priority"], 7);
+    assert_eq!(patched["tags"][0], "linux");
+    assert_eq!(patched["tags"][1], "iso");
 
     let deadline = tokio::time::Instant::now() + Duration::from_secs(20);
     loop {

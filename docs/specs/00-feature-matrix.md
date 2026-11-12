@@ -117,7 +117,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | C13 | Search | MUST | P1 | M4 | ✅ | UI search; API filter by status |
 | C14 | Filter | MUST | P1 | M4 | ✅ | Status filters |
 | C15 | Sort | MUST | P1 | M4 | ✅ | Name/size/progress/speed/status |
-| C16 | Tags | COULD | P2 | M6 | — | Category only |
+| C16 | Tags | COULD | P2 | M6 | ✅ | Persisted/normalized tags, API PATCH, CLI `tag`/`--tag`, details chips, search includes tags |
 | C17 | Tray icon | SHOULD | P1 | M4 | — | Planned; no native shell |
 | C18 | Desktop notifications | SHOULD | P1 | M4 | ◐ | Browser Notification API; no OS integration |
 | C19 | Start with system | SHOULD | P2 | M6 | ◐ | Windows registry / Linux .desktop / macOS LaunchAgent code + `autostart` CLI; Windows registry write is denied in this environment, Unix paths not executed |
@@ -206,10 +206,10 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 78 |
+| ✅ implemented + verified | 79 |
 | ◐ partial | 41 |
 | ○ specified, not implemented | 1 |
-| — not started | 27 |
+| — not started | 26 |
 | **Total tracked** | **147** |
 
 By area:
@@ -218,7 +218,7 @@ By area:
 |---|---:|---:|---:|---:|---:|
 | A. Download engine | 46 | 22 | 18 | 0 | 6 |
 | B. Capture/integration | 22 | 12 | 8 | 0 | 2 |
-| C. Management | 30 | 21 | 5 | 0 | 4 |
+| C. Management | 30 | 22 | 5 | 0 | 3 |
 | D. UI/UX | 12 | 9 | 2 | 0 | 1 |
 | E. Quality/security | 15 | 9 | 3 | 1 | 2 |
 | F. Platform/packaging | 10 | 2 | 2 | 0 | 6 |

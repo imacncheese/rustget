@@ -33,6 +33,7 @@ impl Database {
                 destination TEXT NOT NULL,
                 filename TEXT NOT NULL,
                 category TEXT NOT NULL DEFAULT 'General',
+                tags TEXT NOT NULL DEFAULT '[]',
                 status TEXT NOT NULL,
                 total_size INTEGER,
                 downloaded INTEGER NOT NULL DEFAULT 0,
@@ -120,6 +121,25 @@ impl Database {
         if !has_media_variant {
             conn.execute("ALTER TABLE downloads ADD COLUMN media_variant INTEGER", [])?;
         }
+        let has_tags = {
+            let mut statement = conn.prepare("PRAGMA table_info(downloads)")?;
+            let mut rows = statement.query([])?;
+            let mut found = false;
+            while let Some(row) = rows.next()? {
+                let name: String = row.get(1)?;
+                if name == "tags" {
+                    found = true;
+                    break;
+                }
+            }
+            found
+        };
+        if !has_tags {
+            conn.execute(
+                "ALTER TABLE downloads ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'",
+                [],
+            )?;
+        }
         Ok(Self {
             conn: Mutex::new(conn),
         })
@@ -128,12 +148,13 @@ impl Database {
     pub fn insert(&self, record: &DownloadRecord) -> rusqlite::Result<()> {
         let headers = serde_json::to_string(&record.headers).unwrap_or_else(|_| "[]".into());
         let mirrors = serde_json::to_string(&record.mirrors).unwrap_or_else(|_| "[]".into());
+        let tags = serde_json::to_string(&record.tags).unwrap_or_else(|_| "[]".into());
         self.conn.lock().execute(
             r"INSERT INTO downloads (
-                id,url,mirrors,media_variant,final_url,destination,filename,category,status,total_size,downloaded,
+                id,url,mirrors,media_variant,final_url,destination,filename,category,tags,status,total_size,downloaded,
                 speed_bps,connections,speed_limit,headers,checksum_algorithm,checksum_value,
                 etag,last_modified,error,priority,created_at_ms,updated_at_ms,completed_at_ms
-            ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23,?24)",
+            ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23,?24,?25)",
             params![
                 record.id.to_string(),
                 record.url,
@@ -143,6 +164,7 @@ impl Database {
                 record.destination.to_string_lossy(),
                 record.filename,
                 record.category,
+                tags,
                 record.status.as_str(),
                 record.total_size.and_then(|value| i64::try_from(value).ok()),
                 i64::try_from(record.downloaded).unwrap_or(i64::MAX),
@@ -167,12 +189,13 @@ impl Database {
     pub fn update(&self, record: &DownloadRecord) -> rusqlite::Result<()> {
         let headers = serde_json::to_string(&record.headers).unwrap_or_else(|_| "[]".into());
         let mirrors = serde_json::to_string(&record.mirrors).unwrap_or_else(|_| "[]".into());
+        let tags = serde_json::to_string(&record.tags).unwrap_or_else(|_| "[]".into());
         self.conn.lock().execute(
             r"UPDATE downloads SET
-                url=?2, mirrors=?3, media_variant=?4, final_url=?5, destination=?6, filename=?7, category=?8, status=?9,
-                total_size=?10, downloaded=?11, speed_bps=?12, connections=?13, speed_limit=?14,
-                headers=?15, checksum_algorithm=?16, checksum_value=?17, etag=?18,
-                last_modified=?19, error=?20, priority=?21, updated_at_ms=?22, completed_at_ms=?23
+                url=?2, mirrors=?3, media_variant=?4, final_url=?5, destination=?6, filename=?7, category=?8, tags=?9, status=?10,
+                total_size=?11, downloaded=?12, speed_bps=?13, connections=?14, speed_limit=?15,
+                headers=?16, checksum_algorithm=?17, checksum_value=?18, etag=?19,
+                last_modified=?20, error=?21, priority=?22, updated_at_ms=?23, completed_at_ms=?24
               WHERE id=?1",
             params![
                 record.id.to_string(),
@@ -183,6 +206,7 @@ impl Database {
                 record.destination.to_string_lossy(),
                 record.filename,
                 record.category,
+                tags,
                 record.status.as_str(),
                 record.total_size.and_then(|v| i64::try_from(v).ok()),
                 i64::try_from(record.downloaded).unwrap_or(i64::MAX),
@@ -434,6 +458,7 @@ fn map_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<DownloadRecord> {
     let destination: String = row.get("destination")?;
     let headers_json: String = row.get("headers")?;
     let mirrors_json: String = row.get("mirrors")?;
+    let tags_json: String = row.get("tags")?;
     let total: Option<i64> = row.get("total_size")?;
     let downloaded: i64 = row.get("downloaded")?;
     let connections: i64 = row.get("connections")?;
@@ -444,6 +469,7 @@ fn map_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<DownloadRecord> {
         id: Uuid::parse_str(&id).unwrap_or_else(|_| Uuid::nil()),
         url: row.get("url")?,
         mirrors: serde_json::from_str(&mirrors_json).unwrap_or_default(),
+        tags: serde_json::from_str(&tags_json).unwrap_or_default(),
         media_variant: row
             .get::<_, Option<i64>>("media_variant")?
             .and_then(|value| usize::try_from(value).ok()),
@@ -482,6 +508,7 @@ mod tests {
             id: Uuid::new_v4(),
             url: url.into(),
             mirrors: vec!["https://mirror.example/file.bin".into()],
+            tags: vec!["linux".into(), "iso".into()],
             media_variant: Some(1),
             final_url: None,
             destination: PathBuf::from("C:/downloads/file.bin"),
@@ -522,6 +549,7 @@ mod tests {
         assert_eq!(loaded.headers.len(), 1);
         assert_eq!(loaded.mirrors.len(), 1);
         assert_eq!(loaded.media_variant, Some(1));
+        assert_eq!(loaded.tags, ["linux", "iso"]);
     }
 
     #[test]

@@ -362,6 +362,7 @@ async fn resume_all(State(state): State<ApiState>) -> Json<serde_json::Value> {
 #[derive(Debug, Deserialize)]
 struct PatchDownload {
     priority: Option<i32>,
+    tags: Option<Vec<String>>,
 }
 
 async fn patch_download(
@@ -370,14 +371,30 @@ async fn patch_download(
     Json(input): Json<PatchDownload>,
 ) -> Result<Json<rustget_queue::DownloadRecord>, ApiError> {
     let id = parse_id(&id)?;
+    let mut record = state
+        .manager
+        .get(id)
+        .map_err(|error| map_manager_error(&error))?;
+    let mut changed = false;
     if let Some(priority) = input.priority {
-        return state
+        record = state
             .manager
             .set_priority(id, priority)
-            .map(Json)
-            .map_err(|error| map_manager_error(&error));
+            .map_err(|error| map_manager_error(&error))?;
+        changed = true;
     }
-    Err(ApiError::BadRequest("no supported fields supplied".into()))
+    if let Some(tags) = input.tags {
+        record = state
+            .manager
+            .set_tags(id, tags)
+            .map_err(|error| map_manager_error(&error))?;
+        changed = true;
+    }
+    if changed {
+        Ok(Json(record))
+    } else {
+        Err(ApiError::BadRequest("no supported fields supplied".into()))
+    }
 }
 
 async fn pause_download(

@@ -131,10 +131,12 @@ Request:
 
 ### `PATCH /api/v1/downloads/{id}`
 
-Updates queue priority. Higher values are promoted first.
+Updates queue priority and/or tags. Higher priority values are promoted first.
+Tags are trimmed, deduplicated case-insensitively, capped at 32 entries/40
+characters each.
 
 ```json
-{"priority": 7}
+{"priority": 7, "tags": ["linux", "iso"]}
 ```
 
 Returns the updated record.

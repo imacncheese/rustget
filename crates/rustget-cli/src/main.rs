@@ -97,6 +97,8 @@ enum Command {
     },
     /// Import a previously exported download list (queued, not started).
     Import { path: PathBuf },
+    /// Replace the tags on a download.
+    Tag { id: String, tags: Vec<String> },
     /// Install, remove or inspect the per-user autostart entry.
     Autostart {
         #[command(subcommand)]
@@ -163,6 +165,9 @@ struct AddArgs {
     /// Zero-based media variant index (HLS/DASH); default is best quality.
     #[arg(long)]
     variant: Option<usize>,
+    /// Tag to attach; repeatable.
+    #[arg(long = "tag")]
+    tags: Vec<String>,
     /// Exact output path or directory.
     #[arg(short, long)]
     output: Option<PathBuf>,
@@ -293,6 +298,7 @@ async fn main() -> Result<()> {
         }
         Command::Export { path } => export_downloads(&paths, path.as_deref()).await,
         Command::Import { path } => import_downloads(&cli, &paths, path).await,
+        Command::Tag { id, tags } => tag_download(&cli, &paths, id, tags).await,
         Command::Autostart { action, dry_run } => autostart(&paths, action, *dry_run),
         Command::Schedule { action } => schedule_command(&cli, &paths, action).await,
         Command::Grab {
@@ -418,6 +424,7 @@ async fn add(cli: &Cli, paths: &Paths, args: &AddArgs) -> Result<()> {
         url: args.url.clone(),
         mirrors: args.mirrors.clone(),
         media_variant: args.variant,
+        tags: args.tags.clone(),
         allow_duplicate: args.allow_duplicate,
         destination: args.output.clone(),
         directory: Some(paths.download_dir.clone()),
@@ -801,6 +808,27 @@ fn autostart(paths: &Paths, action: &AutostartAction, dry_run: bool) -> Result<(
     Ok(())
 }
 
+async fn tag_download(cli: &Cli, paths: &Paths, id: &str, tags: &[String]) -> Result<()> {
+    let uuid = parse_id(id)?;
+    if !cli.local && daemon_available(&cli.api).await {
+        let body = serde_json::json!({"tags": tags});
+        let record = api_json(
+            &cli.api,
+            paths,
+            reqwest::Method::PATCH,
+            &format!("/api/v1/downloads/{uuid}"),
+            Some(&body),
+        )
+        .await?;
+        println!("tags: {}", record["tags"]);
+        return Ok(());
+    }
+    let manager = DownloadManager::new(paths.manager_config())?;
+    let record = manager.set_tags(uuid, tags.to_vec())?;
+    println!("tags: {}", record.tags.join(", "));
+    Ok(())
+}
+
 async fn remove(cli: &Cli, paths: &Paths, id: &str, delete_files: bool) -> Result<()> {
     let uuid = parse_id(id)?;
     if !cli.local && daemon_available(&cli.api).await {
@@ -882,6 +910,7 @@ async fn grab(
                     url: file.url,
                     mirrors: Vec::new(),
                     variant: None,
+                    tags: Vec::new(),
                     allow_duplicate: false,
                     output: None,
                     connections,
@@ -1058,6 +1087,7 @@ async fn batch(
             url,
             mirrors: Vec::new(),
             variant: None,
+            tags: Vec::new(),
             allow_duplicate: false,
             output: None,
             connections,

@@ -98,6 +98,14 @@
               <div class="section-title"><span>Connections</span><span id="detailConns">0</span></div>
               <div class="segments" id="detailSegments"></div>
             </div>
+            <div class="tags-block">
+              <div class="section-title"><span>Tags</span></div>
+              <div class="tags" id="detailTags"></div>
+              <div class="input-row">
+                <input id="tagInput" type="text" maxlength="40" placeholder="Add tag" autocomplete="off">
+                <button id="tagAdd" class="secondary" type="button">Add</button>
+              </div>
+            </div>
             <div class="meta">
               <div><small>Saved to</small><code id="detailPath">—</code></div>
               <div><small>Source</small><code id="detailUrl">—</code></div>
@@ -161,6 +169,10 @@
         <label class="field" id="variantField" hidden>
           <span>Media quality</span>
           <select id="addVariant"><option value="">Auto (best)</option></select>
+        </label>
+        <label class="field">
+          <span>Tags (comma separated, optional)</span>
+          <input id="addTags" type="text" placeholder="linux, iso" autocomplete="off">
         </label>
         <label class="field">
           <span>Mirror URLs (comma separated, optional)</span>

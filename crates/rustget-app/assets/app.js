@@ -328,7 +328,7 @@
     let items = state.downloads.filter((record) => matchesFilter(record));
     if (needle) {
       items = items.filter((record) =>
-        `${record.filename} ${record.url} ${record.category}`.toLowerCase().includes(needle));
+        `${record.filename} ${record.url} ${record.category} ${(record.tags || []).join(" ")}`.toLowerCase().includes(needle));
     }
     const key = state.sortKey;
     items.sort((a, b) => {
@@ -503,6 +503,7 @@
     $("#detailSize").textContent = `${bytes(record.downloaded)} / ${record.total_size ? bytes(record.total_size) : "unknown"}`;
     $("#detailSpeed").textContent = active(record) ? speed(record.speed_bps) : "—";
     renderSpeedChart(record);
+    renderTags(record);
     $("#detailEta").textContent = eta(record);
     $("#detailAdded").textContent = date(record.created_at_ms);
     $("#detailPath").textContent = record.destination || "—";
@@ -521,6 +522,52 @@
     $("#resumeBtn").disabled = !resumable && record.status !== "paused";
     $("#retryBtn").hidden = record.status !== "failed";
     $(".actions").style.opacity = "1";
+  }
+
+  function renderTags(record) {
+    const container = $("#detailTags");
+    container.innerHTML = "";
+    if (!(record.tags || []).length) {
+      container.textContent = "No tags yet";
+      container.style.color = "var(--muted)";
+      return;
+    }
+    container.style.color = "";
+    for (const tag of record.tags) {
+      const chip = document.createElement("span");
+      chip.className = "tag";
+      const label = document.createElement("span");
+      label.textContent = tag;
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.textContent = "×";
+      remove.title = `Remove ${tag}`;
+      remove.addEventListener("click", () => saveTags(record, record.tags.filter((item) => item !== tag)));
+      chip.append(label, remove);
+      container.appendChild(chip);
+    }
+  }
+
+  async function saveTags(record, tags) {
+    try {
+      const updated = await api(`/api/v1/downloads/${record.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ tags }),
+      });
+      const index = state.downloads.findIndex((item) => item.id === record.id);
+      if (index >= 0) state.downloads[index] = updated;
+      renderAll();
+    } catch (error) { toast(error.message, true); }
+  }
+
+  async function addTagFromInput() {
+    const input = $("#tagInput");
+    const tag = input.value.trim();
+    if (!tag || !state.selected) return;
+    const record = state.downloads.find((item) => item.id === state.selected);
+    if (!record) return;
+    await saveTags(record, [...(record.tags || []), tag]);
+    input.value = "";
   }
 
   function renderSpeedChart(record) {
@@ -773,6 +820,8 @@
     if (mirrors.length) body.mirrors = mirrors;
     const variant = $("#addVariant").value;
     if (variant !== "") body.media_variant = Number(variant);
+    const tags = $("#addTags").value.split(",").map((item) => item.trim()).filter(Boolean);
+    if (tags.length) body.tags = tags;
     const submit = $("#addSubmit");
     submit.disabled = true;
     submit.textContent = "Adding…";
@@ -838,6 +887,10 @@
       } catch { toast("Clipboard access was blocked by the browser", true); }
     });
     $("#probeBtn").addEventListener("click", probeAdd);
+    $("#tagAdd").addEventListener("click", addTagFromInput);
+    $("#tagInput").addEventListener("keydown", (event) => {
+      if (event.key === "Enter") { event.preventDefault(); addTagFromInput(); }
+    });
     $("#exportConfigBtn").addEventListener("click", exportConfig);
     $("#importConfigBtn").addEventListener("click", () => $("#importConfigFile").click());
     $("#importConfigFile").addEventListener("change", (event) => {

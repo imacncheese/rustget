@@ -1,0 +1,21 @@
+[package]
+name = "rustget-crawler"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Same-origin site grabber and link discovery for RustGet"
+
+[dependencies]
+regex.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+url.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
+
+[lints]
+workspace = true

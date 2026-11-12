@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "RustGet Downloader",
+  "version": "0.1.0",
+  "description": "Send links, video and audio to the RustGet download manager.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "rustget@rustget.invalid",
+      "strict_min_version": "115.0"
+    }
+  },
+  "permissions": ["contextMenus", "nativeMessaging", "storage", "cookies", "activeTab"],
+  "host_permissions": ["<all_urls>"],
+  "background": { "scripts": ["background.js"] },
+  "action": { "default_title": "Download with RustGet" },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ]
+}

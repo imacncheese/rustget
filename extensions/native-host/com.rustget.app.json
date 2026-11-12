@@ -1,0 +1,9 @@
+{
+  "name": "com.rustget.app",
+  "description": "RustGet native messaging bridge",
+  "path": "REPLACE_WITH_ABSOLUTE_PATH_TO_rustget-native-host.exe",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://REPLACE_WITH_CHROMIUM_EXTENSION_ID/"
+  ]
+}

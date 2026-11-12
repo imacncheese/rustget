@@ -1,0 +1,16 @@
+[package]
+name = "rustget-media"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "HLS/DASH parsing and FFmpeg sidecar integration for RustGet"
+
+[dependencies]
+serde.workspace = true
+thiserror.workspace = true
+url.workspace = true
+roxmltree = "0.21.1"
+
+[lints]
+workspace = true

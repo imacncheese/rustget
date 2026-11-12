@@ -131,7 +131,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | C27 | 10k-row virtualized table | SHOULD | P1 | M4 | ✅ | Windowed rendering |
 | C28 | Session restore | MUST | P0 | M3 | ✅ | SQLite + interrupted-row recovery |
 | C29 | Pause survives restart | MUST | P0 | M3 | ✅ | Journal + row state |
-| C30 | Log viewer | SHOULD | P2 | M4 | — | Errors shown; structured logs to stderr only |
+| C30 | Log viewer | SHOULD | P2 | M4 | ✅ | Bounded INFO+ tracing buffer, `/api/v1/logs`, UI Logs dialog; stderr unchanged |
 
 ## D. UI / UX
 
@@ -206,10 +206,10 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 79 |
+| ✅ implemented + verified | 80 |
 | ◐ partial | 41 |
 | ○ specified, not implemented | 1 |
-| — not started | 26 |
+| — not started | 25 |
 | **Total tracked** | **147** |
 
 By area:
@@ -218,7 +218,7 @@ By area:
 |---|---:|---:|---:|---:|---:|
 | A. Download engine | 46 | 22 | 18 | 0 | 6 |
 | B. Capture/integration | 22 | 12 | 8 | 0 | 2 |
-| C. Management | 30 | 22 | 5 | 0 | 3 |
+| C. Management | 30 | 23 | 5 | 0 | 2 |
 | D. UI/UX | 12 | 9 | 2 | 0 | 1 |
 | E. Quality/security | 15 | 9 | 3 | 1 | 2 |
 | F. Platform/packaging | 10 | 2 | 2 | 0 | 6 |

@@ -4,7 +4,7 @@
 //! cross-origin mutations, never enable CORS, and cap request bodies.
 #![forbid(unsafe_code)]
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, VecDeque};
 use std::net::{IpAddr, SocketAddr};
 use std::path::Path;
 use std::sync::Arc;
@@ -21,7 +21,7 @@ use futures_util::{SinkExt, StreamExt};
 use rustget_queue::{
     Category, DownloadManager, DownloadStatus, NewDownload, PowerAction, Schedule,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tokio::net::TcpListener;
 use uuid::Uuid;
@@ -65,6 +65,55 @@ pub struct ApiState {
     manager: Arc<DownloadManager>,
     token: Arc<String>,
     allowed_origins: Arc<Vec<String>>,
+    logs: Option<Arc<LogBuffer>>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LogEntry {
+    pub timestamp_ms: i64,
+    pub level: String,
+    pub target: String,
+    pub message: String,
+}
+
+#[derive(Debug)]
+pub struct LogBuffer {
+    entries: parking_lot::Mutex<VecDeque<LogEntry>>,
+    capacity: usize,
+}
+
+impl LogBuffer {
+    #[must_use]
+    pub fn new(capacity: usize) -> Self {
+        Self {
+            entries: parking_lot::Mutex::new(VecDeque::with_capacity(capacity.max(1))),
+            capacity: capacity.max(1),
+        }
+    }
+
+    pub fn push(&self, level: &str, target: &str, message: String) {
+        let mut entries = self.entries.lock();
+        entries.push_back(LogEntry {
+            timestamp_ms: chrono::Utc::now().timestamp_millis(),
+            level: level.to_string(),
+            target: target.to_string(),
+            message,
+        });
+        while entries.len() > self.capacity {
+            entries.pop_front();
+        }
+    }
+
+    #[must_use]
+    pub fn recent(&self, limit: usize) -> Vec<LogEntry> {
+        let entries = self.entries.lock();
+        let limit = limit.clamp(1, self.capacity);
+        entries
+            .iter()
+            .skip(entries.len().saturating_sub(limit))
+            .cloned()
+            .collect()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -72,6 +121,7 @@ pub struct ApiConfig {
     pub listen: SocketAddr,
     pub token: String,
     pub allowed_origins: Vec<String>,
+    pub logs: Option<Arc<LogBuffer>>,
 }
 
 impl ApiConfig {
@@ -80,6 +130,7 @@ impl ApiConfig {
             listen: SocketAddr::new(IpAddr::from([127, 0, 0, 1]), 8765),
             token,
             allowed_origins: Vec::new(),
+            logs: None,
         }
     }
 }
@@ -109,6 +160,7 @@ pub fn router(manager: Arc<DownloadManager>, config: &ApiConfig) -> Router {
         manager,
         token: Arc::new(config.token.clone()),
         allowed_origins: Arc::new(config.allowed_origins.clone()),
+        logs: config.logs.clone(),
     };
     Router::new()
         .route("/api/v1/health", get(health))
@@ -130,6 +182,7 @@ pub fn router(manager: Arc<DownloadManager>, config: &ApiConfig) -> Router {
         .route("/api/v1/export", get(export_downloads))
         .route("/api/v1/import", post(import_downloads))
         .route("/api/v1/stats", get(stats))
+        .route("/api/v1/logs", get(logs))
         .route("/api/v1/categories", get(list_categories))
         .route("/api/v1/schedules", get(list_schedules).post(add_schedule))
         .route(
@@ -604,6 +657,23 @@ async fn import_downloads(
         "schedules": schedules,
         "failed": failed,
     }))
+}
+
+#[derive(Debug, Deserialize)]
+struct LogsQuery {
+    limit: Option<usize>,
+}
+
+async fn logs(
+    State(state): State<ApiState>,
+    Query(query): Query<LogsQuery>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let Some(buffer) = &state.logs else {
+        return Ok(Json(json!({"entries": []})));
+    };
+    Ok(Json(json!({
+        "entries": buffer.recent(query.limit.unwrap_or(200)),
+    })))
 }
 
 async fn stats(State(state): State<ApiState>) -> Result<Json<serde_json::Value>, ApiError> {

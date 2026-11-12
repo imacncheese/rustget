@@ -13,8 +13,62 @@ use rustget_queue::{
     ManagerEvent, NewDownload, PowerAction, Schedule,
 };
 use serde_json::json;
+use tracing::field::{Field, Visit};
+use tracing::{Event, Subscriber};
+use tracing_subscriber::layer::Context as LayerContext;
+use tracing_subscriber::prelude::*;
+use tracing_subscriber::{EnvFilter, Layer};
 use url::Url;
 use uuid::Uuid;
+
+struct CaptureLayer {
+    buffer: Arc<rustget_ipc::LogBuffer>,
+}
+
+struct MessageVisitor {
+    message: String,
+    extra: Vec<String>,
+}
+
+impl Visit for MessageVisitor {
+    fn record_str(&mut self, field: &Field, value: &str) {
+        if field.name() == "message" {
+            self.message = value.to_string();
+        } else {
+            self.extra.push(format!("{}={value}", field.name()));
+        }
+    }
+
+    fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
+        if field.name() == "message" {
+            self.message = format!("{value:?}");
+        } else {
+            self.extra.push(format!("{}={value:?}", field.name()));
+        }
+    }
+}
+
+impl<S: Subscriber> Layer<S> for CaptureLayer {
+    fn on_event(&self, event: &Event<'_>, _context: LayerContext<'_, S>) {
+        let mut visitor = MessageVisitor {
+            message: String::new(),
+            extra: Vec::new(),
+        };
+        event.record(&mut visitor);
+        if !visitor.extra.is_empty() {
+            if !visitor.message.is_empty() {
+                visitor.message.push(' ');
+            }
+            visitor.message.push_str(&visitor.extra.join(" "));
+        }
+        let metadata = event.metadata();
+        self.buffer.push(
+            metadata.level().as_str(),
+            metadata.target(),
+            visitor.message,
+        );
+    }
+}
 
 #[derive(Debug, Parser)]
 #[command(
@@ -243,17 +297,26 @@ impl rustget_queue::manager::PowerHook for PlatformPower {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("warn")),
+    let logs = std::sync::Arc::new(rustget_ipc::LogBuffer::new(500));
+    let console_filter =
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("warn"));
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::fmt::layer()
+                .with_writer(std::io::stderr)
+                .with_filter(console_filter),
         )
-        .with_writer(std::io::stderr)
+        .with(
+            CaptureLayer {
+                buffer: std::sync::Arc::clone(&logs),
+            }
+            .with_filter(tracing_subscriber::filter::LevelFilter::INFO),
+        )
         .init();
     let cli = Cli::parse();
     let paths = Paths::resolve(&cli)?;
     match &cli.command {
-        Command::Serve(args) => serve(&cli, &paths, args).await,
+        Command::Serve(args) => serve(&cli, &paths, args, logs).await,
         Command::Add(args) => add(&cli, &paths, args).await,
         Command::List(args) => list(&cli, &paths, args).await,
         Command::Info { id, json } => info(&cli, &paths, id, *json).await,
@@ -368,7 +431,12 @@ impl Paths {
     }
 }
 
-async fn serve(cli: &Cli, paths: &Paths, args: &ServeArgs) -> Result<()> {
+async fn serve(
+    cli: &Cli,
+    paths: &Paths,
+    args: &ServeArgs,
+    logs: std::sync::Arc<rustget_ipc::LogBuffer>,
+) -> Result<()> {
     if !args.listen.ip().is_loopback() {
         bail!("refusing to expose the unauthenticated static UI on a non-loopback address");
     }
@@ -382,6 +450,7 @@ async fn serve(cli: &Cli, paths: &Paths, args: &ServeArgs) -> Result<()> {
         println!("power actions: ENABLED (shutdown/sleep/hibernate/exit)");
     }
     manager.start_scheduler();
+    tracing::info!(api = %args.listen, "RustGet daemon started");
     println!("RustGet {}", env!("CARGO_PKG_VERSION"));
     println!("data:       {}", paths.data_dir.display());
     println!("downloads:  {}", paths.download_dir.display());
@@ -395,6 +464,7 @@ async fn serve(cli: &Cli, paths: &Paths, args: &ServeArgs) -> Result<()> {
         listen: args.listen,
         token,
         allowed_origins: Vec::new(),
+        logs: Some(logs),
     };
     let manager_for_signal = Arc::clone(&manager);
     tokio::select! {

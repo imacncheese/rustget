@@ -185,6 +185,10 @@ The details pane draws a live speed sparkline from the last 60 WebSocket
 progress samples, scaled to the 95th percentile so a single burst does not
 flatten the chart. It includes the peak label and fills the area under the line.
 
+The sidebar **Logs** dialog polls `/api/v1/logs` every 2 seconds and shows the
+last 300 INFO+ daemon events with level colouring. Stderr remains the full log
+stream.
+
 Settings has **Export config** and **Import config** actions. The export is the
 same JSON bundle as the API (downloads, settings, categories, schedules); import
 reloads the queue after applying the bundle.

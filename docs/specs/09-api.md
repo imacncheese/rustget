@@ -215,6 +215,13 @@ upserted. Returns counts:
 {"imported":1,"settings":1,"categories":6,"schedules":1,"failed":[]}
 ```
 
+### `GET /api/v1/logs?limit=200`
+
+Returns the in-memory INFO+ daemon log ring (maximum 500 entries) as
+`{"entries":[{"timestamp_ms":…,"level":"INFO","target":"rustget","message":"…"}]}`.
+The same events continue to go to stderr. No file paths or secrets are exposed
+beyond what tracing already emits.
+
 ### `GET /api/v1/stats`
 
 ```json

@@ -1998,8 +1998,10 @@ name = "rustget-ipc"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "chrono",
  "futures-util",
  "open",
+ "parking_lot",
  "reqwest",
  "rustget-app",
  "rustget-core",

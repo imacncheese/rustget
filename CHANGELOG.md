@@ -26,6 +26,7 @@ Keep a Changelog and the project uses Semantic Versioning.
 - Opt-in scheduler power actions (`--allow-power-actions`) with tested command
   planning and a fake-hook test.
 - Cross-process single-instance lock for `rustget serve`.
+- In-app log viewer backed by a bounded INFO+ tracing buffer.
 - Download tags: persisted, editable via API/CLI/UI, included in search.
 - Priority editing via API and the details pane (Move up/down).
 - Drag an http(s) link onto the window to prefill the add dialog.

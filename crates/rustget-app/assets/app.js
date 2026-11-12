@@ -191,6 +191,41 @@
   // ---------- scheduler ----------
   const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+  let logTimer = null;
+  async function refreshLogs() {
+    try {
+      const data = await api("/api/v1/logs?limit=300");
+      const list = $("#logList");
+      list.innerHTML = "";
+      if (!(data.entries || []).length) {
+        list.textContent = "No log entries yet.";
+        return;
+      }
+      for (const entry of data.entries) {
+        const line = document.createElement("span");
+        line.className = `log-line ${String(entry.level).toLowerCase()}`;
+        const time = new Date(entry.timestamp_ms).toLocaleTimeString();
+        line.innerHTML = `<span class="lvl">${esc(entry.level)}</span><span class="src">${esc(entry.target)}</span> `;
+        line.append(`${time} ${entry.message}`);
+        list.appendChild(line);
+      }
+      list.scrollTop = list.scrollHeight;
+    } catch (error) {
+      $("#logList").textContent = error.message;
+    }
+  }
+  async function openLogs() {
+    $("#logsDialog").showModal();
+    await refreshLogs();
+    clearInterval(logTimer);
+    logTimer = setInterval(refreshLogs, 2000);
+  }
+  function closeLogs() {
+    clearInterval(logTimer);
+    logTimer = null;
+    $("#logsDialog").close();
+  }
+
   async function openSchedules() {
     $("#schedulesDialog").showModal();
     try {
@@ -868,6 +903,9 @@
     $("#emptyAdd").addEventListener("click", openAdd);
     $("#settingsBtn").addEventListener("click", () => openSettings());
     $("#schedulesBtn").addEventListener("click", openSchedules);
+    $("#logsBtn").addEventListener("click", openLogs);
+    $("#logsClose").addEventListener("click", closeLogs);
+    $("#logsRefresh").addEventListener("click", refreshLogs);
     $("#schedulesClose").addEventListener("click", () => $("#schedulesDialog").close());
     $("#scheduleForm").addEventListener("submit", submitSchedule);
     $("#themeBtn").addEventListener("click", cycleTheme);

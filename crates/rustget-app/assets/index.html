@@ -30,6 +30,7 @@
       <nav class="nav" id="categoryNav" aria-label="Download categories"></nav>
       <div class="sidebar-foot">
         <button class="ghost" id="schedulesBtn" title="Scheduler" aria-label="Scheduler">▦ <span>Scheduler</span></button>
+        <button class="ghost" id="logsBtn" title="Logs" aria-label="Logs">☰ <span>Logs</span></button>
         <button class="ghost" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">◐ <span>Theme</span></button>
         <button class="ghost" id="settingsBtn" title="Settings" aria-label="Settings">⚙ <span>Settings</span></button>
       </div>
@@ -223,6 +224,22 @@
         <button class="primary" id="settingsSave" value="default">Save</button>
       </footer>
     </form>
+  </dialog>
+
+  <dialog id="logsDialog">
+    <div class="modal wide">
+      <header class="modal-head">
+        <h2>Logs</h2>
+        <button class="icon" id="logsClose" aria-label="Close">✕</button>
+      </header>
+      <div class="modal-body">
+        <p class="hint">Last 300 daemon events from the in-memory log buffer. Stderr still receives the full stream.</p>
+        <pre class="logs-list" id="logList">Loading…</pre>
+      </div>
+      <footer class="modal-foot">
+        <button class="secondary" id="logsRefresh">Refresh</button>
+      </footer>
+    </div>
   </dialog>
 
   <dialog id="schedulesDialog">

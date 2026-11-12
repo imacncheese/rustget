@@ -3,7 +3,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use rustget_core::EngineConfig;
-use rustget_ipc::{ApiConfig, router};
+use rustget_ipc::{ApiConfig, LogBuffer, router};
 use rustget_queue::{Category, DownloadManager, ManagerConfig, PowerAction, Schedule};
 use rustget_testkit::{TestFile, TestServer, TestkitConfig};
 use tokio::net::TcpListener;
@@ -14,6 +14,7 @@ async fn start_api() -> (
     Arc<DownloadManager>,
     TestServer,
     tempfile::TempDir,
+    Arc<LogBuffer>,
 ) {
     let origin = TestServer::start(rustget_testkit::TestkitConfig::single(256 * 1024))
         .await
@@ -31,7 +32,10 @@ async fn start_api() -> (
     })
     .unwrap();
     let token = "test-token-0123456789abcdef0123456789abcdef".to_string();
-    let app = router(Arc::clone(&manager), &ApiConfig::loopback(token.clone()));
+    let logs = Arc::new(LogBuffer::new(20));
+    let mut config = ApiConfig::loopback(token.clone());
+    config.logs = Some(Arc::clone(&logs));
+    let app = router(Arc::clone(&manager), &config);
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr: SocketAddr = listener.local_addr().unwrap();
     tokio::spawn(async move {
@@ -42,12 +46,29 @@ async fn start_api() -> (
         .await
         .unwrap();
     });
-    (format!("http://{addr}"), token, manager, origin, temp)
+    (format!("http://{addr}"), token, manager, origin, temp, logs)
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn serves_captured_logs() {
+    let (base, token, _manager, _origin, _temp, logs) = start_api().await;
+    logs.push("WARN", "rustget.test", "captured message".into());
+    let body: serde_json::Value = reqwest::Client::new()
+        .get(format!("{base}/api/v1/logs?limit=10"))
+        .bearer_auth(&token)
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(body["entries"][0]["level"], "WARN");
+    assert_eq!(body["entries"][0]["message"], "captured message");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn requires_bearer_and_serves_the_ui() {
-    let (base, token, _manager, _origin, _temp) = start_api().await;
+    let (base, token, _manager, _origin, _temp, _logs) = start_api().await;
     let client = reqwest::Client::new();
     assert_eq!(
         client
@@ -78,7 +99,7 @@ async fn requires_bearer_and_serves_the_ui() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn add_list_and_delete_download() {
-    let (base, token, manager, origin, _temp) = start_api().await;
+    let (base, token, manager, origin, _temp, _logs) = start_api().await;
     let client = reqwest::Client::new();
     let probed: serde_json::Value = client
         .post(format!("{base}/api/v1/probe"))
@@ -220,7 +241,7 @@ async fn add_list_and_delete_download() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn exports_and_imports_settings_categories_and_schedules() {
-    let (base, token, manager, _origin, _temp) = start_api().await;
+    let (base, token, manager, _origin, _temp, _logs) = start_api().await;
     manager.set_setting("theme", "dark").unwrap();
     manager
         .upsert_category(&Category {
@@ -284,7 +305,7 @@ async fn exports_and_imports_settings_categories_and_schedules() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn rejects_non_loopback_host_header() {
-    let (base, token, _manager, _origin, _temp) = start_api().await;
+    let (base, token, _manager, _origin, _temp, _logs) = start_api().await;
     let response = reqwest::Client::new()
         .get(format!("{base}/api/v1/downloads"))
         .bearer_auth(&token)
@@ -297,7 +318,7 @@ async fn rejects_non_loopback_host_header() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn rejects_cross_origin_mutation() {
-    let (base, token, _manager, _origin, _temp) = start_api().await;
+    let (base, token, _manager, _origin, _temp, _logs) = start_api().await;
     let response = reqwest::Client::new()
         .post(format!("{base}/api/v1/downloads"))
         .bearer_auth(&token)

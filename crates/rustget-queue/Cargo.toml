@@ -12,6 +12,7 @@ rustget-net.workspace = true
 rustget-storage.workspace = true
 anyhow.workspace = true
 chrono.workspace = true
+zip.workspace = true
 parking_lot.workspace = true
 rusqlite.workspace = true
 serde.workspace = true

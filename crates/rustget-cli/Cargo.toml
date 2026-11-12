@@ -33,6 +33,7 @@ url.workspace = true
 uuid.workspace = true
 
 [dev-dependencies]
+zip.workspace = true
 rustget-testkit.workspace = true
 sha2.workspace = true
 tempfile.workspace = true

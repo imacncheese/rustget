@@ -104,6 +104,7 @@ Request:
   "use_ytdlp": false,
   "use_cookie_jar": false,
   "resolver": "yt-dlp",
+  "extract": false,
   "destination": null,
   "directory": "D:\\Downloads",
   "category": "Archives",

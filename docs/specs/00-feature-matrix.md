@@ -61,7 +61,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | A35 | HTTP/HTTPS/SOCKS5 proxy, system proxy, PAC | SHOULD | P2 | M6 | ◐ | Explicit HTTP proxy in `RequestOptions`; no SOCKS/PAC/system detection |
 | A36 | Per-download proxy | COULD | P2 | M6 | ◐ | Field exists only at client construction |
 | A37 | MD5 / SHA-1 / SHA-256 / BLAKE3 verification | MUST | P1 | M1 | ✅ | Streaming hashes, pre-rename verification; tests |
-| A38 | Post-download open/run/extract | SHOULD | P2 | M4 | ◐ | Open containing folder via API; no run/extract |
+| A38 | Post-download open/run/extract | SHOULD | P2 | M4 | ✅ | Open folder, argv post-action runner, safe ZIP extraction with fixture test |
 | A39 | Antivirus scan hook | SHOULD | P2 | M6 | ✅ | `antivirus.scan_command` JSON argv, file appended, 60 s timeout, no shell; success/failure tests |
 | A40 | Disk-full handling | MUST | P0 | M2 | ◐ | I/O errors surfaced; no preflight free-space reservation/retry UI |
 | A41 | Slow-loris / idle timeout | MUST | P0 | M2 | ✅ | Idle timeout on stream and probe |
@@ -206,8 +206,8 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 93 |
-| ◐ partial | 43 |
+| ✅ implemented + verified | 94 |
+| ◐ partial | 42 |
 | ○ specified, not implemented | 1 |
 | — not started | 10 |
 | **Total tracked** | **147** |
@@ -216,7 +216,7 @@ By area:
 
 | Area | Rows | ✅ | ◐ | ○ | — |
 |---|---:|---:|---:|---:|---:|
-| A. Download engine | 46 | 28 | 15 | 0 | 3 |
+| A. Download engine | 46 | 29 | 14 | 0 | 3 |
 | B. Capture/integration | 22 | 13 | 9 | 0 | 0 |
 | C. Management | 30 | 23 | 7 | 0 | 0 |
 | D. UI/UX | 12 | 10 | 2 | 0 | 0 |

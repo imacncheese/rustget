@@ -273,6 +273,9 @@ struct AddArgs {
     /// Named resolver plugin (see `--plugin` on serve).
     #[arg(long)]
     resolver: Option<String>,
+    /// Extract a completed ZIP archive into a sibling directory.
+    #[arg(long)]
+    extract: bool,
     /// Exact output path or directory.
     #[arg(short, long)]
     output: Option<PathBuf>,
@@ -704,6 +707,7 @@ async fn add(cli: &Cli, paths: &Paths, args: &AddArgs) -> Result<()> {
         use_ytdlp: args.yt_dlp,
         use_cookie_jar: args.cookie_jar,
         resolver: args.resolver.clone(),
+        extract: args.extract,
         allow_duplicate: args.allow_duplicate,
         destination: args.output.clone(),
         directory: Some(paths.download_dir.clone()),
@@ -1213,6 +1217,7 @@ async fn grab(
                     yt_dlp: false,
                     cookie_jar: false,
                     resolver: None,
+                    extract: false,
                     allow_duplicate: false,
                     output: None,
                     connections,
@@ -1399,6 +1404,7 @@ async fn batch(
             yt_dlp: false,
             cookie_jar: false,
             resolver: None,
+            extract: false,
             allow_duplicate: false,
             output: None,
             connections,

@@ -927,6 +927,7 @@
     if (basicUser && basicPass) body.basic_auth = [basicUser, basicPass];
     if ($("#addYtdlp").checked) body.use_ytdlp = true;
     if ($("#addCookieJar").checked) body.use_cookie_jar = true;
+    if ($("#addExtract").checked) body.extract = true;
     const submit = $("#addSubmit");
     submit.disabled = true;
     submit.textContent = "Adding…";

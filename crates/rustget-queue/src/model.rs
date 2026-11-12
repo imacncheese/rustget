@@ -75,6 +75,8 @@ pub struct DownloadRecord {
     pub use_cookie_jar: bool,
     #[serde(default)]
     pub resolver: Option<String>,
+    #[serde(default)]
+    pub extract: bool,
     pub final_url: Option<String>,
     pub destination: PathBuf,
     pub filename: String,

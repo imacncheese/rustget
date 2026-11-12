@@ -78,6 +78,8 @@ pub struct NewDownload {
     pub use_cookie_jar: bool,
     #[serde(default)]
     pub resolver: Option<String>,
+    #[serde(default)]
+    pub extract: bool,
     pub destination: Option<PathBuf>,
     pub directory: Option<PathBuf>,
     #[serde(default)]
@@ -115,6 +117,7 @@ impl NewDownload {
             use_ytdlp: record.use_ytdlp,
             use_cookie_jar: record.use_cookie_jar,
             resolver: record.resolver.clone(),
+            extract: record.extract,
             destination: Some(record.destination.clone()),
             directory: record
                 .destination
@@ -147,6 +150,7 @@ impl Default for NewDownload {
             use_ytdlp: false,
             use_cookie_jar: false,
             resolver: None,
+            extract: false,
             destination: None,
             directory: None,
             allow_duplicate: false,
@@ -433,6 +437,7 @@ impl DownloadManager {
             use_ytdlp: request.use_ytdlp,
             use_cookie_jar: request.use_cookie_jar,
             resolver: request.resolver.clone(),
+            extract: request.extract,
             final_url: Some(final_url),
             destination,
             filename,
@@ -944,6 +949,11 @@ impl DownloadManager {
                             record.status = DownloadStatus::Completed;
                             record.error = None;
                             record.completed_at_ms = Some(chrono::Utc::now().timestamp_millis());
+                            if record.extract {
+                                if let Err(error) = extract_zip(&record.destination) {
+                                    record.error = Some(error);
+                                }
+                            }
                             if let Err(error) = this.run_post_action(&record.destination).await {
                                 record.error = Some(error);
                             }
@@ -1154,6 +1164,52 @@ impl DownloadManager {
         engine.max_speed_bytes_per_sec = speed_limit.or(engine.max_speed_bytes_per_sec);
         engine
     }
+}
+
+fn extract_zip(path: &std::path::Path) -> Result<(), String> {
+    if !path
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("zip"))
+    {
+        return Ok(());
+    }
+    let file = std::fs::File::open(path)
+        .map_err(|error| format!("cannot open archive {}: {error}", path.display()))?;
+    let mut archive = zip::ZipArchive::new(file)
+        .map_err(|error| format!("cannot read archive {}: {error}", path.display()))?;
+    let directory = path.with_extension("");
+    std::fs::create_dir_all(&directory)
+        .map_err(|error| format!("cannot create {}: {error}", directory.display()))?;
+    for index in 0..archive.len() {
+        let mut entry = archive
+            .by_index(index)
+            .map_err(|error| format!("cannot read archive entry: {error}"))?;
+        let name = entry
+            .name()
+            .map_err(|error| format!("invalid archive entry name: {error}"))?
+            .into_owned();
+        let Some(relative) = entry.enclosed_name() else {
+            return Err(format!(
+                "archive entry escapes the target directory: {name}"
+            ));
+        };
+        let destination = directory.join(relative);
+        if entry.is_dir() {
+            std::fs::create_dir_all(&destination)
+                .map_err(|error| format!("cannot create {}: {error}", destination.display()))?;
+            continue;
+        }
+        if let Some(parent) = destination.parent() {
+            std::fs::create_dir_all(parent)
+                .map_err(|error| format!("cannot create {}: {error}", parent.display()))?;
+        }
+        let mut output = std::fs::File::create(&destination)
+            .map_err(|error| format!("cannot create {}: {error}", destination.display()))?;
+        std::io::copy(&mut entry, &mut output)
+            .map_err(|error| format!("cannot extract {}: {error}", destination.display()))?;
+    }
+    Ok(())
 }
 
 fn apply_progress(record: &mut DownloadRecord, snapshot: &DownloadProgress) {
@@ -1498,6 +1554,7 @@ mod tests {
             use_ytdlp: false,
             use_cookie_jar: false,
             resolver: None,
+            extract: false,
             final_url: None,
             destination: PathBuf::new(),
             filename: String::new(),

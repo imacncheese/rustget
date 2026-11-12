@@ -36,6 +36,7 @@ impl Database {
                 use_ytdlp INTEGER NOT NULL DEFAULT 0,
                 use_cookie_jar INTEGER NOT NULL DEFAULT 0,
                 resolver TEXT,
+                extract INTEGER NOT NULL DEFAULT 0,
                 final_url TEXT,
                 destination TEXT NOT NULL,
                 filename TEXT NOT NULL,
@@ -274,6 +275,25 @@ impl Database {
         if !has_basic {
             conn.execute("ALTER TABLE downloads ADD COLUMN basic_auth TEXT", [])?;
         }
+        let has_extract = {
+            let mut statement = conn.prepare("PRAGMA table_info(downloads)")?;
+            let mut rows = statement.query([])?;
+            let mut found = false;
+            while let Some(row) = rows.next()? {
+                let name: String = row.get(1)?;
+                if name == "extract" {
+                    found = true;
+                    break;
+                }
+            }
+            found
+        };
+        if !has_extract {
+            conn.execute(
+                "ALTER TABLE downloads ADD COLUMN extract INTEGER NOT NULL DEFAULT 0",
+                [],
+            )?;
+        }
         Ok(Self {
             conn: Mutex::new(conn),
         })
@@ -285,10 +305,10 @@ impl Database {
         let tags = serde_json::to_string(&record.tags).unwrap_or_else(|_| "[]".into());
         self.conn.lock().execute(
             r"INSERT INTO downloads (
-                id,url,mirrors,media_variant,proxy,client_cert,digest_auth,basic_auth,use_ytdlp,use_cookie_jar,resolver,final_url,destination,filename,category,tags,status,total_size,downloaded,
+                id,url,mirrors,media_variant,proxy,client_cert,digest_auth,basic_auth,use_ytdlp,use_cookie_jar,resolver,extract,final_url,destination,filename,category,tags,status,total_size,downloaded,
                 speed_bps,connections,speed_limit,headers,checksum_algorithm,checksum_value,
                 etag,last_modified,error,priority,created_at_ms,updated_at_ms,completed_at_ms
-            ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23,?24,?25,?26,?27,?28,?29,?30,?31,?32)",
+            ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23,?24,?25,?26,?27,?28,?29,?30,?31,?32,?33)",
             params![
                 record.id.to_string(),
                 record.url,
@@ -307,6 +327,7 @@ impl Database {
                 i64::from(record.use_ytdlp),
                 i64::from(record.use_cookie_jar),
                 record.resolver,
+                i64::from(record.extract),
                 record.final_url,
                 record.destination.to_string_lossy(),
                 record.filename,
@@ -339,10 +360,10 @@ impl Database {
         let tags = serde_json::to_string(&record.tags).unwrap_or_else(|_| "[]".into());
         self.conn.lock().execute(
             r"UPDATE downloads SET
-                url=?2, mirrors=?3, media_variant=?4, proxy=?5, client_cert=?6, digest_auth=?7, basic_auth=?8, use_ytdlp=?9, use_cookie_jar=?10, resolver=?11, final_url=?12, destination=?13, filename=?14, category=?15, tags=?16, status=?17,
-                total_size=?18, downloaded=?19, speed_bps=?20, connections=?21, speed_limit=?22,
-                headers=?23, checksum_algorithm=?24, checksum_value=?25, etag=?26,
-                last_modified=?27, error=?28, priority=?29, updated_at_ms=?30, completed_at_ms=?31
+                url=?2, mirrors=?3, media_variant=?4, proxy=?5, client_cert=?6, digest_auth=?7, basic_auth=?8, use_ytdlp=?9, use_cookie_jar=?10, resolver=?11, extract=?12, final_url=?13, destination=?14, filename=?15, category=?16, tags=?17, status=?18,
+                total_size=?19, downloaded=?20, speed_bps=?21, connections=?22, speed_limit=?23,
+                headers=?24, checksum_algorithm=?25, checksum_value=?26, etag=?27,
+                last_modified=?28, error=?29, priority=?30, updated_at_ms=?31, completed_at_ms=?32
               WHERE id=?1",
             params![
                 record.id.to_string(),
@@ -362,6 +383,7 @@ impl Database {
                 i64::from(record.use_ytdlp),
                 i64::from(record.use_cookie_jar),
                 record.resolver,
+                i64::from(record.extract),
                 record.final_url,
                 record.destination.to_string_lossy(),
                 record.filename,
@@ -738,6 +760,7 @@ fn map_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<DownloadRecord> {
         use_ytdlp: row.get::<_, i64>("use_ytdlp")? != 0,
         use_cookie_jar: row.get::<_, i64>("use_cookie_jar")? != 0,
         resolver: row.get("resolver")?,
+        extract: row.get::<_, i64>("extract")? != 0,
         final_url: row.get("final_url")?,
         destination: PathBuf::from(destination),
         filename: row.get("filename")?,
@@ -782,6 +805,7 @@ mod tests {
             use_ytdlp: true,
             use_cookie_jar: true,
             resolver: Some("test-plugin".into()),
+            extract: true,
             final_url: None,
             destination: PathBuf::from("C:/downloads/file.bin"),
             filename: "file.bin".into(),
@@ -835,6 +859,7 @@ mod tests {
             loaded.basic_auth,
             Some(("basic-user".to_string(), "basic-pass".to_string()))
         );
+        assert!(loaded.extract);
     }
 
     #[test]

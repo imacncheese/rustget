@@ -41,7 +41,8 @@ Keep a Changelog and the project uses Semantic Versioning.
 
 ### Security
 
-- Loopback-only API, bearer token, origin checks, no CORS, body limit.
+- Loopback-only API, bearer token, loopback Host allowlist, origin checks, no
+  CORS, body limit.
 - Filename traversal and Windows reserved-name protection.
 - No telemetry.
 

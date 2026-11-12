@@ -62,5 +62,5 @@ See [docs/specs/10-security.md](docs/specs/10-security.md) and
 - Cookies may be persisted in SQLite for downloads that require them.
 - No signed releases yet.
 - No independent audit.
-- The local API does not yet enforce a Host-header allowlist (DNS rebinding
-  hardening).
+- The local API accepts only loopback Host headers and requires a bearer token;
+  this is not a substitute for OS-level access control.

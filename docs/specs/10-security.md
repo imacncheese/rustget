@@ -143,8 +143,9 @@ implemented, will be opt-in.
 8. Token file ACL on Windows inherits the profile directory; not explicitly
    hardened.
 9. No certificate pinning (not recommended by default).
-10. DNS rebinding to loopback is mitigated by requiring a token but not by a
-    Host-header allowlist; add one.
+10. DNS rebinding is mitigated by a loopback-only Host-header allowlist plus the
+    bearer token. The allowlist accepts `127.0.0.1`, `localhost` and `::1`;
+    a missing Host header is rejected for API routes.
 
 ## 6. Reporting
 

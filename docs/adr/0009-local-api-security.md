@@ -41,7 +41,8 @@ files and open folders.
 - Users must handle a token; the CLI prints a ready-to-open URL.
 - A local process running as the same user can read the token file. That is the
   same-user trust boundary; OS ACLs are the mitigation.
-- Host-header/DNS-rebinding hardening is incomplete; a future check should
-  require `Host` to be a loopback name (tracked in `10-security.md`).
+- API routes require a loopback `Host` header (`127.0.0.1`, `localhost`, `::1`),
+  closing the DNS-rebinding gap. A missing Host is rejected.
+- The token still appears in the WS query; local log exposure is documented.
 - The token appears in the URL fragment (not sent to the server) and in the WS
   query (may appear in local logs). Acceptable for loopback, documented.

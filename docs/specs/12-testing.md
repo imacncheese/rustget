@@ -27,12 +27,12 @@ the public internet.
 | `rustget-testkit` | 5 | range parsing, 206, no-range, flaky, redirect |
 | `rustget-net` | 7 unit + 8 HTTP + 2 work/adaptive + 2 mirrors + 2 HLS + 2 DASH + 1 host cap + 1 FTP | probe/checksum, host semaphore, download, fallback, redirects, retries, validator, resume, work stealing, adaptive growth, mirror failover, host caps, media, FTP |
 | `rustget-queue` | 13 | DB migration/persistence, queue order, interruption, manager completion, scheduler, category/HLS/FTP routing, mirror probe |
-| `rustget-ipc` | 3 | bearer auth, UI serving, add/list/delete, origin rejection |
+| `rustget-ipc` | 4 | bearer auth, UI serving, add/list/delete, origin and Host rejection |
 | `rustget-cli` | 4 + 1 | pattern expansion, kill/resume |
 | `rustget-media` | 5 | HLS master/media, DASH template/count, FFmpeg discovery |
 | `rustget-crawler` | 2 | robots parsing, origin/extension filters |
 | `rustget-native-host` | 2 | framing, oversize rejection |
-| **Total** | **92** | |
+| **Total** | **93** | |
 
 ## 3. Commands
 

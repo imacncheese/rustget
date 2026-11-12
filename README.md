@@ -204,7 +204,7 @@ commands and output summary):
 - `rustget-net`: 7 unit + 18 integration tests (engine, work stealing, adaptive
   growth, mirrors, host caps, HLS, DASH, FTP).
 - `rustget-queue`: 13 DB migration/manager/scheduler/HLS/FTP/mirror tests.
-- `rustget-ipc`: 3 API tests (auth, origin rejection, add/list/delete).
+- `rustget-ipc`: 4 API tests (auth, origin/Host rejection, add/list/delete).
 - `rustget-cli`: 4 pattern tests + 1 kill-process/resume test.
 - `rustget-testkit`: 5 protocol tests.
 - `rustget-media`: 5 parser/discovery tests.

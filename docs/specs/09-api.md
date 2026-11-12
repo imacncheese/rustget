@@ -26,8 +26,9 @@ Mutations also validate `Origin` when present:
 - rejected: any other origin (`403 forbidden_origin`);
 - CLI requests with no Origin are allowed.
 
-The listener refuses non-loopback addresses unless a future explicit setting is
-added.
+The listener refuses non-loopback addresses. API routes also require a loopback
+`Host` header (`127.0.0.1`, `localhost`, `[::1]`), which closes DNS-rebinding
+attempts that resolve a foreign name to loopback.
 
 ## 2. Content types and limits
 

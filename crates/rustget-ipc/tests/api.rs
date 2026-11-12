@@ -174,6 +174,19 @@ async fn add_list_and_delete_download() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn rejects_non_loopback_host_header() {
+    let (base, token, _manager, _origin, _temp) = start_api().await;
+    let response = reqwest::Client::new()
+        .get(format!("{base}/api/v1/downloads"))
+        .bearer_auth(&token)
+        .header("Host", "rebind.example")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status(), 403);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn rejects_cross_origin_mutation() {
     let (base, token, _manager, _origin, _temp) = start_api().await;
     let response = reqwest::Client::new()

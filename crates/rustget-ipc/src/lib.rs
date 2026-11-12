@@ -165,7 +165,11 @@ async fn guard(
     next: Next,
 ) -> Result<Response, ApiError> {
     let path = request.uri().path();
-    if !path.starts_with("/api/v1/") || path == "/api/v1/health" {
+    if !path.starts_with("/api/v1/") {
+        return Ok(next.run(request).await);
+    }
+    check_loopback_host(request.headers())?;
+    if path == "/api/v1/health" {
         return Ok(next.run(request).await);
     }
     if path == "/api/v1/ws" {
@@ -179,6 +183,26 @@ async fn guard(
         return Err(ApiError::ForbiddenOrigin);
     }
     Ok(next.run(request).await)
+}
+
+fn check_loopback_host(headers: &HeaderMap) -> Result<(), ApiError> {
+    let Some(host) = headers
+        .get(header::HOST)
+        .and_then(|value| value.to_str().ok())
+    else {
+        return Err(ApiError::ForbiddenOrigin);
+    };
+    let host = host.trim().to_ascii_lowercase();
+    let name = if host.starts_with('[') {
+        host.split(']').next().unwrap_or("").trim_start_matches('[')
+    } else {
+        host.split(':').next().unwrap_or("")
+    };
+    if matches!(name, "127.0.0.1" | "localhost" | "::1") {
+        Ok(())
+    } else {
+        Err(ApiError::ForbiddenOrigin)
+    }
 }
 
 fn check_bearer(state: &ApiState, headers: &HeaderMap) -> Result<(), ApiError> {

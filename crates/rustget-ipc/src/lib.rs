@@ -181,6 +181,10 @@ pub fn router(manager: Arc<DownloadManager>, config: &ApiConfig) -> Router {
         .route("/api/v1/media/probe", post(media_probe))
         .route("/api/v1/export", get(export_downloads))
         .route("/api/v1/import", post(import_downloads))
+        .route(
+            "/api/v1/import-file",
+            post(import_file).layer(axum::extract::DefaultBodyLimit::max(128 * 1024 * 1024)),
+        )
         .route("/api/v1/stats", get(stats))
         .route("/api/v1/logs", get(logs))
         .route("/api/v1/categories", get(list_categories))
@@ -376,6 +380,38 @@ async fn list_downloads(
 #[derive(Debug, Deserialize)]
 struct ListQuery {
     status: Option<String>,
+}
+
+async fn import_file(
+    State(state): State<ApiState>,
+    mut multipart: axum::extract::Multipart,
+) -> Result<(StatusCode, Json<rustget_queue::DownloadRecord>), ApiError> {
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|error| ApiError::BadRequest(error.to_string()))?
+    {
+        if field.name() != Some("file") {
+            continue;
+        }
+        let filename = field.file_name().unwrap_or("upload.bin").to_string();
+        let bytes = field
+            .bytes()
+            .await
+            .map_err(|error| ApiError::BadRequest(error.to_string()))?;
+        let temporary =
+            std::env::temp_dir().join(format!("rustget-upload-{}", uuid::Uuid::new_v4()));
+        tokio::fs::write(&temporary, &bytes)
+            .await
+            .map_err(|error| ApiError::Internal(error.to_string()))?;
+        let record = state
+            .manager
+            .import_file(&temporary, &filename)
+            .map_err(|error| ApiError::Internal(error.to_string()));
+        let _ = tokio::fs::remove_file(&temporary).await;
+        return record.map(|record| (StatusCode::CREATED, Json(record)));
+    }
+    Err(ApiError::BadRequest("missing multipart file field".into()))
 }
 
 async fn add_download(

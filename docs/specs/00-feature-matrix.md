@@ -146,7 +146,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | D07 | Settings, searchable/advanced collapse | SHOULD | P1 | M4 | ✅ | Search filter plus collapsible Advanced section in settings |
 | D08 | First-run wizard | SHOULD | P1 | M4 | ✅ | Two-step welcome → token test/save; screenshot `docs/assets/ui-wizard.png` |
 | D09 | HiDPI | MUST | P1 | M4 | ✅ | CSS pixels, no fixed raster assets |
-| D10 | Drag/drop links and files | SHOULD | P1 | M4 | ◐ | Links supported; local files rejected with an explanation |
+| D10 | Drag/drop links and files | SHOULD | P1 | M4 | ✅ | Link drops plus multipart local-file import to a completed record; 5 MiB upload test |
 | D11 | Sortable columns and live ETA | MUST | P1 | M4 | ✅ | Implemented |
 | D12 | Responsive layout | SHOULD | P2 | M4 | ✅ | Breakpoints at 1080/760 px |
 
@@ -206,8 +206,8 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 100 |
-| ◐ partial | 36 |
+| ✅ implemented + verified | 101 |
+| ◐ partial | 35 |
 | ○ specified, not implemented | 1 |
 | — not started | 10 |
 | **Total tracked** | **147** |
@@ -219,7 +219,7 @@ By area:
 | A. Download engine | 46 | 33 | 10 | 0 | 3 |
 | B. Capture/integration | 22 | 13 | 9 | 0 | 0 |
 | C. Management | 30 | 24 | 6 | 0 | 0 |
-| D. UI/UX | 12 | 11 | 1 | 0 | 0 |
+| D. UI/UX | 12 | 12 | 0 | 0 | 0 |
 | E. Quality/security | 15 | 11 | 2 | 1 | 1 |
 | F. Platform/packaging | 10 | 2 | 4 | 0 | 4 |
 | G. Protocols/extensibility | 12 | 6 | 4 | 0 | 2 |

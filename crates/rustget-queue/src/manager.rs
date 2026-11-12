@@ -253,7 +253,56 @@ impl DownloadManager {
         }))
     }
 
-    #[must_use]
+    pub fn import_file(&self, source: &std::path::Path, filename: &str) -> Result<DownloadRecord> {
+        let filename = sanitize_filename(filename);
+        let destination = unique_destination(self.config.download_dir.join(&filename));
+        std::fs::copy(source, &destination)?;
+        let size = std::fs::metadata(&destination)?.len();
+        let now = chrono::Utc::now().timestamp_millis();
+        let record = DownloadRecord {
+            id: Uuid::new_v4(),
+            url: format!("file://{}", destination.display()),
+            mirrors: Vec::new(),
+            tags: Vec::new(),
+            media_variant: None,
+            proxy: None,
+            client_cert: None,
+            digest_auth: None,
+            basic_auth: None,
+            use_ytdlp: false,
+            use_cookie_jar: false,
+            resolver: None,
+            extract: false,
+            final_url: Some(format!("file://{}", destination.display())),
+            destination,
+            filename,
+            category: "General".into(),
+            status: DownloadStatus::Completed,
+            total_size: Some(size),
+            downloaded: size,
+            speed_bps: 0.0,
+            connections: 1,
+            speed_limit: None,
+            headers: Vec::new(),
+            checksum_algorithm: None,
+            checksum_value: None,
+            etag: None,
+            last_modified: None,
+            error: None,
+            priority: 0,
+            created_at_ms: now,
+            updated_at_ms: now,
+            completed_at_ms: Some(now),
+        };
+        self.db.insert(&record)?;
+        let _ = self.events.send(ManagerEvent::Updated(record.clone()));
+        let _ = self.events.send(ManagerEvent::Finished {
+            id: record.id,
+            status: DownloadStatus::Completed,
+        });
+        Ok(record)
+    }
+
     pub fn database(&self) -> &Arc<Database> {
         &self.db
     }

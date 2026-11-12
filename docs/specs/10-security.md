@@ -125,6 +125,8 @@ implemented, will be opt-in.
   plaintext password, over the wire.
 - Client certificates are read from a local PEM path supplied per download; the
   private key is not copied into the database, only the path is persisted.
+- Local-file uploads are limited to 128 MiB, sanitized like remote filenames,
+  copied into the download directory and never write to an arbitrary path.
 - ZIP extraction uses `enclosed_name` to reject traversal/absolute entries and
   writes only below a sibling directory.
 - The post-action runner executes an operator-configured argv with `{file}`

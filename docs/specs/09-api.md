@@ -200,6 +200,12 @@ The index can be supplied as `media_variant` when adding a download.
 Returns `filename`, `total_size`, `final_url`, `range_supported`, `etag` and
 `last_modified` without creating a download. HTTP(S) only.
 
+### `POST /api/v1/import-file`
+
+`multipart/form-data` with a `file` field (up to 128 MiB). The upload is copied
+into the download directory, inserted as a completed record and returned with
+`201 Created`.
+
 ### `GET /api/v1/export`
 
 Returns a portable configuration bundle:

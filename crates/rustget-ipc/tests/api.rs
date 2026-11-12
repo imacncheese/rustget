@@ -50,6 +50,38 @@ async fn start_api() -> (
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn imports_a_local_file_upload() {
+    let (base, token, _manager, _origin, temp, _logs) = start_api().await;
+    let payload = vec![0x5A_u8; 5 * 1024 * 1024];
+    let boundary = "rustget-boundary";
+    let mut body = Vec::new();
+    body.extend_from_slice(
+        format!(
+            "--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"upload.bin\"\r\nContent-Type: application/octet-stream\r\n\r\n"
+        )
+        .as_bytes(),
+    );
+    body.extend_from_slice(&payload);
+    body.extend_from_slice(format!("\r\n--{boundary}--\r\n").as_bytes());
+    let response = reqwest::Client::new()
+        .post(format!("{base}/api/v1/import-file"))
+        .bearer_auth(&token)
+        .header(
+            reqwest::header::CONTENT_TYPE,
+            format!("multipart/form-data; boundary={boundary}"),
+        )
+        .body(body)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status(), reqwest::StatusCode::CREATED);
+    let record: serde_json::Value = response.json().await.unwrap();
+    let destination = std::path::PathBuf::from(record["destination"].as_str().unwrap());
+    assert!(destination.starts_with(temp.path()));
+    assert_eq!(std::fs::read(destination).unwrap(), payload);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn serves_captured_logs() {
     let (base, token, _manager, _origin, _temp, logs) = start_api().await;
     logs.push("WARN", "rustget.test", "captured message".into());

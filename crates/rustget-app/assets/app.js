@@ -1117,7 +1117,9 @@
     });
 
     const hasDroppedLink = (event) =>
-      Array.from(event.dataTransfer?.types || []).some((type) => type === "text/uri-list" || type === "text/plain");
+      Array.from(event.dataTransfer?.types || []).some(
+        (type) => type === "text/uri-list" || type === "text/plain" || type === "Files",
+      );
     document.addEventListener("dragover", (event) => {
       if (!hasDroppedLink(event)) return;
       event.preventDefault();
@@ -1129,13 +1131,36 @@
     document.addEventListener("drop", (event) => {
       document.body.classList.remove("drop-target");
       event.preventDefault();
+      const files = Array.from(event.dataTransfer?.files || []);
+      if (files.length > 0) {
+        (async () => {
+          let imported = 0;
+          for (const file of files) {
+            const form = new FormData();
+            form.append("file", file, file.name);
+            const headers = state.token ? { Authorization: `Bearer ${state.token}` } : {};
+            const response = await fetch(apiBase() + "/api/v1/import-file", {
+              method: "POST",
+              headers,
+              body: form,
+            });
+            if (!response.ok) {
+              const detail = await response.text();
+              toast(`Could not import ${file.name}: ${detail}`, true);
+              return;
+            }
+            imported += 1;
+          }
+          toast(`Imported ${imported} local file${imported === 1 ? "" : "s"}`);
+          await load();
+        })();
+        return;
+      }
       const raw = event.dataTransfer?.getData("text/uri-list") || event.dataTransfer?.getData("text/plain") || "";
       const links = raw.split(/\r?\n/).map((line) => line.trim()).filter((line) => line && !line.startsWith("#"));
       const url = links.find((line) => /^https?:\/\//i.test(line));
       if (!url) {
-        toast(event.dataTransfer?.files?.length
-          ? "Local files are not supported yet; drop a URL instead"
-          : "Drop an http(s) link to download it", true);
+        toast("Drop an http(s) link or local file", true);
         return;
       }
       openAdd();

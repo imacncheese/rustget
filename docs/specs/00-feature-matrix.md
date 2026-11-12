@@ -207,9 +207,9 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | State | Count |
 |---|---:|
 | ✅ implemented + verified | 73 |
-| ◐ partial | 41 |
+| ◐ partial | 39 |
 | ○ specified, not implemented | 1 |
-| — not started | 32 |
+| — not started | 34 |
 | **Total tracked** | **147** |
 
 By area:
@@ -218,8 +218,8 @@ By area:
 |---|---:|---:|---:|---:|---:|
 | A. Download engine | 46 | 22 | 18 | 0 | 6 |
 | B. Capture/integration | 22 | 9 | 9 | 0 | 4 |
-| C. Management | 30 | 20 | 4 | 0 | 6 |
-| D. UI/UX | 12 | 8 | 2 | 0 | 2 |
+| C. Management | 30 | 20 | 3 | 0 | 7 |
+| D. UI/UX | 12 | 8 | 1 | 0 | 3 |
 | E. Quality/security | 15 | 9 | 3 | 1 | 2 |
 | F. Platform/packaging | 10 | 2 | 2 | 0 | 6 |
 | G. Protocols/extensibility | 12 | 3 | 3 | 0 | 6 |

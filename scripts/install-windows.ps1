@@ -14,6 +14,7 @@ try {
     $bin = Join-Path $InstallDirectory "bin"
     New-Item -ItemType Directory -Force -Path $bin | Out-Null
     Copy-Item (Join-Path $temporary "*.exe") -Destination $bin -Force
+    Copy-Item (Join-Path $temporary "*.dll") -Destination $bin -Force
     Copy-Item (Join-Path $temporary "extensions") -Destination $InstallDirectory -Recurse -Force -ErrorAction SilentlyContinue
     Write-Output "installed: $bin"
 
@@ -29,8 +30,7 @@ try {
         New-Item -ItemType Directory -Force -Path $programs | Out-Null
         $shell = New-Object -ComObject WScript.Shell
         $shortcut = $shell.CreateShortcut((Join-Path $programs "RustGet.lnk"))
-        $shortcut.TargetPath = Join-Path $bin "rustget.exe"
-        $shortcut.Arguments = "serve --open"
+        $shortcut.TargetPath = Join-Path $bin "rustget-desktop.exe"
         $shortcut.Save()
         Write-Output "start menu shortcut created"
     }

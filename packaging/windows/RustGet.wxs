@@ -20,14 +20,19 @@
           <Component Id="MainExecutable" Guid="C5F0D2A1-8E4B-4C3A-9D61-2A7B5E8F4C10" Win64="yes">
             <File Id="RustGetExe"
                   Source="target\release\rustget.exe"
+                  KeyPath="yes" />
+          </Component>
+          <Component Id="DesktopShell" Guid="9F3C2A7B-4E1D-4B8A-8C6F-5A2D7E9B1C40" Win64="yes">
+            <File Id="DesktopExe"
+                  Source="target\release\rustget-desktop.exe"
                   KeyPath="yes">
               <Shortcut Id="StartMenuShortcut"
                         Directory="ProgramMenuDir"
                         Name="RustGet"
-                        Arguments="serve --open"
                         WorkingDirectory="INSTALLDIR"
                         Advertise="no" />
             </File>
+            <File Id="WebView2Loader" Source="packaging\windows\WebView2Loader.dll" />
             <RemoveFolder Id="RemoveProgramMenuDir" Directory="ProgramMenuDir" On="uninstall" />
           </Component>
           <Component Id="NativeHost" Guid="E2A7B9C4-6D1F-4A8E-B305-9C7D1E4F2A63" Win64="yes">
@@ -49,6 +54,7 @@
 
     <Feature Id="MainFeature" Title="RustGet" Level="1">
       <ComponentRef Id="MainExecutable" />
+      <ComponentRef Id="DesktopShell" />
       <ComponentRef Id="NativeHost" />
       <ComponentRef Id="TrayShell" />
     </Feature>

@@ -24,7 +24,8 @@ modern UI. It is not affiliated with or endorsed by Tonec FZE.
 | Rate limiting, retries, checksums | Working | unit + integration tests |
 | SQLite queue and daemon | Working | manager/DB tests, CLI end-to-end |
 | Authenticated REST + WebSocket API | Working | API integration tests |
-| Web UI | Working | headless-browser screenshot above |
+| Standalone desktop app | Working | native WebView2 window smoke test |
+| Web UI | Working | same UI, optional `rustget serve --open` |
 | Native-messaging browser bridge | Working | framing tests + live daemon test |
 | HLS / DASH downloads | VOD working | HLS AES-128, DASH template; DRM/audio groups not supported |
 | FTP | Plain FTP + resume | local FTP fixture; FTPS not supported |
@@ -46,6 +47,16 @@ cargo build --release
 Rust 1.85+ is required. On Linux, install a C toolchain and OpenSSL-free
 `rustls` is used for TLS. No system libcurl is needed.
 
+### Desktop app
+
+```powershell
+rustget-desktop
+```
+
+`rustget-desktop.exe` starts the daemon and API in-process and opens the UI in a
+native WebView2 window. The Start Menu shortcut and MSI use this binary. No
+external browser is involved.
+
 ### One-shot download
 
 ```sh
@@ -63,7 +74,7 @@ rustget import queue.json
 The CLI waits for completion and prints the final path. If a daemon is running,
 the same command submits the download to it instead.
 
-### Daemon + UI
+### Optional daemon + browser UI
 
 ```sh
 rustget serve --open

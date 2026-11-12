@@ -182,7 +182,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | F06 | DMG | SHOULD | P1 | M7 | — | Planned |
 | F07 | File association | COULD | P2 | M7 | ◐ | Windows HKCU/Linux xdg-mime association helpers and CLI; live write unverified in sandbox |
 | F08 | Auto-update | SHOULD | P3 | M7 | — | Opt-in only; not implemented |
-| F09 | Native tray/shell | SHOULD | P1 | M4 | ◐ | Windows tray shell implemented; no tray state/minimize-to-tray or macOS/Linux backend |
+| F09 | Native tray/shell | SHOULD | P1 | M4 | ✅ | Windows standalone WebView2 desktop window (in-process daemon) plus tray shell |
 | F10 | Single-instance lock | MUST | P1 | M4 | ✅ | Cross-process lock file; second daemon exits with a clear error |
 
 ## G. Protocols, media and extensibility
@@ -206,8 +206,8 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 103 |
-| ◐ partial | 34 |
+| ✅ implemented + verified | 104 |
+| ◐ partial | 33 |
 | ○ specified, not implemented | 1 |
 | — not started | 8 |
 | ⏭ skipped by request | 1 |
@@ -222,7 +222,7 @@ By area:
 | C. Management | 30 | 24 | 6 | 0 | 0 |
 | D. UI/UX | 12 | 12 | 0 | 0 | 0 |
 | E. Quality/security | 15 | 11 | 2 | 1 | 1 |
-| F. Platform/packaging | 10 | 3 | 4 | 0 | 3 |
+| F. Platform/packaging | 10 | 4 | 3 | 0 | 3 |
 | G. Protocols/extensibility | 12 | 6 | 4 | 0 | 2 |
 
 The count is maintained manually alongside the table; the parity scorecard gives

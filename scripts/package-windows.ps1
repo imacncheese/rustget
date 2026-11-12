@@ -20,8 +20,10 @@ New-Item -ItemType Directory -Force -Path $stage | Out-Null
 
 $binaries = @(
     "target\release\rustget.exe",
+    "target\release\rustget-desktop.exe",
     "target\release\rustget-native-host.exe",
-    "target\release\rustget-tray.exe"
+    "target\release\rustget-tray.exe",
+    "packaging\windows\WebView2Loader.dll"
 )
 foreach ($binary in $binaries) {
     if (-not (Test-Path $binary)) { throw "missing release binary: $binary" }

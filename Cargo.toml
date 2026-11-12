@@ -15,6 +15,7 @@ members = [
     "crates/rustget-media",
     "crates/rustget-crawler",
     "crates/rustget-tray",
+    "crates/rustget-desktop",
 ]
 
 [workspace.package]

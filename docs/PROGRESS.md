@@ -79,7 +79,8 @@
 - [x] Plain FTP download with REST resume and local fixture.
 - [x] Queue priority editing and download-list export/import.
 - [x] Criterion ledger benchmarks and 128 MiB aria2 comparison.
-- [~] Portable Windows ZIP + per-user install script; no MSI/NSIS or signing.
+- [x] Standalone Windows WebView2 shell with in-process daemon.
+- [~] Portable ZIP, WiX MSI and per-user install script; MSI unsigned.
 - [x] Adaptive concurrency growth test.
 - [x] Same-origin crawler with robots.txt and CLI `grab`.
 - [x] Category sidebar in the web UI.

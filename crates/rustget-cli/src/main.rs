@@ -319,6 +319,7 @@ async fn serve(cli: &Cli, paths: &Paths, args: &ServeArgs) -> Result<()> {
     if !args.listen.ip().is_loopback() {
         bail!("refusing to expose the unauthenticated static UI on a non-loopback address");
     }
+    let _instance = rustget_platform::InstanceLock::acquire(paths.data_dir.join("rustget.lock"))?;
     let token = load_or_create_token(&paths.data_dir)?;
     let mut config = paths.manager_config();
     config.max_concurrent = args.concurrency.max(1);

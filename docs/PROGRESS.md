@@ -47,6 +47,7 @@
 - [x] REST + WebSocket API with token/origin checks.
 - [x] Web UI: virtualized list, details, segments, add/settings, themes.
 - [x] Queue priority Move up/down via PATCH API.
+- [x] Live speed sparkline and daemon single-instance lock.
 - [x] Versioned JSON export/import for the download list.
 - [x] Scheduler weekly timeline and add/delete form in the web UI.
 - [x] Chromium/Firefox extension + native-messaging host (live tested).
@@ -66,7 +67,7 @@
 ## In progress / next
 
 - [ ] Fuzz targets actually run.
-- [ ] Tauri/native shell, tray, single-instance, autostart.
+- [ ] Tauri/native shell, tray, autostart (single-instance is implemented).
 - [ ] HLS AES-128/audio groups, DASH SegmentTimeline/live, parallel media segments.
 - [ ] FTPS, Digest, SOCKS5, learned per-host limits.
 - [ ] Load test at 10k rows.
@@ -96,9 +97,10 @@ rustget-cli       4 + 1 crash safety     PASS
 rustget-media     5                      PASS
 rustget-crawler   2                      PASS
 rustget-native-host 2                    PASS
+rustget-platform  1                     PASS
 clippy -D warnings                       PASS
 cargo fmt --check                        PASS
-total                                  96 tests
+total                                  97 tests
 ```
 
 Commands:

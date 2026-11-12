@@ -111,7 +111,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | C07 | Queue UI | MUST | P1 | M4 | ◐ | Status filters + priority Move up/down in details; no drag reorder or per-queue lanes |
 | C08 | Per-download properties | MUST | P1 | M4 | ✅ | Details pane: path, URL, size, speeds, error |
 | C09 | Per-connection view | MUST | P1 | M4 | ✅ | Live segment list over WebSocket |
-| C10 | Live speed chart | SHOULD | P1 | M4 | — | Numeric speed only |
+| C10 | Live speed chart | SHOULD | P1 | M4 | ✅ | Canvas sparkline from the last 60 progress samples, peak label |
 | C11 | Import/export download list | SHOULD | P2 | M6 | ✅ | Versioned JSON bundle via API and `rustget export`/`import`; imported rows are queued |
 | C12 | Import/export settings | SHOULD | P2 | M6 | — | Planned |
 | C13 | Search | MUST | P1 | M4 | ✅ | UI search; API filter by status |
@@ -183,7 +183,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | F07 | File association | COULD | P2 | M7 | — | Planned |
 | F08 | Auto-update | SHOULD | P3 | M7 | — | Opt-in only; not implemented |
 | F09 | Native tray/shell | SHOULD | P1 | M4 | — | Web UI only |
-| F10 | Single-instance lock | MUST | P1 | M4 | — | Planned |
+| F10 | Single-instance lock | MUST | P1 | M4 | ✅ | Cross-process lock file; second daemon exits with a clear error |
 
 ## G. Protocols, media and extensibility
 
@@ -206,10 +206,10 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 69 |
+| ✅ implemented + verified | 71 |
 | ◐ partial | 41 |
 | ○ specified, not implemented | 1 |
-| — not started | 36 |
+| — not started | 34 |
 | **Total tracked** | **147** |
 
 By area:
@@ -218,10 +218,10 @@ By area:
 |---|---:|---:|---:|---:|---:|
 | A. Download engine | 46 | 22 | 18 | 0 | 6 |
 | B. Capture/integration | 22 | 9 | 9 | 0 | 4 |
-| C. Management | 30 | 18 | 4 | 0 | 8 |
+| C. Management | 30 | 19 | 4 | 0 | 7 |
 | D. UI/UX | 12 | 7 | 2 | 0 | 3 |
 | E. Quality/security | 15 | 9 | 3 | 1 | 2 |
-| F. Platform/packaging | 10 | 1 | 2 | 0 | 7 |
+| F. Platform/packaging | 10 | 2 | 2 | 0 | 6 |
 | G. Protocols/extensibility | 12 | 3 | 3 | 0 | 6 |
 
 The count is maintained manually alongside the table; the parity scorecard gives

@@ -20,6 +20,7 @@ rustget-core.workspace = true
 rustget-crawler.workspace = true
 rustget-ipc.workspace = true
 rustget-net.workspace = true
+rustget-platform.workspace = true
 rustget-queue.workspace = true
 rustget-storage.workspace = true
 serde.workspace = true

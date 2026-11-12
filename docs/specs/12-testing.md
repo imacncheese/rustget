@@ -32,7 +32,8 @@ the public internet.
 | `rustget-media` | 6 | HLS master/media/encryption, DASH duration/timeline, FFmpeg discovery |
 | `rustget-crawler` | 2 | robots parsing, origin/extension filters |
 | `rustget-native-host` | 2 | framing, oversize rejection |
-| **Total** | **96** | |
+| `rustget-platform` | 1 | single-instance lock rejection/release |
+| **Total** | **97** | |
 
 ## 3. Commands
 

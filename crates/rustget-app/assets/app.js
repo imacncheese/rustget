@@ -6,6 +6,7 @@
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
+  const speedHistory = new Map();
   const state = {
     token: "",
     downloads: [],
@@ -168,7 +169,12 @@
       if (state.selected === message.id) { state.selected = null; renderDetails(); }
       renderAll();
     } else if (message.type === "progress") {
-      state.live.set(message.id, message.progress || message);
+      const progress = message.progress || message;
+      state.live.set(message.id, progress);
+      const history = speedHistory.get(message.id) || [];
+      history.push(Number(progress.speed_bps) || 0);
+      if (history.length > 60) history.shift();
+      speedHistory.set(message.id, history);
       if (state.selected === message.id) renderDetails();
     } else if (message.type === "finished") {
       const record = state.downloads.find((item) => item.id === message.id);
@@ -339,6 +345,9 @@
   }
 
   function renderAll() {
+    if (!state.selected && state.downloads.length && state.filter === "all" && !state.search) {
+      state.selected = state.downloads[0].id;
+    }
     renderStats();
     renderCounts();
     renderCategories();
@@ -493,6 +502,7 @@
     $("#detailBar").style.background = record.status === "failed" ? "var(--danger)" : "";
     $("#detailSize").textContent = `${bytes(record.downloaded)} / ${record.total_size ? bytes(record.total_size) : "unknown"}`;
     $("#detailSpeed").textContent = active(record) ? speed(record.speed_bps) : "—";
+    renderSpeedChart(record);
     $("#detailEta").textContent = eta(record);
     $("#detailAdded").textContent = date(record.created_at_ms);
     $("#detailPath").textContent = record.destination || "—";
@@ -511,6 +521,55 @@
     $("#resumeBtn").disabled = !resumable && record.status !== "paused";
     $("#retryBtn").hidden = record.status !== "failed";
     $(".actions").style.opacity = "1";
+  }
+
+  function renderSpeedChart(record) {
+    const canvas = $("#speedChart");
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const width = Math.max(1, Math.floor(rect.width));
+    const height = Math.max(1, Math.floor(rect.height));
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (canvas.width !== Math.floor(width * dpr) || canvas.height !== Math.floor(height * dpr)) {
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+    }
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+    const history = (speedHistory.get(record.id) || []).slice(-60);
+    if (!history.length) history.push(Number(record.speed_bps) || 0);
+    while (history.length < 2) history.unshift(history[0]);
+    const sorted = [...history].sort((a, b) => a - b);
+    const max = Math.max(1, sorted[Math.floor((sorted.length - 1) * 0.95)] || 1);
+    const step = width / (history.length - 1);
+    ctx.beginPath();
+    history.forEach((value, index) => {
+      const x = index * step;
+      const y = height - 4 - (value / max) * (height - 10);
+      if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.lineTo(width, height);
+    ctx.lineTo(0, height);
+    ctx.closePath();
+    const fill = ctx.createLinearGradient(0, 0, 0, height);
+    fill.addColorStop(0, "rgba(255,122,69,.34)");
+    fill.addColorStop(1, "rgba(255,122,69,0)");
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.beginPath();
+    history.forEach((value, index) => {
+      const x = index * step;
+      const y = height - 4 - (value / max) * (height - 10);
+      if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = "#ff7a45";
+    ctx.lineWidth = 1.7;
+    ctx.lineJoin = "round";
+    ctx.stroke();
+    ctx.fillStyle = "rgba(140,149,168,.75)";
+    ctx.font = "10px ui-monospace, monospace";
+    ctx.fillText(`${speed(max)} peak`, 2, 11);
   }
 
   function renderSegments(record, live) {

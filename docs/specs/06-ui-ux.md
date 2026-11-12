@@ -4,7 +4,7 @@
 implemented; video picker and first-run wizard are design-only
 **Code:** `crates/rustget-app/assets`
 **Reference screenshots:** [main](../assets/ui-main.png),
-[scheduler](../assets/ui-scheduler.png)
+[live speed](../assets/ui-speed.png), [scheduler](../assets/ui-scheduler.png)
 
 ## 1. Design principles
 
@@ -163,7 +163,8 @@ Wednesday  ░░░████████░░░░░░░░░░░░
 Implemented: rendering, add/delete, validation, overnight split. Not implemented:
 drag-to-create, 15-minute snapping, overlap hatching, a “now” line, and an
 editable block dialog. The screenshot is
-[ui-scheduler.png](../assets/ui-scheduler.png).
+[ui-scheduler.png](../assets/ui-scheduler.png), and the live chart in
+[ui-speed.png](../assets/ui-speed.png).
 
 ## 7. Interaction model
 
@@ -179,6 +180,10 @@ editable block dialog. The screenshot is
 | `Enter` | Open containing folder |
 | `Esc` | Clear selection / close dialog |
 | `Tab` | Native focus traversal |
+
+The details pane draws a live speed sparkline from the last 60 WebSocket
+progress samples, scaled to the 95th percentile so a single burst does not
+flatten the chart. It includes the peak label and fills the area under the line.
 
 The details actions include **Move up/Move down**, which PATCH the queue priority.
 There is no drag reorder yet.

@@ -54,6 +54,7 @@ clap = { version = "4.6.7", features = ["derive", "env", "wrap_help"] }
 criterion = { version = "0.8.2", features = ["async_tokio", "html_reports"] }
 dirs = "7.0.0"
 fastrand = "2.3.0"
+fs2 = "0.4.3"
 futures-util = "0.3.34"
 hex = "0.4.3"
 http = "1.5.0"

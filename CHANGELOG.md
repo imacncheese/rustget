@@ -27,7 +27,8 @@ Keep a Changelog and the project uses Semantic Versioning.
   planning and a fake-hook test.
 - Cross-process single-instance lock for `rustget serve`.
 - Priority editing via API and the details pane (Move up/down).
-- Portable JSON download-list export/import through the API and CLI.
+- Portable JSON export/import for downloads, settings, categories and schedules,
+  exposed through the API, CLI and Settings dialog.
 - Weekly scheduler windows with scheduler-owned pauses.
 - Category auto-routing by file extension.
 - Authenticated loopback REST + WebSocket API.

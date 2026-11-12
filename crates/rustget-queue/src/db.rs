@@ -293,6 +293,30 @@ impl Database {
             .find(|category| category.extensions.iter().any(|item| item == &extension)))
     }
 
+    pub fn upsert_category(&self, category: &Category) -> rusqlite::Result<()> {
+        self.conn.lock().execute(
+            "INSERT INTO categories(name,directory,extensions) VALUES(?1,?2,?3)
+             ON CONFLICT(name) DO UPDATE SET directory=excluded.directory, extensions=excluded.extensions",
+            params![
+                category.name,
+                category.directory.to_string_lossy(),
+                category.extensions.join(" "),
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn list_settings(&self) -> rusqlite::Result<Vec<(String, String)>> {
+        let conn = self.conn.lock();
+        let mut statement = conn.prepare("SELECT key,value FROM settings ORDER BY key")?;
+        let rows = statement.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?;
+        let mut out = Vec::new();
+        for row in rows {
+            out.push(row?);
+        }
+        Ok(out)
+    }
+
     pub fn set_category_directory(&self, name: &str, directory: &str) -> rusqlite::Result<()> {
         self.conn.lock().execute(
             "UPDATE categories SET directory=?2 WHERE name=?1",
@@ -328,6 +352,24 @@ impl Database {
     pub fn insert_schedule(&self, schedule: &crate::scheduler::Schedule) -> rusqlite::Result<()> {
         self.conn.lock().execute(
             "INSERT INTO schedules(id,name,enabled,days,start_min,stop_min,action) VALUES(?1,?2,?3,?4,?5,?6,?7)",
+            params![
+                schedule.id.to_string(),
+                schedule.name,
+                i64::from(schedule.enabled),
+                i64::from(schedule.days),
+                schedule.start_min.map(i64::from),
+                schedule.stop_min.map(i64::from),
+                schedule.action.as_str(),
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn replace_schedule(&self, schedule: &crate::scheduler::Schedule) -> rusqlite::Result<()> {
+        self.conn.lock().execute(
+            "INSERT INTO schedules(id,name,enabled,days,start_min,stop_min,action) VALUES(?1,?2,?3,?4,?5,?6,?7)
+             ON CONFLICT(id) DO UPDATE SET name=excluded.name, enabled=excluded.enabled, days=excluded.days,
+             start_min=excluded.start_min, stop_min=excluded.stop_min, action=excluded.action",
             params![
                 schedule.id.to_string(),
                 schedule.name,

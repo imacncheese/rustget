@@ -113,7 +113,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | C09 | Per-connection view | MUST | P1 | M4 | ✅ | Live segment list over WebSocket |
 | C10 | Live speed chart | SHOULD | P1 | M4 | ✅ | Canvas sparkline from the last 60 progress samples, peak label |
 | C11 | Import/export download list | SHOULD | P2 | M6 | ✅ | Versioned JSON bundle via API and `rustget export`/`import`; imported rows are queued |
-| C12 | Import/export settings | SHOULD | P2 | M6 | — | Planned |
+| C12 | Import/export settings | SHOULD | P2 | M6 | ✅ | Bundle contains downloads, settings, categories and schedules; API + CLI + Settings dialog |
 | C13 | Search | MUST | P1 | M4 | ✅ | UI search; API filter by status |
 | C14 | Filter | MUST | P1 | M4 | ✅ | Status filters |
 | C15 | Sort | MUST | P1 | M4 | ✅ | Name/size/progress/speed/status |
@@ -206,10 +206,10 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 75 |
+| ✅ implemented + verified | 76 |
 | ◐ partial | 39 |
 | ○ specified, not implemented | 1 |
-| — not started | 32 |
+| — not started | 31 |
 | **Total tracked** | **147** |
 
 By area:
@@ -218,7 +218,7 @@ By area:
 |---|---:|---:|---:|---:|---:|
 | A. Download engine | 46 | 22 | 18 | 0 | 6 |
 | B. Capture/integration | 22 | 11 | 8 | 0 | 3 |
-| C. Management | 30 | 20 | 4 | 0 | 6 |
+| C. Management | 30 | 21 | 4 | 0 | 5 |
 | D. UI/UX | 12 | 8 | 1 | 0 | 3 |
 | E. Quality/security | 15 | 9 | 3 | 1 | 2 |
 | F. Platform/packaging | 10 | 2 | 2 | 0 | 6 |

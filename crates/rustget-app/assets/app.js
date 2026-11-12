@@ -683,6 +683,34 @@
     if (message) toast(message, true);
   }
 
+  async function exportConfig() {
+    try {
+      const response = await fetch("/api/v1/export", {
+        headers: { Authorization: `Bearer ${state.token}` },
+      });
+      if (!response.ok) throw new Error(`export failed (${response.status})`);
+      const blob = await response.blob();
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `rustget-config-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+      toast("Configuration exported");
+    } catch (error) { toast(error.message, true); }
+  }
+
+  async function importConfig(file) {
+    try {
+      const bundle = JSON.parse(await file.text());
+      const result = await api("/api/v1/import", {
+        method: "POST",
+        body: JSON.stringify(bundle),
+      });
+      toast(`Imported ${result.imported} download(s), ${result.settings} setting(s)`);
+      await loadAll();
+    } catch (error) { toast(error.message, true); }
+  }
+
   async function probeAdd() {
     const url = $("#addUrl").value.trim();
     const hint = $("#probeHint");
@@ -785,6 +813,13 @@
       } catch { toast("Clipboard access was blocked by the browser", true); }
     });
     $("#probeBtn").addEventListener("click", probeAdd);
+    $("#exportConfigBtn").addEventListener("click", exportConfig);
+    $("#importConfigBtn").addEventListener("click", () => $("#importConfigFile").click());
+    $("#importConfigFile").addEventListener("change", (event) => {
+      const file = event.target.files?.[0];
+      if (file) importConfig(file);
+      event.target.value = "";
+    });
 
     $$("#nav .nav-item").forEach((button) => button.addEventListener("click", () => {
       state.filter = button.dataset.filter;

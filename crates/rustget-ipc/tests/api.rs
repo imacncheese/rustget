@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use rustget_core::EngineConfig;
 use rustget_ipc::{ApiConfig, router};
-use rustget_queue::{DownloadManager, ManagerConfig};
+use rustget_queue::{Category, DownloadManager, ManagerConfig, PowerAction, Schedule};
 use rustget_testkit::TestServer;
 use tokio::net::TcpListener;
 
@@ -194,6 +194,70 @@ async fn add_list_and_delete_download() {
         .unwrap();
     assert_eq!(removed.status(), 204);
     assert!(manager.get(uuid::Uuid::parse_str(&id).unwrap()).is_err());
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn exports_and_imports_settings_categories_and_schedules() {
+    let (base, token, manager, _origin, _temp) = start_api().await;
+    manager.set_setting("theme", "dark").unwrap();
+    manager
+        .upsert_category(&Category {
+            name: "TestCat".into(),
+            directory: "D:/test".into(),
+            extensions: vec!["rst".into()],
+        })
+        .unwrap();
+    manager
+        .replace_schedule(&Schedule {
+            id: uuid::Uuid::new_v4(),
+            name: "night".into(),
+            enabled: true,
+            days: 0b0001_1111,
+            start_min: Some(60),
+            stop_min: Some(360),
+            action: PowerAction::None,
+        })
+        .unwrap();
+    let client = reqwest::Client::new();
+    let exported: serde_json::Value = client
+        .get(format!("{base}/api/v1/export"))
+        .bearer_auth(&token)
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(exported["settings"]["theme"], "dark");
+    assert!(
+        exported["categories"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item["name"] == "TestCat")
+    );
+    assert_eq!(exported["schedules"].as_array().unwrap().len(), 1);
+
+    let imported: serde_json::Value = client
+        .post(format!("{base}/api/v1/import"))
+        .bearer_auth(&token)
+        .json(&exported)
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(imported["settings"], 1);
+    assert_eq!(
+        imported["categories"],
+        exported["categories"].as_array().unwrap().len()
+    );
+    assert_eq!(imported["schedules"], 1);
+    assert_eq!(
+        manager.database().get_setting("theme").unwrap().as_deref(),
+        Some("dark")
+    );
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

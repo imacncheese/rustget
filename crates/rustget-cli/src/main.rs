@@ -9,8 +9,8 @@ use clap::{Args, Parser, Subcommand};
 use rustget_core::EngineConfig;
 use rustget_ipc::{ApiConfig, browser_url, load_or_create_token};
 use rustget_queue::{
-    Database, DownloadManager, DownloadRecord, DownloadStatus, ManagerConfig, ManagerEvent,
-    NewDownload, PowerAction, Schedule,
+    Category, Database, DownloadManager, DownloadRecord, DownloadStatus, ManagerConfig,
+    ManagerEvent, NewDownload, PowerAction, Schedule,
 };
 use serde_json::json;
 use url::Url;
@@ -637,7 +637,17 @@ async fn export_downloads(paths: &Paths, path: Option<&std::path::Path>) -> Resu
     let db = Database::open(paths.data_dir.join("rustget.db"))?;
     let records = db.list(None)?;
     let downloads: Vec<NewDownload> = records.iter().map(NewDownload::from_record).collect();
-    let bundle = serde_json::json!({"version": 1, "downloads": downloads});
+    let settings: std::collections::BTreeMap<String, String> =
+        db.list_settings()?.into_iter().collect();
+    let categories = db.list_categories()?;
+    let schedules = db.list_schedules()?;
+    let bundle = serde_json::json!({
+        "version": 1,
+        "downloads": downloads,
+        "settings": settings,
+        "categories": categories,
+        "schedules": schedules,
+    });
     let text = serde_json::to_string_pretty(&bundle)?;
     if let Some(path) = path {
         std::fs::write(path, text).with_context(|| format!("cannot write {}", path.display()))?;
@@ -662,11 +672,34 @@ async fn import_downloads(cli: &Cli, paths: &Paths, path: &std::path::Path) -> R
             .cloned()
             .unwrap_or_else(|| value.clone()),
     )?;
-    if entries.is_empty() {
-        bail!("import file contains no downloads");
+    let settings: std::collections::BTreeMap<String, String> = value
+        .get("settings")
+        .cloned()
+        .map(serde_json::from_value)
+        .transpose()?
+        .unwrap_or_default();
+    let categories: Vec<Category> = value
+        .get("categories")
+        .cloned()
+        .map(serde_json::from_value)
+        .transpose()?
+        .unwrap_or_default();
+    let schedules: Vec<Schedule> = value
+        .get("schedules")
+        .cloned()
+        .map(serde_json::from_value)
+        .transpose()?
+        .unwrap_or_default();
+    if entries.is_empty() && settings.is_empty() && categories.is_empty() && schedules.is_empty() {
+        bail!("import file contains no settings or downloads");
     }
     if !cli.local && daemon_available(&cli.api).await {
-        let body = serde_json::json!({"downloads": entries});
+        let body = serde_json::json!({
+            "downloads": entries,
+            "settings": settings,
+            "categories": categories,
+            "schedules": schedules,
+        });
         let result = api_json(
             &cli.api,
             paths,
@@ -685,6 +718,15 @@ async fn import_downloads(cli: &Cli, paths: &Paths, path: &std::path::Path) -> R
         return Ok(());
     }
     let manager = DownloadManager::new(paths.manager_config())?;
+    for (key, value) in &settings {
+        manager.set_setting(key, value)?;
+    }
+    for category in &categories {
+        manager.upsert_category(category)?;
+    }
+    for schedule in &schedules {
+        manager.replace_schedule(schedule)?;
+    }
     let mut imported = 0_usize;
     let mut failures = Vec::new();
     for mut entry in entries {
@@ -694,7 +736,12 @@ async fn import_downloads(cli: &Cli, paths: &Paths, path: &std::path::Path) -> R
             Err(error) => failures.push(error.to_string()),
         }
     }
-    println!("imported {imported} download(s) (queued)");
+    println!(
+        "imported {imported} download(s), {} setting(s), {} categor(ies), {} schedule(s)",
+        settings.len(),
+        categories.len(),
+        schedules.len()
+    );
     for failure in failures {
         eprintln!("failed: {failure}");
     }

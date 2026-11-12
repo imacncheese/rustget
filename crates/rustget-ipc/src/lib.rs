@@ -4,6 +4,7 @@
 //! cross-origin mutations, never enable CORS, and cap request bodies.
 #![forbid(unsafe_code)]
 
+use std::collections::BTreeMap;
 use std::net::{IpAddr, SocketAddr};
 use std::path::Path;
 use std::sync::Arc;
@@ -17,7 +18,9 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, extract::Request};
 use futures_util::{SinkExt, StreamExt};
-use rustget_queue::{DownloadManager, DownloadStatus, NewDownload, PowerAction, Schedule};
+use rustget_queue::{
+    Category, DownloadManager, DownloadStatus, NewDownload, PowerAction, Schedule,
+};
 use serde::Deserialize;
 use serde_json::json;
 use tokio::net::TcpListener;
@@ -495,9 +498,26 @@ async fn export_downloads(
         .list(None)
         .map_err(|error| ApiError::Internal(error.to_string()))?;
     let downloads: Vec<NewDownload> = items.iter().map(NewDownload::from_record).collect();
+    let settings: BTreeMap<String, String> = state
+        .manager
+        .settings()
+        .map_err(|error| ApiError::Internal(error.to_string()))?
+        .into_iter()
+        .collect();
+    let categories = state
+        .manager
+        .categories()
+        .map_err(|error| ApiError::Internal(error.to_string()))?;
+    let schedules = state
+        .manager
+        .schedules()
+        .map_err(|error| ApiError::Internal(error.to_string()))?;
     Ok(Json(json!({
         "version": 1,
         "downloads": downloads,
+        "settings": settings,
+        "categories": categories,
+        "schedules": schedules,
     })))
 }
 
@@ -505,14 +525,41 @@ async fn export_downloads(
 struct ImportBundle {
     #[serde(default)]
     downloads: Vec<NewDownload>,
+    #[serde(default)]
+    settings: BTreeMap<String, String>,
+    #[serde(default)]
+    categories: Vec<Category>,
+    #[serde(default)]
+    schedules: Vec<Schedule>,
 }
 
 async fn import_downloads(
     State(state): State<ApiState>,
     Json(bundle): Json<ImportBundle>,
 ) -> Json<serde_json::Value> {
-    let mut imported = 0_usize;
     let mut failed = Vec::new();
+    let mut settings = 0_usize;
+    for (key, value) in bundle.settings {
+        match state.manager.set_setting(&key, &value) {
+            Ok(()) => settings += 1,
+            Err(error) => failed.push(error.to_string()),
+        }
+    }
+    let mut categories = 0_usize;
+    for category in bundle.categories {
+        match state.manager.upsert_category(&category) {
+            Ok(()) => categories += 1,
+            Err(error) => failed.push(error.to_string()),
+        }
+    }
+    let mut schedules = 0_usize;
+    for schedule in bundle.schedules {
+        match state.manager.replace_schedule(&schedule) {
+            Ok(()) => schedules += 1,
+            Err(error) => failed.push(error.to_string()),
+        }
+    }
+    let mut imported = 0_usize;
     for mut entry in bundle.downloads {
         entry.start = false;
         match state.manager.add(entry).await {
@@ -520,7 +567,13 @@ async fn import_downloads(
             Err(error) => failed.push(error.to_string()),
         }
     }
-    Json(json!({"imported": imported, "failed": failed}))
+    Json(json!({
+        "imported": imported,
+        "settings": settings,
+        "categories": categories,
+        "schedules": schedules,
+        "failed": failed,
+    }))
 }
 
 async fn stats(State(state): State<ApiState>) -> Result<Json<serde_json::Value>, ApiError> {

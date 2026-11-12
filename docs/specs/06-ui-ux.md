@@ -185,6 +185,10 @@ The details pane draws a live speed sparkline from the last 60 WebSocket
 progress samples, scaled to the 95th percentile so a single burst does not
 flatten the chart. It includes the peak label and fills the area under the line.
 
+Settings has **Export config** and **Import config** actions. The export is the
+same JSON bundle as the API (downloads, settings, categories, schedules); import
+reloads the queue after applying the bundle.
+
 The add dialog has a **Check** action next to the URL. It calls
 `POST /api/v1/probe` and shows the filename, size and whether the origin supports
 ranges before the user commits the download.

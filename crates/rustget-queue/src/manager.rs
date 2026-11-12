@@ -502,6 +502,25 @@ impl DownloadManager {
         Ok(self.db.list_categories()?)
     }
 
+    pub fn settings(&self) -> Result<Vec<(String, String)>> {
+        Ok(self.db.list_settings()?)
+    }
+
+    pub fn set_setting(&self, key: &str, value: &str) -> Result<()> {
+        self.db.set_setting(key, value)?;
+        Ok(())
+    }
+
+    pub fn upsert_category(&self, category: &crate::model::Category) -> Result<()> {
+        self.db.upsert_category(category)?;
+        Ok(())
+    }
+
+    pub fn replace_schedule(&self, schedule: &crate::scheduler::Schedule) -> Result<()> {
+        self.db.replace_schedule(schedule)?;
+        Ok(())
+    }
+
     pub fn schedules(&self) -> Result<Vec<crate::scheduler::Schedule>> {
         Ok(self.db.list_schedules()?)
     }

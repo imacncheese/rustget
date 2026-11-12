@@ -182,10 +182,11 @@ Returns `filename`, `total_size`, `final_url`, `range_supported`, `etag` and
 
 ### `GET /api/v1/export`
 
-Returns a portable bundle:
+Returns a portable configuration bundle:
 
 ```json
-{"version":1,"downloads":[{"url":"...","mirrors":[],"destination":"...","start":false}]}
+{"version":1,"downloads":[{"url":"...","mirrors":[],"destination":"...","start":false}],
+ "settings":{"theme":"dark"},"categories":[...],"schedules":[...]}
 ```
 
 ### `POST /api/v1/import`
@@ -194,8 +195,13 @@ Returns a portable bundle:
 {"downloads":[{"url":"https://example.test/a.zip","start":false}]}
 ```
 
-Each entry is probed and queued; `start` is forced to false so imports do not
-unexpectedly saturate the network. Returns `{"imported":N,"failed":[...]}`.
+Downloads are probed and queued; `start` is forced to false so imports do not
+unexpectedly saturate the network. Settings, categories and schedules are
+upserted. Returns counts:
+
+```json
+{"imported":1,"settings":1,"categories":6,"schedules":1,"failed":[]}
+```
 
 ### `GET /api/v1/stats`
 

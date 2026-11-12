@@ -48,6 +48,8 @@ Rust 1.85+ is required. On Linux, install a C toolchain and OpenSSL-free
 rustget add https://example.com/archive.zip --connections 16
 rustget add https://example.com/archive.zip --output ./archive.zip --limit 8
 rustget add https://primary.example/file.bin --mirror https://mirror.example/file.bin
+rustget export queue.json
+rustget import queue.json
 ```
 
 The CLI waits for completion and prints the final path. If a daemon is running,

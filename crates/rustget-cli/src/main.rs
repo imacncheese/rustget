@@ -83,6 +83,13 @@ enum Command {
     },
     /// Expand a numeric range pattern for inspection.
     Expand { pattern: String },
+    /// Export the download list as portable JSON.
+    Export {
+        /// File path; omit for stdout.
+        path: Option<PathBuf>,
+    },
+    /// Import a previously exported download list (queued, not started).
+    Import { path: PathBuf },
     /// Manage weekly download windows.
     Schedule {
         #[command(subcommand)]
@@ -238,6 +245,8 @@ async fn main() -> Result<()> {
             }
             Ok(())
         }
+        Command::Export { path } => export_downloads(&paths, path.as_deref()).await,
+        Command::Import { path } => import_downloads(&cli, &paths, path).await,
         Command::Schedule { action } => schedule_command(&cli, &paths, action).await,
         Command::Grab {
             url,
@@ -587,6 +596,74 @@ async fn queue_action(cli: &Cli, paths: &Paths, action: &str, field: &str) -> Re
             .and_then(serde_json::Value::as_u64)
             .unwrap_or(0)
     );
+    Ok(())
+}
+
+async fn export_downloads(paths: &Paths, path: Option<&std::path::Path>) -> Result<()> {
+    let db = Database::open(paths.data_dir.join("rustget.db"))?;
+    let records = db.list(None)?;
+    let downloads: Vec<NewDownload> = records.iter().map(NewDownload::from_record).collect();
+    let bundle = serde_json::json!({"version": 1, "downloads": downloads});
+    let text = serde_json::to_string_pretty(&bundle)?;
+    if let Some(path) = path {
+        std::fs::write(path, text).with_context(|| format!("cannot write {}", path.display()))?;
+        println!(
+            "exported {} download(s) to {}",
+            records.len(),
+            path.display()
+        );
+    } else {
+        println!("{text}");
+    }
+    Ok(())
+}
+
+async fn import_downloads(cli: &Cli, paths: &Paths, path: &std::path::Path) -> Result<()> {
+    let text =
+        std::fs::read_to_string(path).with_context(|| format!("cannot read {}", path.display()))?;
+    let value: serde_json::Value = serde_json::from_str(&text)?;
+    let entries: Vec<NewDownload> = serde_json::from_value(
+        value
+            .get("downloads")
+            .cloned()
+            .unwrap_or_else(|| value.clone()),
+    )?;
+    if entries.is_empty() {
+        bail!("import file contains no downloads");
+    }
+    if !cli.local && daemon_available(&cli.api).await {
+        let body = serde_json::json!({"downloads": entries});
+        let result = api_json(
+            &cli.api,
+            paths,
+            reqwest::Method::POST,
+            "/api/v1/import",
+            Some(&body),
+        )
+        .await?;
+        println!(
+            "imported {} download(s) (queued)",
+            result
+                .get("imported")
+                .and_then(serde_json::Value::as_u64)
+                .unwrap_or(0)
+        );
+        return Ok(());
+    }
+    let manager = DownloadManager::new(paths.manager_config())?;
+    let mut imported = 0_usize;
+    let mut failures = Vec::new();
+    for mut entry in entries {
+        entry.start = false;
+        match manager.add(entry).await {
+            Ok(_) => imported += 1,
+            Err(error) => failures.push(error.to_string()),
+        }
+    }
+    println!("imported {imported} download(s) (queued)");
+    for failure in failures {
+        eprintln!("failed: {failure}");
+    }
     Ok(())
 }
 

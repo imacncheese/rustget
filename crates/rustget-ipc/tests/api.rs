@@ -130,6 +130,28 @@ async fn add_list_and_delete_download() {
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
 
+    let exported: serde_json::Value = client
+        .get(format!("{base}/api/v1/export"))
+        .bearer_auth(&token)
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(exported["downloads"].as_array().unwrap().len(), 1);
+    let imported: serde_json::Value = client
+        .post(format!("{base}/api/v1/import"))
+        .bearer_auth(&token)
+        .json(&serde_json::json!({"downloads": exported["downloads"]}))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(imported["imported"], 1);
+
     let stats: serde_json::Value = client
         .get(format!("{base}/api/v1/stats"))
         .bearer_auth(&token)

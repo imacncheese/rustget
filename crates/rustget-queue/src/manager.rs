@@ -82,6 +82,30 @@ fn default_true() -> bool {
     true
 }
 
+impl NewDownload {
+    /// Convert an existing row into a portable, non-starting queue entry.
+    #[must_use]
+    pub fn from_record(record: &DownloadRecord) -> Self {
+        Self {
+            url: record.url.clone(),
+            mirrors: record.mirrors.clone(),
+            destination: Some(record.destination.clone()),
+            directory: record
+                .destination
+                .parent()
+                .map(std::path::Path::to_path_buf),
+            category: Some(record.category.clone()),
+            connections: Some(record.connections),
+            speed_limit: record.speed_limit,
+            headers: record.headers.clone(),
+            checksum_algorithm: record.checksum_algorithm.clone(),
+            checksum_value: record.checksum_value.clone(),
+            priority: Some(record.priority),
+            start: false,
+        }
+    }
+}
+
 impl Default for NewDownload {
     fn default() -> Self {
         Self {

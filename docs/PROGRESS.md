@@ -47,6 +47,7 @@
 - [x] REST + WebSocket API with token/origin checks.
 - [x] Web UI: virtualized list, details, segments, add/settings, themes.
 - [x] Queue priority Move up/down via PATCH API.
+- [x] Versioned JSON export/import for the download list.
 - [x] Scheduler weekly timeline and add/delete form in the web UI.
 - [x] Chromium/Firefox extension + native-messaging host (live tested).
 - [x] Opt-in browser-download takeover with options UI (default off).

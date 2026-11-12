@@ -119,6 +119,8 @@ pub fn router(manager: Arc<DownloadManager>, config: &ApiConfig) -> Router {
         .route("/api/v1/downloads/{id}/resume", post(resume_download))
         .route("/api/v1/downloads/{id}/retry", post(retry_download))
         .route("/api/v1/downloads/{id}/open", post(open_download))
+        .route("/api/v1/export", get(export_downloads))
+        .route("/api/v1/import", post(import_downloads))
         .route("/api/v1/stats", get(stats))
         .route("/api/v1/categories", get(list_categories))
         .route("/api/v1/schedules", get(list_schedules).post(add_schedule))
@@ -431,6 +433,42 @@ async fn list_categories(
         .categories()
         .map_err(|error| ApiError::Internal(error.to_string()))?;
     Ok(Json(json!({"categories": categories})))
+}
+
+async fn export_downloads(
+    State(state): State<ApiState>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let items = state
+        .manager
+        .list(None)
+        .map_err(|error| ApiError::Internal(error.to_string()))?;
+    let downloads: Vec<NewDownload> = items.iter().map(NewDownload::from_record).collect();
+    Ok(Json(json!({
+        "version": 1,
+        "downloads": downloads,
+    })))
+}
+
+#[derive(Debug, Deserialize)]
+struct ImportBundle {
+    #[serde(default)]
+    downloads: Vec<NewDownload>,
+}
+
+async fn import_downloads(
+    State(state): State<ApiState>,
+    Json(bundle): Json<ImportBundle>,
+) -> Json<serde_json::Value> {
+    let mut imported = 0_usize;
+    let mut failed = Vec::new();
+    for mut entry in bundle.downloads {
+        entry.start = false;
+        match state.manager.add(entry).await {
+            Ok(_) => imported += 1,
+            Err(error) => failed.push(error.to_string()),
+        }
+    }
+    Json(json!({"imported": imported, "failed": failed}))
 }
 
 async fn stats(State(state): State<ApiState>) -> Result<Json<serde_json::Value>, ApiError> {

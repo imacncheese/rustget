@@ -164,6 +164,23 @@ journal. Returns `204`.
 Opens the containing folder using the OS default handler. Returns `204` or
 `500`.
 
+### `GET /api/v1/export`
+
+Returns a portable bundle:
+
+```json
+{"version":1,"downloads":[{"url":"...","mirrors":[],"destination":"...","start":false}]}
+```
+
+### `POST /api/v1/import`
+
+```json
+{"downloads":[{"url":"https://example.test/a.zip","start":false}]}
+```
+
+Each entry is probed and queued; `start` is forced to false so imports do not
+unexpectedly saturate the network. Returns `{"imported":N,"failed":[...]}`.
+
 ### `GET /api/v1/stats`
 
 ```json

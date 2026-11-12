@@ -112,7 +112,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | C08 | Per-download properties | MUST | P1 | M4 | ✅ | Details pane: path, URL, size, speeds, error |
 | C09 | Per-connection view | MUST | P1 | M4 | ✅ | Live segment list over WebSocket |
 | C10 | Live speed chart | SHOULD | P1 | M4 | — | Numeric speed only |
-| C11 | Import/export download list | SHOULD | P2 | M6 | — | Planned |
+| C11 | Import/export download list | SHOULD | P2 | M6 | ✅ | Versioned JSON bundle via API and `rustget export`/`import`; imported rows are queued |
 | C12 | Import/export settings | SHOULD | P2 | M6 | — | Planned |
 | C13 | Search | MUST | P1 | M4 | ✅ | UI search; API filter by status |
 | C14 | Filter | MUST | P1 | M4 | ✅ | Status filters |
@@ -207,10 +207,10 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 68 |
+| ✅ implemented + verified | 69 |
 | ◐ partial | 39 |
 | ○ specified, not implemented | 1 |
-| — not started | 39 |
+| — not started | 38 |
 | **Total tracked** | **147** |
 
 By area:
@@ -219,7 +219,7 @@ By area:
 |---|---:|---:|---:|---:|---:|
 | A. Download engine | 46 | 22 | 17 | 0 | 7 |
 | B. Capture/integration | 22 | 9 | 9 | 0 | 4 |
-| C. Management | 30 | 17 | 4 | 0 | 9 |
+| C. Management | 30 | 18 | 4 | 0 | 8 |
 | D. UI/UX | 12 | 7 | 2 | 0 | 3 |
 | E. Quality/security | 15 | 9 | 3 | 1 | 2 |
 | F. Platform/packaging | 10 | 1 | 2 | 0 | 7 |

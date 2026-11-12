@@ -26,6 +26,7 @@ Keep a Changelog and the project uses Semantic Versioning.
 - Opt-in scheduler power actions (`--allow-power-actions`) with tested command
   planning and a fake-hook test.
 - Cross-process single-instance lock for `rustget serve`.
+- HTTP 511 captive-portal classification.
 - Local-file drag/drop via multipart import.
 - SOCKS5 proxy support with loopback fixture.
 - Per-error-class retry overrides via config and `--retry-override`.

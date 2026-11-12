@@ -66,7 +66,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | A40 | Disk-full handling | MUST | P0 | M2 | ✅ | `reserve_bytes` free-space preflight before writes; I/O errors surfaced; forced-reservation test |
 | A41 | Slow-loris / idle timeout | MUST | P0 | M2 | ✅ | Idle timeout on stream and probe |
 | A42 | Mid-stream reset recovery | MUST | P0 | M2 | ✅ | Flaky-origin test retries and verifies bytes |
-| A43 | DNS failure, captive portal classification | SHOULD | P1 | M2 | ◐ | Error classes exist; no portal detection |
+| A43 | DNS failure, captive portal classification | SHOULD | P1 | M2 | ✅ | DNS/connect transient class; HTTP 511 distinct non-retryable captive-portal class |
 | A44 | Path-too-long / reserved names / case collisions | MUST | P0 | M1 | ✅ | Long-name, reserved-name and Windows case-collision tests |
 | A45 | 10k+ queued downloads without UI lag | SHOULD | P1 | M4 | ✅ | Virtualized list plus 10k-record insert/list regression test |
 | A46 | Saturate 1 Gbps / beat `aria2c -x16 -s16` | SHOULD | P1 | M2 | ✅ | Local 128 MiB: 167.5 vs 119.9 MiB/s wall (1.40×), byte-exact; WAN/1 Gbps unproven |
@@ -206,8 +206,8 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 101 |
-| ◐ partial | 35 |
+| ✅ implemented + verified | 102 |
+| ◐ partial | 34 |
 | ○ specified, not implemented | 1 |
 | — not started | 10 |
 | **Total tracked** | **147** |
@@ -216,7 +216,7 @@ By area:
 
 | Area | Rows | ✅ | ◐ | ○ | — |
 |---|---:|---:|---:|---:|---:|
-| A. Download engine | 46 | 33 | 10 | 0 | 3 |
+| A. Download engine | 46 | 34 | 9 | 0 | 3 |
 | B. Capture/integration | 22 | 13 | 9 | 0 | 0 |
 | C. Management | 30 | 24 | 6 | 0 | 0 |
 | D. UI/UX | 12 | 12 | 0 | 0 | 0 |

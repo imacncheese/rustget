@@ -20,6 +20,8 @@ pub enum ErrorClass {
     RangeChanged,
     /// The server does not implement ranges after all.
     RangeUnsupported,
+    /// A captive portal intercepted the request (HTTP 511).
+    CaptivePortal,
     /// Local disk/path/configuration error. Never retry.
     Fatal,
 }
@@ -60,6 +62,7 @@ impl RetryPolicy {
                 "not_found" => Some(ErrorClass::NotFound),
                 "range_changed" => Some(ErrorClass::RangeChanged),
                 "range_unsupported" => Some(ErrorClass::RangeUnsupported),
+                "captive_portal" => Some(ErrorClass::CaptivePortal),
                 "fatal" => Some(ErrorClass::Fatal),
                 _ => None,
             };
@@ -85,6 +88,7 @@ impl RetryPolicy {
             404 | 410 => ErrorClass::NotFound,
             408 | 425 | 500 | 502 | 504 => ErrorClass::Transient,
             429 | 503 => ErrorClass::RateLimited,
+            511 => ErrorClass::CaptivePortal,
             416 => ErrorClass::RangeChanged,
             _ if status >= 500 => ErrorClass::Transient,
             _ => ErrorClass::Fatal,
@@ -132,6 +136,7 @@ mod tests {
         assert_eq!(RetryPolicy::classify_status(403), ErrorClass::Auth);
         assert_eq!(RetryPolicy::classify_status(404), ErrorClass::NotFound);
         assert_eq!(RetryPolicy::classify_status(416), ErrorClass::RangeChanged);
+        assert_eq!(RetryPolicy::classify_status(511), ErrorClass::CaptivePortal);
     }
 
     #[test]

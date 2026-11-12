@@ -110,6 +110,8 @@ implemented, will be opt-in.
   future redesign will store sensitive headers in the OS keyring or redact them
   after the transfer.
 - Basic auth fields are not persisted today (and not exposed in the UI).
+- Cross-host redirects are covered by a fixture that proves `Authorization` is
+  not forwarded to the target origin.
 - HTTP Digest credentials are persisted as JSON in `downloads.digest_auth`,
   plaintext at rest. Digest auth sends the password-derived response, not the
   plaintext password, over the wire.

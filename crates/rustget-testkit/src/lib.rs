@@ -44,6 +44,7 @@ pub struct TestFile {
     pub throttle_bps: Option<u64>,
     pub basic_auth: Option<(String, String)>,
     pub digest_auth: Option<(String, String, String)>,
+    pub redirect_to: Option<String>,
     pub content_disposition: Option<String>,
     /// Increment ETag on every request, simulating a file changed in place.
     pub changing_etag: bool,
@@ -74,6 +75,7 @@ impl TestFile {
             throttle_bps: None,
             basic_auth: None,
             digest_auth: None,
+            redirect_to: None,
             content_disposition: None,
             changing_etag: false,
             omit_length: false,
@@ -132,6 +134,12 @@ impl TestFile {
     }
 
     #[must_use]
+    pub fn redirect_to(mut self, url: impl Into<String>) -> Self {
+        self.redirect_to = Some(url.into());
+        self
+    }
+
+    #[must_use]
     pub fn redirects(mut self, hops: u8) -> Self {
         self.redirect_hops = hops;
         self
@@ -173,6 +181,7 @@ pub struct RequestLog {
     pub path: String,
     pub range: Option<String>,
     pub if_range: Option<String>,
+    pub has_authorization: bool,
     pub user_agent: Option<String>,
     pub status: u16,
     pub range_start: Option<u64>,
@@ -262,6 +271,7 @@ impl TestServer {
         let app = Router::new()
             .route("/files/{name}", get(serve_file).head(serve_file))
             .route("/redirect/{name}/{hop}", get(serve_redirect))
+            .route("/go/{name}", get(serve_go))
             .route("/__admin/requests", get(admin_requests))
             .route("/__admin/stats", get(admin_stats))
             .route("/__admin/reset", post(admin_reset))
@@ -298,6 +308,10 @@ impl TestServer {
     #[must_use]
     pub fn file_url(&self, name: &str) -> String {
         self.url(&format!("/files/{name}"))
+    }
+
+    pub fn go_url(&self, name: &str) -> String {
+        self.url(&format!("/go/{name}"))
     }
 
     pub fn requests(&self) -> Vec<RequestLog> {
@@ -338,6 +352,20 @@ async fn admin_reset(State(state): State<Shared>) -> impl IntoResponse {
     state.0.active.store(0, Ordering::SeqCst);
     state.0.max_active.store(0, Ordering::SeqCst);
     StatusCode::NO_CONTENT
+}
+
+async fn serve_go(State(state): State<Shared>, Path(name): Path<String>) -> Response {
+    let Some(file) = state.0.files.get(&name) else {
+        return StatusCode::NOT_FOUND.into_response();
+    };
+    let Some(target) = &file.spec.redirect_to else {
+        return StatusCode::NOT_FOUND.into_response();
+    };
+    let mut response = StatusCode::TEMPORARY_REDIRECT.into_response();
+    if let Ok(value) = HeaderValue::from_str(target) {
+        response.headers_mut().insert(header::LOCATION, value);
+    }
+    response
 }
 
 async fn serve_redirect(
@@ -433,6 +461,7 @@ async fn serve_file(
                 .get(header::IF_RANGE)
                 .and_then(|value| value.to_str().ok())
                 .map(str::to_string),
+            has_authorization: headers.get(header::AUTHORIZATION).is_some(),
             user_agent: headers
                 .get(header::USER_AGENT)
                 .and_then(|value| value.to_str().ok())
@@ -456,6 +485,7 @@ async fn serve_file(
         .get(header::USER_AGENT)
         .and_then(|v| v.to_str().ok())
         .map(str::to_string);
+    let authorization_present = headers.get(header::AUTHORIZATION).is_some();
     let parsed = range_header
         .as_deref()
         .and_then(|value| parse_range(value, file.spec.size));
@@ -581,6 +611,7 @@ async fn serve_file(
         path: format!("/files/{name}"),
         range: range_header,
         if_range,
+        has_authorization: authorization_present,
         user_agent: request_user_agent,
         status: status.as_u16(),
         range_start: use_range.then_some(start),

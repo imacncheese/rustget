@@ -161,11 +161,11 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | E05 | Fuzzing header/playlist/native parsers | SHOULD | P1 | M2 | ○ | Targets specified; not run in CI |
 | E06 | Benchmarks (`criterion`) | SHOULD | P1 | M1 | ◐ | Plan and script; no committed criterion run |
 | E07 | CI matrix Win/Linux/macOS | MUST | P0 | M0 | ✅ | `.github/workflows/ci.yml` (not yet executed in a hosted repo) |
-| E08 | `clippy -D warnings`, rustfmt, deny, audit | MUST | P0 | M0 | ◐ | Config present; clippy not yet clean under `-D warnings` |
+| E08 | `clippy -D warnings`, rustfmt, deny, audit | MUST | P0 | M0 | ◐ | fmt + clippy clean; deny/audit config present but not run locally |
 | E09 | Reproducible/signed installers | SHOULD | P1 | M7 | — | Planned |
 | E10 | SSRF/local API hardening | MUST | P0 | M3 | ✅ | Loopback bind, bearer token, origin check, no CORS |
 | E11 | Path traversal protection | MUST | P0 | M1 | ✅ | Sanitizer tests |
-| E12 | Redirect safety (no credential leak) | MUST | P0 | M2 | ◐ | `reqwest` strips sensitive headers cross-host; not explicitly tested |
+| E12 | Redirect safety (no credential leak) | MUST | P0 | M2 | ✅ | Cross-host redirect fixture proves Authorization is dropped at target |
 | E13 | Post-action sandboxing | SHOULD | P2 | M6 | — | Actions not implemented |
 | E14 | No telemetry by default | MUST | P0 | M3 | ✅ | No analytics code/dependency |
 | E15 | Dependency/license policy | MUST | P1 | M0 | ✅ | `deny.toml`, `cargo-deny` in CI |
@@ -206,8 +206,8 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 84 |
-| ◐ partial | 47 |
+| ✅ implemented + verified | 85 |
+| ◐ partial | 46 |
 | ○ specified, not implemented | 1 |
 | — not started | 15 |
 | **Total tracked** | **147** |
@@ -220,7 +220,7 @@ By area:
 | B. Capture/integration | 22 | 12 | 9 | 0 | 1 |
 | C. Management | 30 | 23 | 7 | 0 | 0 |
 | D. UI/UX | 12 | 10 | 2 | 0 | 0 |
-| E. Quality/security | 15 | 9 | 3 | 1 | 2 |
+| E. Quality/security | 15 | 10 | 2 | 1 | 2 |
 | F. Platform/packaging | 10 | 2 | 3 | 0 | 5 |
 | G. Protocols/extensibility | 12 | 4 | 4 | 0 | 4 |
 

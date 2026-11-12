@@ -705,42 +705,48 @@ impl Downloader {
             None,
             None,
         );
-        for segment in &media.segments {
-            let encrypted = self
-                .fetch_media_bytes(&segment.url, &cancel, &retry, &limiter)
-                .await?;
-            let bytes = if let Some(key) = &key {
-                let iv = hls_iv(media.key_iv.as_deref(), segment.sequence)?;
-                decrypt_hls_segment(&encrypted, key, &iv)?
-            } else {
-                encrypted
-            };
-            part.write_at(cursor, &bytes)?;
-            cursor += bytes.len() as u64;
-            completed += 1;
-            tracker.set_units(media.segments.len() as u64, completed as u64);
-            pseudo_segments.push(SegmentProgress {
-                id: SegmentId(completed as u64 - 1),
-                start: completed as u64 - 1,
-                end: completed as u64 - 1,
-                written: completed as u64,
-                state: SegmentState::Complete,
-                attempts: 1,
-            });
-            if pseudo_segments.len() > 256 {
-                pseudo_segments.remove(0);
-            }
-            if completed % 10 == 0 || completed == media.segments.len() {
-                tracker.emit(
-                    DownloadState::Downloading,
-                    None,
-                    cursor,
-                    1,
-                    pseudo_segments.clone(),
-                    Some(playlist_url.as_str()),
-                    None,
-                    None,
-                );
+        for chunk in media.segments.chunks(4) {
+            let results = futures_util::future::join_all(chunk.iter().map(|segment| async {
+                let encrypted = self
+                    .fetch_media_bytes(&segment.url, &cancel, &retry, &limiter)
+                    .await?;
+                if let Some(key) = &key {
+                    let iv = hls_iv(media.key_iv.as_deref(), segment.sequence)?;
+                    decrypt_hls_segment(&encrypted, key, &iv)
+                } else {
+                    Ok(encrypted)
+                }
+            }))
+            .await;
+            for result in results {
+                let bytes = result?;
+                part.write_at(cursor, &bytes)?;
+                cursor += bytes.len() as u64;
+                completed += 1;
+                tracker.set_units(media.segments.len() as u64, completed as u64);
+                pseudo_segments.push(SegmentProgress {
+                    id: SegmentId(completed as u64 - 1),
+                    start: completed as u64 - 1,
+                    end: completed as u64 - 1,
+                    written: completed as u64,
+                    state: SegmentState::Complete,
+                    attempts: 1,
+                });
+                if pseudo_segments.len() > 256 {
+                    pseudo_segments.remove(0);
+                }
+                if completed % 10 == 0 || completed == media.segments.len() {
+                    tracker.emit(
+                        DownloadState::Downloading,
+                        None,
+                        cursor,
+                        1,
+                        pseudo_segments.clone(),
+                        Some(playlist_url.as_str()),
+                        None,
+                        None,
+                    );
+                }
             }
         }
         part.set_len(cursor)?;
@@ -867,39 +873,45 @@ impl Downloader {
             None,
             None,
         );
-        for (index, (_number, relative)) in plan.into_iter().enumerate() {
-            let index = index as u64;
-            let url = base
-                .join(&relative)
-                .map_err(|error| NetError::InvalidUrl(error.to_string()))?;
-            let bytes = self
-                .fetch_media_bytes(url.as_str(), &cancel, &retry, &limiter)
-                .await?;
-            part.write_at(cursor, &bytes)?;
-            cursor += bytes.len() as u64;
-            tracker.set_units(count, index + 1);
-            pseudo_segments.push(SegmentProgress {
-                id: SegmentId(index),
-                start: index,
-                end: index,
-                written: index + 1,
-                state: SegmentState::Complete,
-                attempts: 1,
-            });
-            if pseudo_segments.len() > 256 {
-                pseudo_segments.remove(0);
-            }
-            if index % 10 == 0 || index + 1 == count {
-                tracker.emit(
-                    DownloadState::Downloading,
-                    None,
-                    cursor,
-                    1,
-                    pseudo_segments.clone(),
-                    Some(request.url.as_str()),
-                    None,
-                    None,
-                );
+        for (chunk_index, chunk) in plan.chunks(4).enumerate() {
+            let results =
+                futures_util::future::join_all(chunk.iter().map(|(_number, relative)| async {
+                    let url = base
+                        .join(relative)
+                        .map_err(|error| NetError::InvalidUrl(error.to_string()))?;
+                    self.fetch_media_bytes(url.as_str(), &cancel, &retry, &limiter)
+                        .await
+                }))
+                .await;
+            for (offset, result) in results.into_iter().enumerate() {
+                let index = (chunk_index * 4 + offset) as u64;
+                let bytes = result?;
+                part.write_at(cursor, &bytes)?;
+                cursor += bytes.len() as u64;
+                tracker.set_units(count, index + 1);
+                pseudo_segments.push(SegmentProgress {
+                    id: SegmentId(index),
+                    start: index,
+                    end: index,
+                    written: index + 1,
+                    state: SegmentState::Complete,
+                    attempts: 1,
+                });
+                if pseudo_segments.len() > 256 {
+                    pseudo_segments.remove(0);
+                }
+                if index % 10 == 0 || index + 1 == count {
+                    tracker.emit(
+                        DownloadState::Downloading,
+                        None,
+                        cursor,
+                        1,
+                        pseudo_segments.clone(),
+                        Some(request.url.as_str()),
+                        None,
+                        None,
+                    );
+                }
             }
         }
         part.set_len(cursor)?;

@@ -108,6 +108,12 @@ impl TestFile {
     }
 
     #[must_use]
+    pub fn delayed(mut self, delay_ms: u64) -> Self {
+        self.head_delay_ms = delay_ms;
+        self
+    }
+
+    #[must_use]
     pub fn no_range(mut self) -> Self {
         self.range_mode = RangeMode::Ignore;
         self

@@ -1,7 +1,7 @@
 # Media (HLS/DASH) specification
 
-**Status:** parsers, VOD download paths and HLS AES-128 implemented; DRM,
-audio-group and parallel-segment work remains
+**Status:** parsers, VOD download paths, HLS AES-128 and parallel VOD segment
+fetching implemented; DRM, audio groups, live playback and media resume remain
 **Code:** `crates/rustget-media`, `crates/rustget-net` (`download_hls`,
 `download_dash`)
 

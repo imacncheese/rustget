@@ -79,6 +79,46 @@ async fn downloads_master_playlist_and_concatenates_segments() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn segments_are_fetched_in_parallel_but_written_in_order() {
+    let playlist = b"#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-TARGETDURATION:2\n#EXTINF:2.0,\na.m4s\n#EXTINF:2.0,\nb.m4s\n#EXTINF:2.0,\nc.m4s\n#EXTINF:2.0,\nd.m4s\n#EXT-X-ENDLIST\n";
+    let config = TestkitConfig::default()
+        .with_file(TestFile::inline(
+            "media.m3u8",
+            "application/vnd.apple.mpegurl",
+            playlist,
+        ))
+        .with_file(TestFile::inline("a.m4s", "video/iso.segment", b"A").delayed(200))
+        .with_file(TestFile::inline("b.m4s", "video/iso.segment", b"B").delayed(200))
+        .with_file(TestFile::inline("c.m4s", "video/iso.segment", b"C").delayed(200))
+        .with_file(TestFile::inline("d.m4s", "video/iso.segment", b"D").delayed(200));
+    let server = TestServer::start(config).await.unwrap();
+    let temp = tempfile::tempdir().unwrap();
+    let downloader = Downloader::new(EngineConfig::default(), RequestOptions::default()).unwrap();
+    let req = DownloadRequest {
+        id: Uuid::new_v4(),
+        url: url::Url::parse(&server.file_url("media.m3u8")).unwrap(),
+        mirrors: Vec::new(),
+        media_variant: None,
+        destination: None,
+        directory: temp.path().to_path_buf(),
+        resume: false,
+        overwrite: false,
+        checksum: None,
+    };
+    let started = std::time::Instant::now();
+    let (handle, tx) = downloader.handle(req.id);
+    let summary = timeout(
+        Duration::from_secs(15),
+        downloader.download(req, handle.cancel, tx),
+    )
+    .await
+    .expect("parallel HLS timed out")
+    .unwrap();
+    assert!(started.elapsed() < Duration::from_millis(650));
+    assert_eq!(tokio::fs::read(summary.destination).await.unwrap(), b"ABCD");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn selects_a_lower_quality_variant_and_lists_the_catalog() {
     let server = TestServer::start(hls_config()).await.unwrap();
     let catalog = Downloader::new(EngineConfig::default(), RequestOptions::default())

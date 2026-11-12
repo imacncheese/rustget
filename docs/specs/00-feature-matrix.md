@@ -192,7 +192,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | G01 | Generic HTTP(S) progressive | MUST | P0 | M1 | ✅ | Engine tests |
 | G02 | HLS master/media playlist parser | SHOULD | P1 | M5 | ✅ | Variants, segments, encryption/init map; tests |
 | G03 | DASH MPD parser | SHOULD | P1 | M5 | ✅ | Representations, templates, ISO duration; tests |
-| G04 | HLS/DASH segment scheduler | SHOULD | P1 | M5 | ◐ | Sequential VOD segment download with retry/rate limit; no parallel segment workers or resume |
+| G04 | HLS/DASH segment scheduler | SHOULD | P1 | M5 | ◐ | Parallel 4-segment fetch with ordered writes, retry/rate limit; no media resume |
 | G05 | FFmpeg mux sidecar | SHOULD | P2 | M5 | ◐ | `-c copy` plan; not invoked by the media path yet |
 | G06 | Plugin API for extractors | COULD | P2 | M7 | ✅ | `plugins.resolvers` NAME→argv registry, `--plugin`, `--resolver`, 60 s timeout, success/unknown tests |
 | G07 | yt-dlp adapter | COULD | P3 | M7 | ✅ | `ytdlp.command`, `use_ytdlp`, CLI/UI, 60 s timeout, stub resolver success/failure tests |

@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use rustget_core::EngineConfig;
-use rustget_net::{DownloadRequest, Downloader, NetError, RequestOptions};
+use rustget_net::{DownloadRequest, Downloader, RequestOptions};
 use rustget_testkit::{TestFile, TestServer, TestkitConfig};
 use tokio::time::timeout;
 use uuid::Uuid;
@@ -67,36 +67,5 @@ async fn downloads_master_playlist_and_concatenates_segments() {
         requests
             .iter()
             .any(|entry| entry.path.ends_with("seg2.m4s"))
-    );
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn rejects_encrypted_hls_cleanly() {
-    let config = TestkitConfig::default().with_file(TestFile::inline(
-        "enc.m3u8",
-        "application/vnd.apple.mpegurl",
-        b"#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI=\"key.bin\"\n#EXTINF:1,\nseg.m4s\n#EXT-X-ENDLIST\n",
-    ));
-    let server = TestServer::start(config).await.unwrap();
-    let temp = tempfile::tempdir().unwrap();
-    let downloader = Downloader::new(EngineConfig::default(), RequestOptions::default()).unwrap();
-    let req = DownloadRequest {
-        id: Uuid::new_v4(),
-        url: url::Url::parse(&server.file_url("enc.m3u8")).unwrap(),
-        mirrors: Vec::new(),
-        destination: None,
-        directory: temp.path().to_path_buf(),
-        resume: false,
-        overwrite: false,
-        checksum: None,
-    };
-    let (handle, tx) = downloader.handle(req.id);
-    let error = downloader
-        .download(req, handle.cancel, tx)
-        .await
-        .unwrap_err();
-    assert!(
-        matches!(error, NetError::Protocol(ref message) if message.contains("encrypted")),
-        "unexpected error: {error}"
     );
 }

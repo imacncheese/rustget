@@ -546,11 +546,39 @@ impl Downloader {
             }
             HlsPlaylist::Media(media) => media,
         };
-        if media.encrypted {
-            return Err(NetError::Protocol(
-                "encrypted HLS playlists are not supported yet".into(),
-            ));
-        }
+        let key = if media.encrypted {
+            if media
+                .key_format
+                .as_deref()
+                .is_some_and(|format| !format.eq_ignore_ascii_case("identity"))
+            {
+                return Err(NetError::Protocol(
+                    "only identity AES-128 HLS keys are supported".into(),
+                ));
+            }
+            let uri = media.key_uri.as_deref().ok_or_else(|| {
+                NetError::Protocol("encrypted HLS playlist has no key URI".into())
+            })?;
+            let bytes = self
+                .fetch_media_bytes(
+                    uri,
+                    &cancel,
+                    &RetryPolicy::from_engine(&self.config),
+                    &rustget_core::RateLimiter::new(0),
+                )
+                .await?;
+            if bytes.len() != 16 {
+                return Err(NetError::Protocol(format!(
+                    "HLS AES-128 key must be 16 bytes, got {}",
+                    bytes.len()
+                )));
+            }
+            let mut key = [0_u8; 16];
+            key.copy_from_slice(&bytes);
+            Some(key)
+        } else {
+            None
+        };
         tracker.set_units(media.segments.len() as u64, 0);
         let destination = hls_destination(request, &request.url)?;
         if let Some(parent) = destination.parent() {
@@ -587,9 +615,15 @@ impl Downloader {
             None,
         );
         for segment in &media.segments {
-            let bytes = self
+            let encrypted = self
                 .fetch_media_bytes(&segment.url, &cancel, &retry, &limiter)
                 .await?;
+            let bytes = if let Some(key) = &key {
+                let iv = hls_iv(media.key_iv.as_deref(), segment.sequence)?;
+                decrypt_hls_segment(&encrypted, key, &iv)?
+            } else {
+                encrypted
+            };
             part.write_at(cursor, &bytes)?;
             cursor += bytes.len() as u64;
             completed += 1;
@@ -1849,6 +1883,43 @@ fn segment_progress(ledger: &SegmentLedger) -> Vec<SegmentProgress> {
             attempts: segment.attempts,
         })
         .collect()
+}
+
+fn hls_iv(explicit: Option<&str>, sequence: u64) -> Result<[u8; 16]> {
+    if let Some(value) = explicit {
+        let value = value.trim().trim_start_matches("0x");
+        if value.len() != 32 {
+            return Err(NetError::Protocol("HLS IV must be 16 bytes of hex".into()));
+        }
+        let mut iv = [0_u8; 16];
+        for (index, chunk) in value.as_bytes().chunks_exact(2).enumerate() {
+            let text = std::str::from_utf8(chunk)
+                .map_err(|_| NetError::Protocol("HLS IV is not ASCII hex".into()))?;
+            iv[index] = u8::from_str_radix(text, 16)
+                .map_err(|_| NetError::Protocol("HLS IV is not hex".into()))?;
+        }
+        return Ok(iv);
+    }
+    let mut iv = [0_u8; 16];
+    iv[8..].copy_from_slice(&sequence.to_be_bytes());
+    Ok(iv)
+}
+
+fn decrypt_hls_segment(data: &[u8], key: &[u8; 16], iv: &[u8; 16]) -> Result<Vec<u8>> {
+    use aes::Aes128;
+    use cbc::Decryptor;
+    use cipher::block_padding::Pkcs7;
+    use cipher::{BlockDecryptMut, KeyIvInit};
+    if data.is_empty() || data.len() % 16 != 0 {
+        return Err(NetError::Protocol(
+            "AES-128 HLS segment is not a whole number of blocks".into(),
+        ));
+    }
+    let mut buffer = data.to_vec();
+    Decryptor::<Aes128>::new(key.into(), iv.into())
+        .decrypt_padded_mut::<Pkcs7>(&mut buffer)
+        .map(|plain| plain.to_vec())
+        .map_err(|_| NetError::Protocol("AES-128 HLS padding is invalid".into()))
 }
 
 fn ftp_error(error: suppaftp::FtpError) -> NetError {

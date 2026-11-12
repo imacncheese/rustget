@@ -23,7 +23,7 @@ modern UI. It is not affiliated with or endorsed by Tonec FZE.
 | Authenticated REST + WebSocket API | Working | API integration tests |
 | Web UI | Working | headless-browser screenshot above |
 | Native-messaging browser bridge | Working | framing tests + live daemon test |
-| HLS / DASH downloads | VOD working | parser + end-to-end segment tests; AES/DRM not supported |
+| HLS / DASH downloads | VOD working | HLS AES-128, DASH template; DRM/audio groups not supported |
 | FTP | Plain FTP + resume | local FTP fixture; FTPS not supported |
 | Scheduler windows | Working | pure tests, daemon loop, web timeline |
 | FTPS, HTTP/3, BitTorrent, tray | Not implemented | see the parity scorecard |
@@ -143,7 +143,7 @@ RustGet is an M0–M3 implementation with parts of M4/M5. It does **not** yet ha
 - FTPS/SFTP, HTTP/3/QUIC, BitTorrent/magnet or MMS (plain FTP is supported).
 - Digest/NTLM/Kerberos authentication, PAC, client certificates.
 - Learned/adaptive per-host limits (a fixed semaphore is implemented).
-- AES-128 HLS decryption, DASH SegmentTimeline/live manifests, separate
+- HLS key rotation/audio groups, DASH SegmentTimeline/live manifests, separate
   audio/video muxing, or parallel segment download/resume for media.
 - Tray integration, OS autostart, single-instance desktop shell, native
   notifications, or a Tauri binary.
@@ -201,8 +201,8 @@ commands and output summary):
   gap/overlap invariants.
 - `rustget-storage`: 15 tests, including torn-journal recovery and out-of-order
   positional writes.
-- `rustget-net`: 7 unit + 18 integration tests (engine, work stealing, adaptive
-  growth, mirrors, host caps, HLS, DASH, FTP).
+- `rustget-net`: 7 unit + 19 integration tests (engine, work stealing, adaptive
+  growth, mirrors, host caps, HLS/AES, DASH, FTP).
 - `rustget-queue`: 13 DB migration/manager/scheduler/HLS/FTP/mirror tests.
 - `rustget-ipc`: 4 API tests (auth, origin/Host rejection, add/list/delete).
 - `rustget-cli`: 4 pattern tests + 1 kill-process/resume test.

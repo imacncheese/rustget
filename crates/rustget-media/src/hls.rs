@@ -41,6 +41,9 @@ pub struct MediaPlaylist {
     pub encrypted: bool,
     pub ended: bool,
     pub key_uri: Option<String>,
+    /// Hex IV from `#EXT-X-KEY:IV=0x...`, if present.
+    pub key_iv: Option<String>,
+    pub key_format: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -116,6 +119,8 @@ fn parse_media(lines: &[&str], base: &Url) -> Result<HlsPlaylist, HlsError> {
     let mut init_map = None;
     let mut encrypted = false;
     let mut key_uri = None;
+    let mut key_iv = None;
+    let mut key_format = None;
     let mut ended = false;
     let mut sequence = 0_u64;
     let mut segments = Vec::new();
@@ -141,6 +146,8 @@ fn parse_media(lines: &[&str], base: &Url) -> Result<HlsPlaylist, HlsError> {
                     .map(|uri| base.join(uri))
                     .transpose()?
                     .map(|url| url.to_string());
+                key_iv = attributes.get("IV").cloned();
+                key_format = attributes.get("KEYFORMAT").cloned();
             }
         } else if let Some(value) = line.strip_prefix("#EXTINF:") {
             let duration = value.split(',').next().unwrap_or("0");
@@ -170,6 +177,8 @@ fn parse_media(lines: &[&str], base: &Url) -> Result<HlsPlaylist, HlsError> {
         encrypted,
         ended,
         key_uri,
+        key_iv,
+        key_format,
     }))
 }
 
@@ -244,7 +253,7 @@ low.m3u8
 #EXT-X-VERSION:7
 #EXT-X-TARGETDURATION:6
 #EXT-X-MAP:URI="init.mp4"
-#EXT-X-KEY:METHOD=AES-128,URI="key.bin"
+#EXT-X-KEY:METHOD=AES-128,URI="key.bin",IV=0x000102030405060708090a0b0c0d0e0f,KEYFORMAT="identity"
 #EXTINF:5.5,
 seg0.m4s
 #EXTINF:5.5,
@@ -263,6 +272,11 @@ seg1.m4s
             Some("https://cdn.example.test/v/init.mp4")
         );
         assert_eq!(playlist.segments[1].duration_ms, 5500);
+        assert_eq!(
+            playlist.key_iv.as_deref(),
+            Some("0x000102030405060708090a0b0c0d0e0f")
+        );
+        assert_eq!(playlist.key_format.as_deref(), Some("identity"));
         assert!(playlist.ended);
     }
 }

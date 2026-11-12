@@ -48,7 +48,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | A22 | HTTPS with rustls | MUST | P0 | M1 | ✅ | `rustls-tls`, no OpenSSL system dependency |
 | A23 | FTP / FTPS | SHOULD | P2 | M6 | ◐ | Plain FTP download + `REST` resume with local fixture; FTPS/TLS and segmented FTP missing |
 | A24 | SFTP | COULD | P3 | M7 | — | Planned |
-| A25 | HLS (.m3u8) | SHOULD | P1 | M5 | ◐ | Master/media VOD download, init map, ordered concat, progress; AES-128/audio groups/parallel segments missing |
+| A25 | HLS (.m3u8) | SHOULD | P1 | M5 | ◐ | Master/media VOD, init map, ordered concat, AES-128 CBC + key fetch; audio groups/parallel segments/key rotation missing |
 | A26 | DASH (.mpd) | SHOULD | P1 | M5 | ◐ | Duration-based SegmentTemplate VOD download, DRM rejection; SegmentTimeline/live/audio missing |
 | A27 | Magnet / BitTorrent | COULD | P3 | M7 | — | Out of current scope |
 | A28 | Probe: HEAD then GET `Range: bytes=0-0` | MUST | P0 | M1 | ✅ | Implemented; Content-Range/length parsing |

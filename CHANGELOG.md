@@ -30,6 +30,7 @@ Keep a Changelog and the project uses Semantic Versioning.
 - Native-messaging host with live daemon test.
 - Plain FTP downloads with `REST` resume and a local fixture.
 - HLS VOD downloads (master/media playlists, init maps, ordered segments).
+- HLS AES-128 CBC decryption with key fetch and explicit/sequence IVs.
 - DASH VOD downloads (duration-based SegmentTemplate), DRM rejection.
 - HLS/DASH segment progress units and bounded pseudo-segment UI events.
 - FFmpeg sidecar boundary.

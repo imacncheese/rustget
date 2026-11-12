@@ -1969,6 +1969,7 @@ dependencies = [
  "hex",
  "http",
  "md-5",
+ "parking_lot",
  "reqwest",
  "rustget-core",
  "rustget-media",

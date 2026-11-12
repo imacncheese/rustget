@@ -157,6 +157,17 @@ A worker only reports `Completed` when its cursor reaches `end + 1`, or `Stolen`
 when it reaches its stop boundary. The coordinator always re-reads the atomic
 cursor before `finish`, so a last-moment chunk cannot be lost from accounting.
 
+## 5.0 Per-host budget
+
+The manager owns a process-wide `HostLimiter`. Every range worker acquires a
+permit for the scheme/host/port before sending a request and holds it until the
+response body is dropped. The cap is `max_connections_per_host` (default 16), so
+two concurrent downloads against the same origin cannot silently exceed the
+budget. Probes intentionally bypass the limiter so that a queued transfer can
+still learn file metadata.
+
+The limit is static; learning a lower cap from 429/503 responses is future work.
+
 ## 5.1 Mirrors and alternate URLs
 
 A download may carry zero or more mirror URLs expected to expose the same

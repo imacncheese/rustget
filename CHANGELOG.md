@@ -14,6 +14,7 @@ Keep a Changelog and the project uses Semantic Versioning.
 - Resume validation via ETag, Last-Modified, size and If-Range.
 - Single-stream fallback for servers that ignore ranges.
 - Mirror/alternate-URL probe fallback and per-worker failover.
+- Process-wide per-host connection semaphore.
 - Retry with exponential backoff and jitter; error classification.
 - Token-bucket speed limiting.
 - MD5/SHA-1/SHA-256/BLAKE3 checksum verification.

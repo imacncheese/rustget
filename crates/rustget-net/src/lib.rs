@@ -10,6 +10,7 @@ pub mod checksum;
 pub mod client;
 pub mod engine;
 pub mod error;
+pub mod host;
 pub mod probe;
 
 pub use checksum::{ChecksumAlgorithm, ChecksumSpec, verify_checksum};
@@ -19,4 +20,5 @@ pub use engine::{
     SegmentProgress,
 };
 pub use error::{NetError, Result};
+pub use host::HostLimiter;
 pub use probe::{FileProbe, Validator};

@@ -6,8 +6,8 @@ use std::time::{Duration, Instant};
 use parking_lot::Mutex;
 use rustget_core::EngineConfig;
 use rustget_net::{
-    ChecksumSpec, DownloadProgress, DownloadRequest, DownloadState, Downloader, NetError,
-    RequestOptions,
+    ChecksumSpec, DownloadProgress, DownloadRequest, DownloadState, Downloader, HostLimiter,
+    NetError, RequestOptions,
 };
 use rustget_storage::{DownloadPaths, sanitize_filename, unique_destination};
 use serde::{Deserialize, Serialize};
@@ -131,6 +131,7 @@ pub struct DownloadManager {
     live: Mutex<HashMap<Uuid, DownloadProgress>>,
     scheduler_active: Mutex<bool>,
     scheduler_started: Mutex<bool>,
+    host_limiter: Arc<HostLimiter>,
 }
 
 impl DownloadManager {
@@ -139,6 +140,7 @@ impl DownloadManager {
         std::fs::create_dir_all(&config.download_dir)?;
         let db = Arc::new(Database::open(config.data_dir.join("rustget.db"))?);
         db.mark_interrupted()?;
+        let per_host = usize::from(config.engine.max_connections_per_host);
         let (events, _) = broadcast::channel(1024);
         Ok(Arc::new(Self {
             config,
@@ -148,6 +150,7 @@ impl DownloadManager {
             live: Mutex::new(HashMap::new()),
             scheduler_active: Mutex::new(false),
             scheduler_started: Mutex::new(false),
+            host_limiter: Arc::new(HostLimiter::new(per_host)),
         }))
     }
 
@@ -194,7 +197,8 @@ impl DownloadManager {
             headers: request.headers.clone(),
             ..RequestOptions::default()
         };
-        let downloader = Downloader::new(base_config.clone(), options)?;
+        let downloader = Downloader::new(base_config.clone(), options)?
+            .with_host_limiter(Arc::clone(&self.host_limiter));
         let parsed_mirrors: Vec<Url> = request
             .mirrors
             .iter()
@@ -531,7 +535,9 @@ impl DownloadManager {
             headers: record.headers.clone(),
             ..RequestOptions::default()
         };
-        let downloader = match Downloader::new(engine, options) {
+        let downloader = match Downloader::new(engine, options)
+            .map(|downloader| downloader.with_host_limiter(Arc::clone(&self.host_limiter)))
+        {
             Ok(downloader) => downloader,
             Err(error) => {
                 record.status = DownloadStatus::Failed;

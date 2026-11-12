@@ -23,6 +23,7 @@ implemented. The JSON below is the target stable schema.
   "engine": {
     "connections": 8,
     "max_connections": 32,
+    "max_connections_per_host": 16,
     "min_segment_size": 262144,
     "read_buffer_size": 65536,
     "max_retries": 6,
@@ -50,6 +51,7 @@ Validation:
 |---|---|
 | `connections` | 1..=32 and ≤ `max_connections` |
 | `max_connections` | 1..=32 |
+| `max_connections_per_host` | ≥ 1; process-wide semaphore |
 | `min_segment_size` | > 0 |
 | `read_buffer_size` | ≥ 1024 |
 | `checkpoint_interval_ms` | > 0 |

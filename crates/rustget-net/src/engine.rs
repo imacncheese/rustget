@@ -128,6 +128,7 @@ pub struct ProgressHandle {
 pub struct Downloader {
     client: Arc<NetClient>,
     config: EngineConfig,
+    host_limiter: Option<Arc<crate::host::HostLimiter>>,
 }
 
 impl Downloader {
@@ -136,7 +137,17 @@ impl Downloader {
             .validate()
             .map_err(|error| NetError::Config(error.to_string()))?;
         let client = Arc::new(NetClient::new(&config, options)?);
-        Ok(Self { client, config })
+        Ok(Self {
+            client,
+            config,
+            host_limiter: None,
+        })
+    }
+
+    #[must_use]
+    pub fn with_host_limiter(mut self, limiter: Arc<crate::host::HostLimiter>) -> Self {
+        self.host_limiter = Some(limiter);
+        self
     }
 
     #[must_use]
@@ -824,6 +835,7 @@ impl Downloader {
                 &worker_urls,
                 validator.clone(),
                 total,
+                self.host_limiter.clone(),
                 assignment,
                 cancel.clone(),
             );
@@ -858,6 +870,7 @@ impl Downloader {
                         &worker_urls,
                         validator.clone(),
                         total,
+                        self.host_limiter.clone(),
                         assignment,
                         cancel.clone(),
                     );
@@ -941,6 +954,7 @@ impl Downloader {
                                 &worker_urls,
                                 validator.clone(),
                                 total,
+                                self.host_limiter.clone(),
                                 cancel.clone(),
                                 &mut next_worker,
                             )?;
@@ -1018,6 +1032,7 @@ impl Downloader {
                             &worker_urls,
                             validator.clone(),
                             total,
+                            self.host_limiter.clone(),
                             split.assignment,
                             cancel.clone(),
                         );
@@ -1296,6 +1311,7 @@ fn spawn_range_worker(
     urls: &Arc<Vec<Url>>,
     validator: Option<String>,
     total: u64,
+    host_limiter: Option<Arc<crate::host::HostLimiter>>,
     assignment: Assignment,
     cancel: CancellationToken,
 ) {
@@ -1319,6 +1335,7 @@ fn spawn_range_worker(
             urls,
             validator,
             total,
+            host_limiter,
             stop,
             progress,
             cancel,
@@ -1338,6 +1355,7 @@ async fn range_worker(
     urls: Arc<Vec<Url>>,
     validator: Option<String>,
     total: u64,
+    host_limiter: Option<Arc<crate::host::HostLimiter>>,
     stop: Arc<AtomicU64>,
     progress: Arc<AtomicU64>,
     cancel: CancellationToken,
@@ -1350,7 +1368,12 @@ async fn range_worker(
         let Some(url) = urls.get(url_index) else {
             return WorkerOutcome::Failed(NetError::Protocol("mirror list is empty".into()));
         };
-        match transfer_range(
+        let permit = if let Some(limiter) = &host_limiter {
+            Some(limiter.acquire(url).await)
+        } else {
+            None
+        };
+        let transfer = transfer_range(
             &client,
             &config,
             &part,
@@ -1364,8 +1387,9 @@ async fn range_worker(
             &cancel,
             &mut cursor,
         )
-        .await
-        {
+        .await;
+        drop(permit);
+        match transfer {
             Ok(TransferEnd::Completed) => return WorkerOutcome::Completed,
             Ok(TransferEnd::Stolen) => return WorkerOutcome::Stolen,
             Err(NetError::Cancelled) => return WorkerOutcome::Cancelled,
@@ -1555,6 +1579,7 @@ fn dispatch_idle(
     urls: &Arc<Vec<Url>>,
     validator: Option<String>,
     total: u64,
+    host_limiter: Option<Arc<crate::host::HostLimiter>>,
     cancel: CancellationToken,
     next_worker: &mut u64,
 ) -> Result<()> {
@@ -1576,6 +1601,7 @@ fn dispatch_idle(
             urls,
             validator,
             total,
+            host_limiter.clone(),
             split.assignment,
             cancel,
         );
@@ -1593,6 +1619,7 @@ fn dispatch_idle(
             urls,
             validator,
             total,
+            host_limiter.clone(),
             assignment,
             cancel,
         );

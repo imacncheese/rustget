@@ -219,9 +219,10 @@ async fn main() -> Result<()> {
             println!("api                {}", cli.api);
             let engine = EngineConfig::default();
             println!(
-                "defaults           {} connections (max {}), {} KiB min segment",
+                "defaults           {} connections (max {}), {} per host, {} KiB min segment",
                 engine.connections,
                 engine.max_connections,
+                engine.max_connections_per_host,
                 engine.min_segment_size / 1024
             );
             Ok(())

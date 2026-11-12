@@ -41,7 +41,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | A15 | Retry with exponential backoff and jitter | MUST | P0 | M2 | ✅ | `RetryPolicy`, capped, jitter; unit tests |
 | A16 | Per-error-class retry policies | SHOULD | P1 | M2 | ◐ | HTTP classes and transient/fatal; no user-editable per-class table |
 | A17 | Global and per-download speed limit (token bucket) | MUST | P0 | M2 | ◐ | Per-download token bucket and global config; no single process-wide shared bucket |
-| A18 | Per-host connection caps / learned server limits | SHOULD | P1 | M2 | — | Global `max_connections` only |
+| A18 | Per-host connection caps / learned server limits | SHOULD | P1 | M2 | ◐ | Process-wide per-host semaphore (`max_connections_per_host`), tested across two downloads; no learned 429 limit cache |
 | A19 | HTTP/1.1 | MUST | P0 | M1 | ✅ | `reqwest`/hyper, range tests |
 | A20 | HTTP/2 | MUST | P1 | M2 | ◐ | Enabled by `reqwest` (`http2` feature), no dedicated h2 test |
 | A21 | HTTP/3 / QUIC | COULD | P2 | M7 | — | `quinn`/`h3` not wired |
@@ -208,16 +208,16 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | State | Count |
 |---|---:|
 | ✅ implemented + verified | 68 |
-| ◐ partial | 37 |
+| ◐ partial | 38 |
 | ○ specified, not implemented | 1 |
-| — not started | 41 |
+| — not started | 40 |
 | **Total tracked** | **147** |
 
 By area:
 
 | Area | Rows | ✅ | ◐ | ○ | — |
 |---|---:|---:|---:|---:|---:|
-| A. Download engine | 46 | 22 | 16 | 0 | 8 |
+| A. Download engine | 46 | 22 | 17 | 0 | 7 |
 | B. Capture/integration | 22 | 9 | 9 | 0 | 4 |
 | C. Management | 30 | 17 | 3 | 0 | 10 |
 | D. UI/UX | 12 | 7 | 2 | 0 | 3 |

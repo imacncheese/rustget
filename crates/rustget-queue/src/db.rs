@@ -466,6 +466,41 @@ mod tests {
     }
 
     #[test]
+    fn migrates_legacy_database_without_mirrors_column() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("legacy.db");
+        {
+            let conn = Connection::open(&path).unwrap();
+            conn.execute_batch(
+                r"CREATE TABLE downloads (
+                    id TEXT PRIMARY KEY, url TEXT NOT NULL, final_url TEXT,
+                    destination TEXT NOT NULL, filename TEXT NOT NULL,
+                    category TEXT NOT NULL DEFAULT 'General', status TEXT NOT NULL,
+                    total_size INTEGER, downloaded INTEGER NOT NULL DEFAULT 0,
+                    speed_bps REAL NOT NULL DEFAULT 0, connections INTEGER NOT NULL DEFAULT 8,
+                    speed_limit INTEGER, headers TEXT NOT NULL DEFAULT '[]',
+                    checksum_algorithm TEXT, checksum_value TEXT, etag TEXT,
+                    last_modified TEXT, error TEXT, priority INTEGER NOT NULL DEFAULT 0,
+                    created_at_ms INTEGER NOT NULL, updated_at_ms INTEGER NOT NULL,
+                    completed_at_ms INTEGER
+                );",
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT INTO downloads(id,url,destination,filename,status,created_at_ms,updated_at_ms) VALUES('00000000-0000-0000-0000-000000000001','https://x.test/a','a','a','paused',0,0)",
+                [],
+            )
+            .unwrap();
+        }
+        let db = Database::open(&path).unwrap();
+        let record = db
+            .get(Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap())
+            .unwrap()
+            .unwrap();
+        assert!(record.mirrors.is_empty());
+    }
+
+    #[test]
     fn persists_across_reopen() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("state.db");

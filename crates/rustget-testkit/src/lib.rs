@@ -196,6 +196,18 @@ struct AppState {
     files: HashMap<String, Arc<RuntimeFile>>,
     log: std::sync::Mutex<Vec<RequestLog>>,
     requests: AtomicU64,
+    active: AtomicU64,
+    max_active: AtomicU64,
+}
+
+struct ActiveGuard {
+    state: Arc<AppState>,
+}
+
+impl Drop for ActiveGuard {
+    fn drop(&mut self) {
+        self.state.active.fetch_sub(1, Ordering::SeqCst);
+    }
 }
 
 #[derive(Clone)]
@@ -230,6 +242,8 @@ impl TestServer {
             files,
             log: std::sync::Mutex::new(Vec::new()),
             requests: AtomicU64::new(0),
+            active: AtomicU64::new(0),
+            max_active: AtomicU64::new(0),
         });
         let app = Router::new()
             .route("/files/{name}", get(serve_file).head(serve_file))
@@ -280,6 +294,10 @@ impl TestServer {
         self.state.requests.load(Ordering::Relaxed)
     }
 
+    pub fn max_active(&self) -> u64 {
+        self.state.max_active.load(Ordering::SeqCst)
+    }
+
     pub async fn shutdown(mut self) {
         if let Some(tx) = self.shutdown.take() {
             let _ = tx.send(());
@@ -295,12 +313,16 @@ async fn admin_stats(State(state): State<Shared>) -> impl IntoResponse {
     axum::Json(serde_json::json!({
         "requests": state.0.requests.load(Ordering::Relaxed),
         "files": state.0.files.len(),
+        "active": state.0.active.load(Ordering::SeqCst),
+        "max_active": state.0.max_active.load(Ordering::SeqCst),
     }))
 }
 
 async fn admin_reset(State(state): State<Shared>) -> impl IntoResponse {
     state.0.log.lock().expect("testkit lock").clear();
     state.0.requests.store(0, Ordering::Relaxed);
+    state.0.active.store(0, Ordering::SeqCst);
+    state.0.max_active.store(0, Ordering::SeqCst);
     StatusCode::NO_CONTENT
 }
 
@@ -468,6 +490,15 @@ async fn serve_file(
         }
     };
     let fail = flaky.is_ok();
+    let guard = if method == Method::HEAD {
+        None
+    } else {
+        let active = state.0.active.fetch_add(1, Ordering::SeqCst) + 1;
+        state.0.max_active.fetch_max(active, Ordering::SeqCst);
+        Some(Arc::new(ActiveGuard {
+            state: Arc::clone(&state.0),
+        }))
+    };
     let body = if method == Method::HEAD {
         Body::empty()
     } else {
@@ -481,6 +512,7 @@ async fn serve_file(
             } else {
                 None
             },
+            guard,
         )
     };
     let mut response = Response::new(body);
@@ -540,11 +572,12 @@ fn make_body(
     length: u64,
     throttle_bps: Option<u64>,
     fail_after: Option<u64>,
+    guard: Option<Arc<ActiveGuard>>,
 ) -> Body {
     let chunk_size = 64 * 1024_u64;
     let stream = stream::unfold(
-        (seed, start, length, throttle_bps, fail_after, 0_u64),
-        move |(seed, start, length, throttle_bps, fail_after, sent)| async move {
+        (seed, start, length, throttle_bps, fail_after, 0_u64, guard),
+        move |(seed, start, length, throttle_bps, fail_after, sent, guard)| async move {
             if sent >= length {
                 return None;
             }
@@ -555,7 +588,15 @@ fn make_body(
                             std::io::ErrorKind::ConnectionReset,
                             "testkit injected mid-stream reset",
                         )),
-                        (seed, start, length, throttle_bps, fail_after, sent),
+                        (
+                            seed,
+                            start,
+                            length,
+                            throttle_bps,
+                            fail_after,
+                            sent,
+                            guard.clone(),
+                        ),
                     ));
                 }
             }
@@ -568,7 +609,15 @@ fn make_body(
                         std::io::ErrorKind::ConnectionReset,
                         "testkit injected mid-stream reset",
                     )),
-                    (seed, start, length, throttle_bps, fail_after, sent),
+                    (
+                        seed,
+                        start,
+                        length,
+                        throttle_bps,
+                        fail_after,
+                        sent,
+                        guard.clone(),
+                    ),
                 ));
             }
             if let Some(bps) = throttle_bps {
@@ -577,7 +626,15 @@ fn make_body(
             let data = generate(seed, start + sent, n);
             Some((
                 Ok::<_, std::io::Error>(Bytes::from(data)),
-                (seed, start, length, throttle_bps, fail_after, sent + n),
+                (
+                    seed,
+                    start,
+                    length,
+                    throttle_bps,
+                    fail_after,
+                    sent + n,
+                    guard,
+                ),
             ))
         },
     );

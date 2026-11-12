@@ -11,6 +11,8 @@ pub struct EngineConfig {
     pub connections: u8,
     /// Hard ceiling for simultaneously active range workers.
     pub max_connections: u8,
+    /// Process-wide cap on concurrent HTTP requests to one host.
+    pub max_connections_per_host: u8,
     /// A range is never split if either resulting half would be smaller.
     pub min_segment_size: u64,
     /// Bytes requested per network chunk and written per positional write.
@@ -52,6 +54,7 @@ impl Default for EngineConfig {
         Self {
             connections: 8,
             max_connections: 32,
+            max_connections_per_host: 16,
             min_segment_size: 256 * 1024,
             read_buffer_size: 64 * 1024,
             max_retries: 6,
@@ -94,6 +97,11 @@ impl EngineConfig {
         if self.max_connections > 32 {
             return Err(CoreError::InvalidConfig(
                 "max_connections cannot exceed 32".into(),
+            ));
+        }
+        if self.max_connections_per_host == 0 {
+            return Err(CoreError::InvalidConfig(
+                "max_connections_per_host must be at least 1".into(),
             ));
         }
         if self.min_segment_size == 0 {

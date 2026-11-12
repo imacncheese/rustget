@@ -112,8 +112,9 @@ See [the browser bridge spec](docs/specs/05-browser-bridge.md).
   resume.
 - **Protocol behavior.** HEAD probe with `Range: bytes=0-0` fallback, 206
   validation, `If-Range`, `ETag`/`Last-Modified`/size drift detection, redirect
-  handling, 200 fallback to a single stream, retry/backoff with jitter, and
-  mirror/alternate-URL failover (`--mirror`).
+  handling, 200 fallback to a single stream, retry/backoff with jitter,
+  mirror/alternate-URL failover (`--mirror`), and a process-wide per-host
+  connection semaphore.
 - **Integrity.** MD5, SHA-1, SHA-256 and BLAKE3 verification before the final
   rename.
 - **Storage.** Sparse preallocation, positional writes, collision-safe filenames,
@@ -137,7 +138,7 @@ RustGet is an M0–M3 implementation with parts of M4/M5. It does **not** yet ha
 
 - FTP/FTPS/SFTP, HTTP/3/QUIC, BitTorrent/magnet or MMS.
 - Digest/NTLM/Kerberos authentication, PAC, client certificates.
-- Per-host connection caps.
+- Learned/adaptive per-host limits (a fixed semaphore is implemented).
 - AES-128 HLS decryption, DASH SegmentTimeline/live manifests, separate
   audio/video muxing, or parallel segment download/resume for media.
 - Tray integration, OS autostart, single-instance desktop shell, native
@@ -196,9 +197,9 @@ commands and output summary):
   gap/overlap invariants.
 - `rustget-storage`: 15 tests, including torn-journal recovery and out-of-order
   positional writes.
-- `rustget-net`: 5 unit + 16 integration tests (engine, work stealing, adaptive
-  growth, mirrors, HLS, DASH).
-- `rustget-queue`: 11 DB/manager/scheduler/HLS-routing/mirror tests.
+- `rustget-net`: 7 unit + 17 integration tests (engine, work stealing, adaptive
+  growth, mirrors, host caps, HLS, DASH).
+- `rustget-queue`: 12 DB migration/manager/scheduler/HLS-routing/mirror tests.
 - `rustget-ipc`: 3 API tests (auth, origin rejection, add/list/delete).
 - `rustget-cli`: 4 pattern tests + 1 kill-process/resume test.
 - `rustget-testkit`: 5 protocol tests.

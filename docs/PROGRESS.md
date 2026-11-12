@@ -84,8 +84,8 @@
 rustget-core     14 unit + 3 proptest   PASS
 rustget-storage  15                      PASS
 rustget-testkit   5                      PASS
-rustget-net       5 unit + 8 HTTP + 2 work/adaptive + 2 mirrors + 2 HLS + 2 DASH  PASS
-rustget-queue     11                     PASS
+rustget-net       7 unit + 8 HTTP + 2 work/adaptive + 2 mirrors + 2 HLS + 2 DASH + 1 host cap  PASS
+rustget-queue     12                     PASS
 rustget-ipc       3                      PASS
 rustget-cli       4 + 1 crash safety     PASS
 rustget-media     5                      PASS
@@ -93,7 +93,7 @@ rustget-crawler   2                      PASS
 rustget-native-host 2                    PASS
 clippy -D warnings                       PASS
 cargo fmt --check                        PASS
-total                                  86 tests
+total                                  90 tests
 ```
 
 Commands:

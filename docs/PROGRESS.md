@@ -55,6 +55,8 @@
 - [x] HLS VOD download path (master/media, init map, ordered segments).
 - [x] DASH VOD download path (duration SegmentTemplate, DRM rejection).
 - [x] Mirror/alternate-URL probe fallback and worker failover.
+- [x] Process-wide per-host connection semaphore.
+- [x] Queue priority editing and download-list export/import.
 - [x] Criterion ledger benchmarks and 128 MiB aria2 comparison.
 - [x] Adaptive concurrency growth test.
 - [x] Same-origin crawler with robots.txt and CLI `grab`.
@@ -65,7 +67,7 @@
 - [ ] Fuzz targets actually run.
 - [ ] Tauri/native shell, tray, single-instance, autostart.
 - [ ] HLS AES-128/audio groups, DASH SegmentTimeline/live, parallel media segments.
-- [ ] FTP/FTPS, Digest, SOCKS5, per-host caps, mirrors.
+- [ ] FTP/FTPS, Digest, SOCKS5, learned per-host limits.
 - [ ] Load test at 10k rows.
 - [ ] Accessibility audit.
 

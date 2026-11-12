@@ -194,7 +194,6 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | G03 | DASH MPD parser | SHOULD | P1 | M5 | ✅ | Representations, templates, ISO duration; tests |
 | G04 | HLS/DASH segment scheduler | SHOULD | P1 | M5 | ◐ | Sequential VOD segment download with retry/rate limit; no parallel segment workers or resume |
 | G05 | FFmpeg mux sidecar | SHOULD | P2 | M5 | ◐ | `-c copy` plan; not invoked by the media path yet |
-| G05 | FFmpeg mux sidecar | SHOULD | P2 | M5 | ◐ | `-c copy` plan; not used by download flow |
 | G06 | Plugin API for extractors | COULD | P2 | M7 | — | Planned |
 | G07 | yt-dlp adapter | COULD | P3 | M7 | — | Planned |
 | G08 | Site grabber | SHOULD | P2 | M6 | ◐ | Link discovery implemented; no mirroring, JS rendering or project persistence |
@@ -208,9 +207,9 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | State | Count |
 |---|---:|
 | ✅ implemented + verified | 69 |
-| ◐ partial | 39 |
+| ◐ partial | 40 |
 | ○ specified, not implemented | 1 |
-| — not started | 38 |
+| — not started | 37 |
 | **Total tracked** | **147** |
 
 By area:
@@ -223,7 +222,7 @@ By area:
 | D. UI/UX | 12 | 7 | 2 | 0 | 3 |
 | E. Quality/security | 15 | 9 | 3 | 1 | 2 |
 | F. Platform/packaging | 10 | 1 | 2 | 0 | 7 |
-| G. Protocols/extensibility | 12 | 3 | 2 | 0 | 7 |
+| G. Protocols/extensibility | 12 | 3 | 3 | 0 | 6 |
 
 The count is maintained manually alongside the table; the parity scorecard gives
 the higher-level roll-up and accepted gaps.

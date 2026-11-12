@@ -892,6 +892,8 @@
     if (variant !== "") body.media_variant = Number(variant);
     const tags = $("#addTags").value.split(",").map((item) => item.trim()).filter(Boolean);
     if (tags.length) body.tags = tags;
+    const proxy = $("#addProxy").value.trim();
+    if (proxy) body.proxy = proxy;
     const submit = $("#addSubmit");
     submit.disabled = true;
     submit.textContent = "Adding…";

@@ -97,6 +97,7 @@ Request:
 {
   "url": "https://example.test/file.zip",
   "mirrors": ["https://mirror.example/file.zip"],
+  "proxy": "http://127.0.0.1:3128",
   "destination": null,
   "directory": "D:\\Downloads",
   "category": "Archives",

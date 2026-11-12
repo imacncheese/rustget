@@ -212,7 +212,7 @@ The add dialog has a **Check** action next to the URL. It calls
 ranges before the user commits the download.
 
 The details pane shows tag chips with a remove action and an **Add tag** input;
-the search box also matches tags. The add dialog accepts comma-separated tags.
+the search box also matches tags. The add dialog accepts comma-separated tags and an optional HTTP proxy URL.
 
 The details actions include **Move up/Move down**, which PATCH the queue priority.
 There is no drag reorder yet.

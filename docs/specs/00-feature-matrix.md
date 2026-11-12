@@ -198,7 +198,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | G07 | yt-dlp adapter | COULD | P3 | M7 | — | Planned |
 | G08 | Site grabber | SHOULD | P2 | M6 | ◐ | Link discovery implemented; no mirroring, JS rendering or project persistence |
 | G09 | Cookie jar persistence | SHOULD | P1 | M6 | — | Header only |
-| G10 | PAC / system proxy | SHOULD | P2 | M6 | — | Planned |
+| G10 | PAC / system proxy | SHOULD | P2 | M6 | ◐ | Explicit per-download HTTP proxy (CLI/API/UI) verified through a local proxy fixture; PAC/system discovery missing |
 | G11 | Digest/NTLM | SHOULD | P2 | M6 | — | Planned |
 | G12 | HTTP/3 | COULD | P3 | M7 | — | Planned |
 
@@ -207,9 +207,9 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | State | Count |
 |---|---:|
 | ✅ implemented + verified | 81 |
-| ◐ partial | 41 |
+| ◐ partial | 42 |
 | ○ specified, not implemented | 1 |
-| — not started | 24 |
+| — not started | 23 |
 | **Total tracked** | **147** |
 
 By area:
@@ -222,7 +222,7 @@ By area:
 | D. UI/UX | 12 | 10 | 2 | 0 | 0 |
 | E. Quality/security | 15 | 9 | 3 | 1 | 2 |
 | F. Platform/packaging | 10 | 2 | 2 | 0 | 6 |
-| G. Protocols/extensibility | 12 | 3 | 3 | 0 | 6 |
+| G. Protocols/extensibility | 12 | 3 | 4 | 0 | 5 |
 
 The count is maintained manually alongside the table; the parity scorecard gives
 the higher-level roll-up and accepted gaps.

@@ -222,6 +222,9 @@ struct AddArgs {
     /// Tag to attach; repeatable.
     #[arg(long = "tag")]
     tags: Vec<String>,
+    /// HTTP proxy URL for this download.
+    #[arg(long)]
+    proxy: Option<String>,
     /// Exact output path or directory.
     #[arg(short, long)]
     output: Option<PathBuf>,
@@ -495,6 +498,7 @@ async fn add(cli: &Cli, paths: &Paths, args: &AddArgs) -> Result<()> {
         mirrors: args.mirrors.clone(),
         media_variant: args.variant,
         tags: args.tags.clone(),
+        proxy: args.proxy.clone(),
         allow_duplicate: args.allow_duplicate,
         destination: args.output.clone(),
         directory: Some(paths.download_dir.clone()),
@@ -981,6 +985,7 @@ async fn grab(
                     mirrors: Vec::new(),
                     variant: None,
                     tags: Vec::new(),
+                    proxy: None,
                     allow_duplicate: false,
                     output: None,
                     connections,
@@ -1158,6 +1163,7 @@ async fn batch(
             mirrors: Vec::new(),
             variant: None,
             tags: Vec::new(),
+            proxy: None,
             allow_duplicate: false,
             output: None,
             connections,

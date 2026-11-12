@@ -7,8 +7,10 @@
 #![forbid(unsafe_code)]
 
 pub mod ftp;
+pub mod proxy;
 
 pub use ftp::{FtpFixtureConfig, FtpTestServer};
+pub use proxy::ProxyServer;
 
 use std::collections::HashMap;
 use std::net::SocketAddr;

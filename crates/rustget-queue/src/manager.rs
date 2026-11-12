@@ -68,6 +68,7 @@ pub struct NewDownload {
     pub mirrors: Vec<String>,
     #[serde(default)]
     pub media_variant: Option<usize>,
+    pub proxy: Option<String>,
     pub destination: Option<PathBuf>,
     pub directory: Option<PathBuf>,
     #[serde(default)]
@@ -98,6 +99,7 @@ impl NewDownload {
             url: record.url.clone(),
             mirrors: record.mirrors.clone(),
             media_variant: record.media_variant,
+            proxy: record.proxy.clone(),
             destination: Some(record.destination.clone()),
             directory: record
                 .destination
@@ -123,6 +125,7 @@ impl Default for NewDownload {
             url: String::new(),
             mirrors: Vec::new(),
             media_variant: None,
+            proxy: None,
             destination: None,
             directory: None,
             allow_duplicate: false,
@@ -296,6 +299,7 @@ impl DownloadManager {
             let base_config = self.engine_for(request.connections, request.speed_limit);
             let options = RequestOptions {
                 headers: request.headers.clone(),
+                proxy: request.proxy.clone(),
                 ..RequestOptions::default()
             };
             let downloader = Downloader::new(base_config, options)?
@@ -376,6 +380,7 @@ impl DownloadManager {
                 .map(std::string::ToString::to_string)
                 .collect(),
             media_variant: request.media_variant,
+            proxy: request.proxy,
             final_url: Some(final_url),
             destination,
             filename,
@@ -725,6 +730,7 @@ impl DownloadManager {
         let engine = self.engine_for(Some(record.connections), record.speed_limit);
         let options = RequestOptions {
             headers: record.headers.clone(),
+            proxy: record.proxy.clone(),
             ..RequestOptions::default()
         };
         let downloader = match Downloader::new(engine, options)
@@ -1197,6 +1203,7 @@ mod tests {
             mirrors: Vec::new(),
             tags: Vec::new(),
             media_variant: None,
+            proxy: None,
             final_url: None,
             destination: PathBuf::new(),
             filename: String::new(),

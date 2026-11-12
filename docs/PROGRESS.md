@@ -55,6 +55,7 @@
 - [x] Persisted tags with API/CLI/UI editing and tag search.
 - [x] In-app log viewer over a bounded tracing buffer.
 - [x] Two-step first-run wizard with token validation.
+- [x] Explicit per-download HTTP proxy with a live proxy fixture.
 - [~] Autostart CLI/platform entries; Windows registry writes blocked here.
 - [x] Scheduler weekly timeline and add/delete form in the web UI.
 - [x] Chromium/Firefox extension + native-messaging host (live tested).
@@ -97,7 +98,7 @@
 rustget-core     14 unit + 3 proptest   PASS
 rustget-storage  15                      PASS
 rustget-testkit   5                      PASS
-rustget-net       7 unit + 8 HTTP + 2 work/adaptive + 2 mirrors + 2 HLS + 2 AES-HLS + 3 DASH + 1 host cap + 1 FTP  PASS
+rustget-net       7 unit + 8 HTTP + 2 work/adaptive + 2 mirrors + 2 HLS + 2 AES-HLS + 3 DASH + 1 host cap + 1 FTP + 1 proxy  PASS
 rustget-queue     16                     PASS
 rustget-ipc       6                      PASS
 rustget-cli       4 + 1 crash safety     PASS
@@ -107,7 +108,7 @@ rustget-native-host 2                    PASS
 rustget-platform  3                     PASS
 clippy -D warnings                       PASS
 cargo fmt --check                        PASS
-total                                  105 tests
+total                                  106 tests
 ```
 
 Commands:

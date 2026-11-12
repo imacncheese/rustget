@@ -27,12 +27,12 @@ Internet Download Manager feature parity, and it does not claim to be.
 | State | Count | Share |
 |---|---:|---:|
 | ✅ implemented + verified | 81 | 55.1% |
-| ◐ partial | 41 | 27.9% |
+| ◐ partial | 42 | 28.6% |
 | ○ specified only | 1 | 0.7% |
-| — not started | 24 | 16.3% |
+| — not started | 23 | 15.6% |
 | **Total** | **147** | 100% |
 
-“Implemented or partial” = 122/147 = **83.0%** of the tracked surface. That
+“Implemented or partial” = 123/147 = **83.7%** of the tracked surface. That
 number is deliberately broad: a parser counts as partial even when it is not
 wired to the UI.
 
@@ -46,7 +46,7 @@ wired to the UI.
 | UI/UX (12) | 10 | 2 | 0 |
 | Quality/security (15) | 9 | 3 | 2 |
 | Platform/packaging (10) | 2 | 2 | 6 |
-| Protocols/extensibility (12) | 3 | 3 | 6 |
+| Protocols/extensibility (12) | 3 | 4 | 5 |
 
 ## 3. What matches or beats IDM today
 

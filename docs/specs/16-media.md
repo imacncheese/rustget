@@ -79,7 +79,7 @@ next optimization.
 1. Bounded-concurrency segment workers writing to ordered scratch files.
 2. Resume metadata for media (completed segment bitmap per playlist digest).
 3. `#EXT-X-MEDIA` audio renditions and rotating AES keys.
-4. DASH `SegmentTimeline`, multi-period, `$Time$` and separate audio.
+4. DASH multi-period, live and separate audio.
 5. FFmpeg `-c copy` mux for separate audio/video, then optional MP4 remux.
 6. Clean temporary segments only after the final mux succeeds.
 
@@ -90,7 +90,8 @@ a single identity AES-128 key is supported.
 
 - HLS master: variant sort, relative URL, resolution/codecs.
 - HLS media: init map, AES key flag, durations, ENDLIST.
-- DASH: representation, BaseURL, template expansion, ISO duration.
+- DASH: representation, BaseURL, template expansion, ISO duration, timeline
+  repeats and `$Time$` URLs.
 - FFmpeg discovery does not panic when absent.
 - HLS end-to-end: master → media → init → three segments, byte-exact output.
 - HLS AES-128 decryption with a fixed key/IV and byte-exact plaintext.
@@ -104,7 +105,7 @@ a single identity AES-128 key is supported.
 - Parallel segment workers and resume.
 - Live playlist refresh.
 - Byte-range HLS.
-- DASH SegmentTimeline/multi-period.
+- DASH multi-period/live.
 - Rotating keys and audio renditions.
 - Mux integration test with a real FFmpeg binary.
 - UI quality picker.

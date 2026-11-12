@@ -143,7 +143,7 @@ RustGet is an M0–M3 implementation with parts of M4/M5. It does **not** yet ha
 - FTPS/SFTP, HTTP/3/QUIC, BitTorrent/magnet or MMS (plain FTP is supported).
 - Digest/NTLM/Kerberos authentication, PAC, client certificates.
 - Learned/adaptive per-host limits (a fixed semaphore is implemented).
-- HLS key rotation/audio groups, DASH SegmentTimeline/live manifests, separate
+- HLS key rotation/audio groups, DASH live/multi-period manifests, separate
   audio/video muxing, or parallel segment download/resume for media.
 - Tray integration, OS autostart, single-instance desktop shell, native
   notifications, or a Tauri binary.
@@ -201,8 +201,8 @@ commands and output summary):
   gap/overlap invariants.
 - `rustget-storage`: 15 tests, including torn-journal recovery and out-of-order
   positional writes.
-- `rustget-net`: 7 unit + 19 integration tests (engine, work stealing, adaptive
-  growth, mirrors, host caps, HLS/AES, DASH, FTP).
+- `rustget-net`: 7 unit + 20 integration tests (engine, work stealing, adaptive
+  growth, mirrors, host caps, HLS/AES, DASH timeline, FTP).
 - `rustget-queue`: 13 DB migration/manager/scheduler/HLS/FTP/mirror tests.
 - `rustget-ipc`: 4 API tests (auth, origin/Host rejection, add/list/delete).
 - `rustget-cli`: 4 pattern tests + 1 kill-process/resume test.

@@ -60,6 +60,51 @@ async fn downloads_duration_template_and_concatenates() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn downloads_segment_timeline_with_time_placeholders() {
+    let config = TestkitConfig::default()
+        .with_file(TestFile::inline(
+            "timeline.mpd",
+            "application/dash+xml",
+            br#"<MPD mediaPresentationDuration="PT6S"><Period><AdaptationSet mimeType="video/mp4">
+            <Representation id="v" bandwidth="1000">
+              <SegmentTemplate timescale="1" initialization="init.mp4" media="seg-$Time$.m4s">
+                <SegmentTimeline><S t="0" d="2" r="2"/></SegmentTimeline>
+              </SegmentTemplate>
+            </Representation></AdaptationSet></Period></MPD>"#,
+        ))
+        .with_file(TestFile::inline("init.mp4", "video/mp4", b"INIT"))
+        .with_file(TestFile::inline("seg-0.m4s", "video/iso.segment", b"AAA"))
+        .with_file(TestFile::inline("seg-2.m4s", "video/iso.segment", b"BBB"))
+        .with_file(TestFile::inline("seg-4.m4s", "video/iso.segment", b"CCC"));
+    let server = TestServer::start(config).await.unwrap();
+    let temp = tempfile::tempdir().unwrap();
+    let downloader = Downloader::new(EngineConfig::default(), RequestOptions::default()).unwrap();
+    let req = DownloadRequest {
+        id: Uuid::new_v4(),
+        url: url::Url::parse(&server.file_url("timeline.mpd")).unwrap(),
+        mirrors: Vec::new(),
+        destination: None,
+        directory: temp.path().to_path_buf(),
+        resume: false,
+        overwrite: false,
+        checksum: None,
+    };
+    let (handle, tx) = downloader.handle(req.id);
+    let summary = timeout(
+        Duration::from_secs(15),
+        downloader.download(req, handle.cancel, tx),
+    )
+    .await
+    .expect("DASH timeline timed out")
+    .unwrap();
+    assert_eq!(summary.segments, 3);
+    assert_eq!(
+        tokio::fs::read(&summary.destination).await.unwrap(),
+        b"INITAAABBBCCC"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn rejects_drm_manifest() {
     let config = TestkitConfig::default().with_file(TestFile::inline(
         "drm.mpd",

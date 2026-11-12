@@ -722,13 +722,13 @@ impl Downloader {
                 "DRM-protected DASH representations are not supported".into(),
             ));
         }
-        let count = representation.segment_count().ok_or_else(|| {
-            NetError::Protocol(
-                "DASH SegmentTimeline/live manifests are not supported yet; \
-                 a duration-based SegmentTemplate is required"
-                    .into(),
-            )
-        })?;
+        let plan = representation.segment_plan();
+        if plan.is_empty() {
+            return Err(NetError::Protocol(
+                "DASH representation has no downloadable segments".into(),
+            ));
+        }
+        let count = plan.len() as u64;
         if count > 100_000 {
             return Err(NetError::Protocol(format!(
                 "DASH representation has {count} segments; refusing a live/huge manifest"
@@ -770,11 +770,8 @@ impl Downloader {
             None,
             None,
         );
-        for index in 0..count {
-            let number = representation.start_number + index;
-            let relative = representation
-                .segment_url(number)
-                .ok_or_else(|| NetError::Protocol(format!("cannot build DASH segment {number}")))?;
+        for (index, (_number, relative)) in plan.into_iter().enumerate() {
+            let index = index as u64;
             let url = base
                 .join(&relative)
                 .map_err(|error| NetError::InvalidUrl(error.to_string()))?;

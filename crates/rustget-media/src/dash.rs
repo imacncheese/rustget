@@ -28,6 +28,15 @@ pub struct DashRepresentation {
     pub timescale: u64,
     pub period_duration_secs: Option<f64>,
     pub drm: bool,
+    /// Resolved `SegmentTimeline` entries in presentation order.
+    pub timeline: Vec<DashTimelineSegment>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DashTimelineSegment {
+    pub number: u64,
+    pub time: u64,
+    pub url: String,
 }
 
 impl DashRepresentation {
@@ -35,6 +44,9 @@ impl DashRepresentation {
     /// SegmentTimeline, multi-period and live manifests return `None`.
     #[must_use]
     pub fn segment_count(&self) -> Option<u64> {
+        if !self.timeline.is_empty() {
+            return Some(self.timeline.len() as u64);
+        }
         let duration = self.duration_per_segment?;
         let total = self.period_duration_secs?;
         if duration == 0 || self.timescale == 0 {
@@ -46,6 +58,13 @@ impl DashRepresentation {
 
     #[must_use]
     pub fn segment_url(&self, number: u64) -> Option<String> {
+        if let Some(segment) = self
+            .timeline
+            .iter()
+            .find(|segment| segment.number == number)
+        {
+            return Some(segment.url.clone());
+        }
         let template = self.media_template.as_ref()?;
         let time =
             number.saturating_sub(self.start_number) * self.duration_per_segment.unwrap_or(1);
@@ -53,6 +72,28 @@ impl DashRepresentation {
             expand_template(template, &self.id, self.bandwidth, number)
                 .replace("$Time$", &time.to_string()),
         )
+    }
+
+    /// All downloadable media segments in order, including `$Time$` values
+    /// resolved from a `SegmentTimeline`.
+    #[must_use]
+    pub fn segment_plan(&self) -> Vec<(u64, String)> {
+        if !self.timeline.is_empty() {
+            return self
+                .timeline
+                .iter()
+                .map(|segment| (segment.number, segment.url.clone()))
+                .collect();
+        }
+        let Some(count) = self.segment_count() else {
+            return Vec::new();
+        };
+        (0..count)
+            .filter_map(|offset| {
+                let number = self.start_number + offset;
+                self.segment_url(number).map(|url| (number, url))
+            })
+            .collect()
     }
 }
 
@@ -146,6 +187,51 @@ pub fn parse_mpd(text: &str, base: &Url) -> Result<DashManifest, DashError> {
                     || representation
                         .children()
                         .any(|node| node.has_tag_name("ContentProtection"));
+                let mut timeline = Vec::new();
+                if let Some(media) = template.and_then(|node| node.attribute("media")) {
+                    if let Some(timeline_node) = template.and_then(|node| {
+                        node.children()
+                            .find(|child| child.has_tag_name("SegmentTimeline"))
+                    }) {
+                        let mut cursor = 0_u64;
+                        let mut number = start_number;
+                        for entry in timeline_node
+                            .children()
+                            .filter(|child| child.has_tag_name("S"))
+                        {
+                            let mut time = entry
+                                .attribute("t")
+                                .and_then(|value| value.parse().ok())
+                                .unwrap_or(cursor);
+                            let duration = entry
+                                .attribute("d")
+                                .and_then(|value| value.parse().ok())
+                                .unwrap_or(0);
+                            if duration == 0 {
+                                continue;
+                            }
+                            let repeat = entry
+                                .attribute("r")
+                                .and_then(|value| value.parse::<i64>().ok())
+                                .unwrap_or(0)
+                                .clamp(0, 10_000);
+                            for _ in 0..=repeat {
+                                let expanded = expand_template(media, &id, bandwidth, number)
+                                    .replace("$Time$", &time.to_string());
+                                if let Ok(url) = rep_base.join(&expanded) {
+                                    timeline.push(DashTimelineSegment {
+                                        number,
+                                        time,
+                                        url: url.to_string(),
+                                    });
+                                }
+                                number += 1;
+                                time = time.saturating_add(duration);
+                            }
+                            cursor = time;
+                        }
+                    }
+                }
                 representations.push(DashRepresentation {
                     id: id.clone(),
                     bandwidth,
@@ -179,6 +265,7 @@ pub fn parse_mpd(text: &str, base: &Url) -> Result<DashManifest, DashError> {
                     timescale,
                     period_duration_secs,
                     drm,
+                    timeline,
                 });
             }
         }
@@ -256,6 +343,29 @@ mod tests {
             Some("https://cdn.example.test/movie/video/init-720.mp4")
         );
         assert!(representation.media_template.is_some());
+    }
+
+    #[test]
+    fn segment_timeline_expands_time_and_repeats() {
+        let text = r#"<?xml version="1.0"?>
+<MPD mediaPresentationDuration="PT6S">
+  <Period>
+    <AdaptationSet mimeType="video/mp4">
+      <Representation id="v" bandwidth="1000">
+        <SegmentTemplate timescale="90000" initialization="init.mp4" media="seg-$Time$.m4s">
+          <SegmentTimeline><S t="0" d="180000" r="2"/></SegmentTimeline>
+        </SegmentTemplate>
+      </Representation>
+    </AdaptationSet>
+  </Period>
+</MPD>"#;
+        let base = Url::parse("https://example.test/v/manifest.mpd").unwrap();
+        let manifest = parse_mpd(text, &base).unwrap();
+        let plan = manifest.representations[0].segment_plan();
+        assert_eq!(plan.len(), 3);
+        assert_eq!(plan[0].1, "https://example.test/v/seg-0.m4s");
+        assert_eq!(plan[1].1, "https://example.test/v/seg-180000.m4s");
+        assert_eq!(plan[2].1, "https://example.test/v/seg-360000.m4s");
     }
 
     #[test]

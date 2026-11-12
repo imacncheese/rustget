@@ -1,0 +1,1390 @@
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{Duration, Instant};
+
+use futures_util::StreamExt;
+use rustget_core::{
+    Assignment, ByteRange, EngineConfig, RetryPolicy, SegmentId, SegmentLedger, SegmentState,
+    WorkerId,
+};
+use rustget_storage::{
+    DownloadPaths, Journal, JournalState, JournalStore, PartFile, PreallocateMode,
+    sanitize_filename, unique_destination,
+};
+use serde::{Deserialize, Serialize};
+use tokio::sync::watch;
+use tokio::task::JoinSet;
+use tokio_util::sync::CancellationToken;
+use url::Url;
+use uuid::Uuid;
+
+use crate::checksum::{ChecksumSpec, verify_checksum};
+use crate::client::{NetClient, RequestOptions};
+use crate::error::{NetError, Result};
+use crate::probe::{FileProbe, Validator, parse_content_range};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DownloadState {
+    Queued,
+    Probing,
+    Downloading,
+    Finalizing,
+    Complete,
+    Paused,
+    Failed,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SegmentProgress {
+    pub id: SegmentId,
+    pub start: u64,
+    pub end: u64,
+    pub written: u64,
+    pub state: SegmentState,
+    pub attempts: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DownloadProgress {
+    pub task_id: Uuid,
+    pub state: DownloadState,
+    pub total_size: Option<u64>,
+    pub downloaded: u64,
+    pub speed_bps: f64,
+    pub eta_secs: Option<u64>,
+    pub active_connections: usize,
+    pub segments: Vec<SegmentProgress>,
+    pub final_url: Option<String>,
+    pub filename: Option<String>,
+    pub error: Option<String>,
+}
+
+impl DownloadProgress {
+    #[must_use]
+    pub fn queued(task_id: Uuid) -> Self {
+        Self {
+            task_id,
+            state: DownloadState::Queued,
+            total_size: None,
+            downloaded: 0,
+            speed_bps: 0.0,
+            eta_secs: None,
+            active_connections: 0,
+            segments: Vec::new(),
+            final_url: None,
+            filename: None,
+            error: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct DownloadRequest {
+    pub id: Uuid,
+    pub url: Url,
+    /// Explicit file path, or `None` to derive a sanitized name in `directory`.
+    pub destination: Option<PathBuf>,
+    pub directory: PathBuf,
+    /// Reuse an existing journal and `.part` file.
+    pub resume: bool,
+    pub overwrite: bool,
+    pub checksum: Option<ChecksumSpec>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DownloadSummary {
+    pub id: Uuid,
+    pub destination: PathBuf,
+    pub final_url: String,
+    pub total_size: u64,
+    pub downloaded: u64,
+    pub elapsed_ms: u64,
+    pub segments: usize,
+    pub resumed: bool,
+    pub checksum_verified: bool,
+    pub average_speed_bps: f64,
+}
+
+#[derive(Debug, Clone)]
+pub struct ProgressHandle {
+    pub progress: watch::Receiver<DownloadProgress>,
+    pub cancel: CancellationToken,
+}
+
+#[derive(Debug, Clone)]
+pub struct Downloader {
+    client: Arc<NetClient>,
+    config: EngineConfig,
+}
+
+impl Downloader {
+    pub fn new(config: EngineConfig, options: RequestOptions) -> Result<Self> {
+        config
+            .validate()
+            .map_err(|error| NetError::Config(error.to_string()))?;
+        let client = Arc::new(NetClient::new(&config, options)?);
+        Ok(Self { client, config })
+    }
+
+    #[must_use]
+    pub fn config(&self) -> &EngineConfig {
+        &self.config
+    }
+
+    /// Probe a URL without starting a transfer. The manager uses this to
+    /// resolve Content-Disposition names before inserting a download row.
+    pub async fn probe(&self, url: &Url) -> Result<FileProbe> {
+        self.client.probe(url, &self.config).await
+    }
+
+    /// Create a progress receiver and cancellation token for one download.
+    #[must_use]
+    pub fn handle(&self, id: Uuid) -> (ProgressHandle, watch::Sender<DownloadProgress>) {
+        let (tx, rx) = watch::channel(DownloadProgress::queued(id));
+        (
+            ProgressHandle {
+                progress: rx,
+                cancel: CancellationToken::new(),
+            },
+            tx,
+        )
+    }
+
+    pub async fn download(
+        &self,
+        request: DownloadRequest,
+        cancel: CancellationToken,
+        progress: watch::Sender<DownloadProgress>,
+    ) -> Result<DownloadSummary> {
+        let started = Instant::now();
+        let mut tracker = Tracker::new(progress, request.id);
+        tracker.emit(
+            DownloadState::Probing,
+            None,
+            0,
+            0,
+            Vec::new(),
+            None,
+            None,
+            None,
+        );
+        let probe = self.client.probe(&request.url, &self.config).await?;
+        let destination = resolve_destination(&request, &probe)?;
+        let paths = DownloadPaths::new(&destination);
+        if let Some(parent) = destination.parent() {
+            tokio::fs::create_dir_all(parent).await?;
+        }
+        tracker.emit(
+            DownloadState::Downloading,
+            probe.total_size,
+            0,
+            0,
+            Vec::new(),
+            Some(probe.final_url.as_str()),
+            Some(
+                destination
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .unwrap_or("download")
+                    .to_string(),
+            ),
+            None,
+        );
+
+        if probe.total_size == Some(0) {
+            let summary = finish_empty(&request, &probe, &paths, started)?;
+            tracker.emit(
+                DownloadState::Complete,
+                Some(0),
+                0,
+                0,
+                Vec::new(),
+                Some(probe.final_url.as_str()),
+                None,
+                None,
+            );
+            return Ok(summary);
+        }
+
+        let ranged_possible = probe.range_supported
+            && probe.total_size.is_some()
+            && probe.total_size.unwrap_or(0) >= self.config.min_segment_size;
+
+        if ranged_possible {
+            let existing = if request.resume {
+                Journal::load(&paths.journal)
+            } else {
+                None
+            };
+            match self
+                .run_ranged(
+                    &request,
+                    &probe,
+                    &paths,
+                    existing,
+                    cancel.clone(),
+                    &mut tracker,
+                    started,
+                )
+                .await
+            {
+                Ok(summary) => return Ok(summary),
+                Err(NetError::RangeUnsupported) => {
+                    tracing::warn!(
+                        url = %request.url,
+                        "server ignored a ranged request after probe; restarting single-stream"
+                    );
+                    reset_partial(&paths)?;
+                }
+                Err(error @ NetError::RemoteChanged(_)) if self.config.restart_on_change => {
+                    tracing::warn!(url = %request.url, %error, "remote changed; restarting");
+                    reset_partial(&paths)?;
+                }
+                Err(error) => return Err(error),
+            }
+        }
+
+        let summary = self
+            .run_single(&request, &probe, &paths, cancel, &mut tracker, started)
+            .await?;
+        Ok(summary)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn run_ranged(
+        &self,
+        request: &DownloadRequest,
+        probe: &FileProbe,
+        paths: &DownloadPaths,
+        existing: Option<JournalState>,
+        cancel: CancellationToken,
+        tracker: &mut Tracker,
+        started: Instant,
+    ) -> Result<DownloadSummary> {
+        let total = probe
+            .total_size
+            .ok_or(NetError::Protocol("ranged download without size".into()))?;
+        let mut resumed = false;
+        let mut ledger = if let Some(state) = &existing {
+            if state.total_size != total {
+                return Err(NetError::RemoteChanged(format!(
+                    "size changed from {} to {total}",
+                    state.total_size
+                )));
+            }
+            if self.config.validate_on_resume {
+                let stored = Validator {
+                    etag: state.etag.clone(),
+                    last_modified: state.last_modified.clone(),
+                };
+                if !stored.is_empty() && !stored.matches(&probe.validator) {
+                    return Err(NetError::RemoteChanged(
+                        "ETag/Last-Modified changed while paused".into(),
+                    ));
+                }
+            }
+            resumed = true;
+            SegmentLedger::from_snapshot(state.segments.clone(), self.config.clone())
+                .map_err(|error| NetError::Protocol(error.to_string()))?
+        } else {
+            if paths.destination.exists() && !request.overwrite {
+                return Err(NetError::DestinationExists(
+                    paths.destination.display().to_string(),
+                ));
+            }
+            SegmentLedger::new(total, self.config.clone())
+                .map_err(|error| NetError::Protocol(error.to_string()))?
+        };
+
+        if existing.as_ref().is_some_and(|state| state.complete) {
+            if paths.part.exists() {
+                return finalize(
+                    request,
+                    probe,
+                    paths,
+                    total,
+                    ledger.segments().len(),
+                    resumed,
+                    started,
+                    tracker,
+                )
+                .await;
+            }
+            if paths.destination.exists() {
+                return Ok(summary_without_transfer(
+                    request, probe, paths, total, resumed, started, tracker,
+                ));
+            }
+        }
+
+        if request.resume && !paths.part.exists() && !paths.destination.exists() {
+            return Err(NetError::Protocol(
+                "resume requested but the .part file is missing".into(),
+            ));
+        }
+        let part = Arc::new(if resumed {
+            PartFile::open(&paths.part, total, PreallocateMode::Sparse)?
+        } else {
+            PartFile::reset(&paths.part, total, PreallocateMode::Sparse)?
+        });
+        let mut journal = JournalStore::create(&paths.journal)?;
+        let mut state = JournalState {
+            task_id: request.id,
+            url: request.url.to_string(),
+            destination: paths.destination.clone(),
+            part_path: paths.part.clone(),
+            total_size: total,
+            etag: probe.validator.etag.clone(),
+            last_modified: probe.validator.last_modified.clone(),
+            range_supported: true,
+            segments: ledger.snapshot(),
+            complete: false,
+        };
+        journal.append(&state, false)?;
+
+        let limiter = Arc::new(rustget_core::RateLimiter::new(
+            self.config.max_speed_bytes_per_sec.unwrap_or(0),
+        ));
+        let validator = probe.validator.if_range().map(str::to_string);
+        let mut join: JoinSet<WorkerReport> = JoinSet::new();
+        let mut stops: HashMap<WorkerId, Arc<AtomicU64>> = HashMap::new();
+        let mut progress_atoms: HashMap<WorkerId, Arc<AtomicU64>> = HashMap::new();
+        let mut next_worker = 10_000_u64;
+
+        for assignment in ledger.initial_assignments() {
+            spawn_range_worker(
+                &mut join,
+                &mut stops,
+                &mut progress_atoms,
+                &self.client,
+                &self.config,
+                &part,
+                &limiter,
+                &request.url,
+                validator.clone(),
+                assignment,
+                cancel.clone(),
+            );
+        }
+
+        let mut ticker = tokio::time::interval(Duration::from_millis(200));
+        ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+        let checkpoint_every = Duration::from_millis(self.config.checkpoint_interval_ms.max(50));
+        let mut last_checkpoint = Instant::now();
+        let mut last_snapshot = ledger.snapshot();
+        let mut speed = SpeedMeter::new();
+        let mut adaptive_at = Instant::now();
+        let mut adaptive_bytes = ledger.downloaded_bytes();
+        let mut adaptive_speed = 0.0_f64;
+
+        loop {
+            if ledger.is_complete() {
+                break;
+            }
+            if ledger.active_count() == 0 {
+                let mut dispatched = false;
+                while let Some(assignment) = ledger.claim(WorkerId(next_worker)) {
+                    next_worker += 1;
+                    spawn_range_worker(
+                        &mut join,
+                        &mut stops,
+                        &mut progress_atoms,
+                        &self.client,
+                        &self.config,
+                        &part,
+                        &limiter,
+                        &request.url,
+                        validator.clone(),
+                        assignment,
+                        cancel.clone(),
+                    );
+                    dispatched = true;
+                    if ledger.active_count() >= usize::from(self.config.max_connections) {
+                        break;
+                    }
+                }
+                if !dispatched {
+                    return Err(NetError::Protocol(
+                        "no active workers and no pending segments".into(),
+                    ));
+                }
+            }
+
+            tokio::select! {
+                _ = cancel.cancelled() => {
+                    sync_progress(&mut ledger, &progress_atoms);
+                    state.segments = ledger.snapshot();
+                    let _ = part.sync_data();
+                    let _ = journal.append(&state, true);
+                    join.abort_all();
+                    tracker.emit(
+                        DownloadState::Paused,
+                        Some(total),
+                        ledger.downloaded_bytes(),
+                        ledger.active_count(),
+                        segment_progress(&ledger),
+                        Some(probe.final_url.as_str()),
+                        None,
+                        None,
+                    );
+                    return Err(NetError::Cancelled);
+                }
+                _ = ticker.tick() => {
+                    sync_progress(&mut ledger, &progress_atoms);
+                    let downloaded = ledger.downloaded_bytes();
+                    let elapsed = speed.observe(downloaded);
+                    tracker.emit(
+                        DownloadState::Downloading,
+                        Some(total),
+                        downloaded,
+                        ledger.active_count(),
+                        segment_progress(&ledger),
+                        Some(probe.final_url.as_str()),
+                        None,
+                        None,
+                    );
+                    let _ = elapsed;
+                }
+                joined = join.join_next() => {
+                    let Some(joined) = joined else {
+                        continue;
+                    };
+                    let report = joined.map_err(|error| {
+                        NetError::Protocol(format!("download worker panicked: {error}"))
+                    })?;
+                    stops.remove(&report.worker);
+                    if let Some(atomic) = progress_atoms.remove(&report.worker) {
+                        let _ = ledger.report_progress(report.worker, atomic.load(Ordering::Acquire));
+                    }
+                    match report.outcome {
+                        WorkerOutcome::Completed | WorkerOutcome::Stolen => {
+                            ledger.finish(report.worker).map_err(|error| {
+                                NetError::Protocol(error.to_string())
+                            })?;
+                            sync_progress(&mut ledger, &progress_atoms);
+                            if ledger.is_complete() {
+                                break;
+                            }
+                            dispatch_idle(
+                                &mut ledger,
+                                report.worker,
+                                &mut join,
+                                &mut stops,
+                                &mut progress_atoms,
+                                &self.client,
+                                &self.config,
+                                &part,
+                                &limiter,
+                                &request.url,
+                                validator.clone(),
+                                cancel.clone(),
+                                &mut next_worker,
+                            )?;
+                        }
+                        WorkerOutcome::Cancelled => {
+                            join.abort_all();
+                            return Err(NetError::Cancelled);
+                        }
+                        WorkerOutcome::Failed(error) => {
+                            let _ = ledger.release(report.worker);
+                            sync_progress(&mut ledger, &progress_atoms);
+                            state.segments = ledger.snapshot();
+                            let _ = part.sync_data();
+                            let _ = journal.append(&state, true);
+                            join.abort_all();
+                            tracker.emit(
+                                DownloadState::Failed,
+                                Some(total),
+                                ledger.downloaded_bytes(),
+                                ledger.active_count(),
+                                segment_progress(&ledger),
+                                Some(probe.final_url.as_str()),
+                                None,
+                                Some(error.to_string()),
+                            );
+                            return Err(error);
+                        }
+                    }
+                }
+            }
+
+            if last_checkpoint.elapsed() >= checkpoint_every {
+                sync_progress(&mut ledger, &progress_atoms);
+                let snapshot = ledger.snapshot();
+                let changed =
+                    serde_json::to_vec(&snapshot).ok() != serde_json::to_vec(&last_snapshot).ok();
+                if changed {
+                    if self.config.fsync_checkpoints {
+                        part.sync_data()?;
+                    }
+                    state.segments = snapshot.clone();
+                    journal.append(&state, self.config.fsync_checkpoints)?;
+                    last_snapshot = snapshot;
+                }
+                last_checkpoint = Instant::now();
+            }
+
+            if self.config.adaptive_connections
+                && adaptive_at.elapsed() >= Duration::from_millis(self.config.adaptive_interval_ms)
+                && !ledger.is_complete()
+            {
+                let now = Instant::now();
+                let elapsed = now.duration_since(adaptive_at).as_secs_f64().max(0.001);
+                let current = ledger.downloaded_bytes();
+                let measured = current.saturating_sub(adaptive_bytes) as f64 / elapsed;
+                let improving = adaptive_speed == 0.0 || measured > adaptive_speed * 1.02;
+                if improving
+                    && ledger.active_count() < usize::from(self.config.max_connections)
+                    && ledger.pending_count() == 0
+                {
+                    let extra = WorkerId(next_worker);
+                    next_worker += 1;
+                    if let Ok(Some(split)) = ledger.steal(extra) {
+                        if let Some(stop) = stops.get(&split.victim) {
+                            stop.store(split.stop_at, Ordering::Release);
+                        }
+                        spawn_range_worker(
+                            &mut join,
+                            &mut stops,
+                            &mut progress_atoms,
+                            &self.client,
+                            &self.config,
+                            &part,
+                            &limiter,
+                            &request.url,
+                            validator.clone(),
+                            split.assignment,
+                            cancel.clone(),
+                        );
+                        tracing::debug!(
+                            connections = ledger.active_count(),
+                            measured_bps = measured,
+                            "adaptive concurrency grew"
+                        );
+                    }
+                }
+                adaptive_at = now;
+                adaptive_bytes = current;
+                adaptive_speed = measured;
+            }
+        }
+
+        // All ranges are recorded complete. Drain any no-longer-needed workers.
+        join.abort_all();
+        while join.join_next().await.is_some() {}
+
+        sync_progress(&mut ledger, &progress_atoms);
+        let downloaded = ledger.downloaded_bytes();
+        let elapsed = speed.observe(downloaded);
+        tracker.emit(
+            DownloadState::Finalizing,
+            Some(total),
+            downloaded,
+            ledger.active_count(),
+            segment_progress(&ledger),
+            Some(probe.final_url.as_str()),
+            None,
+            None,
+        );
+        let _ = elapsed;
+        state.segments = ledger.snapshot();
+        state.complete = true;
+        part.sync_all()?;
+        journal.append(&state, true)?;
+        finalize(
+            request,
+            probe,
+            paths,
+            total,
+            ledger.segments().len(),
+            resumed,
+            started,
+            tracker,
+        )
+        .await
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn run_single(
+        &self,
+        request: &DownloadRequest,
+        probe: &FileProbe,
+        paths: &DownloadPaths,
+        cancel: CancellationToken,
+        tracker: &mut Tracker,
+        started: Instant,
+    ) -> Result<DownloadSummary> {
+        let total = probe.total_size;
+        if paths.destination.exists() && !request.overwrite {
+            return Err(NetError::DestinationExists(
+                paths.destination.display().to_string(),
+            ));
+        }
+        reset_partial(paths)?;
+        tracker.emit(
+            DownloadState::Downloading,
+            total,
+            0,
+            1,
+            Vec::new(),
+            Some(probe.final_url.as_str()),
+            None,
+            None,
+        );
+        let retry = RetryPolicy::from_engine(&self.config);
+        let limiter =
+            rustget_core::RateLimiter::new(self.config.max_speed_bytes_per_sec.unwrap_or(0));
+        let mut attempt = 0_u32;
+        loop {
+            match self
+                .single_attempt(request, probe, paths, &cancel, tracker, &limiter, total)
+                .await
+            {
+                Ok(downloaded) => {
+                    let summary = finalize(
+                        request, probe, paths, downloaded, 1, false, started, tracker,
+                    )
+                    .await?;
+                    return Ok(summary);
+                }
+                Err(NetError::Cancelled) => return Err(NetError::Cancelled),
+                Err(error) => {
+                    let class = error.class();
+                    if !retry.should_retry(class, attempt + 1) {
+                        return Err(error);
+                    }
+                    attempt += 1;
+                    let delay = retry.delay(class, attempt);
+                    tracing::warn!(
+                        attempt,
+                        ?class,
+                        delay_ms = delay.as_millis(),
+                        %error,
+                        "single-stream attempt failed; restarting"
+                    );
+                    tracker.emit(
+                        DownloadState::Downloading,
+                        total,
+                        0,
+                        1,
+                        Vec::new(),
+                        Some(probe.final_url.as_str()),
+                        None,
+                        Some(error.to_string()),
+                    );
+                    tokio::time::sleep(delay).await;
+                }
+            }
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn single_attempt(
+        &self,
+        request: &DownloadRequest,
+        probe: &FileProbe,
+        paths: &DownloadPaths,
+        cancel: &CancellationToken,
+        tracker: &mut Tracker,
+        limiter: &rustget_core::RateLimiter,
+        total: Option<u64>,
+    ) -> Result<u64> {
+        let response = tokio::select! {
+            _ = cancel.cancelled() => return Err(NetError::Cancelled),
+            response = self.client.apply_common(self.client.client().get(request.url.clone()))?.send() => response?,
+        };
+        let status = response.status();
+        if !status.is_success() {
+            return Err(NetError::status(
+                status.as_u16(),
+                request.url.as_str(),
+                status.canonical_reason().unwrap_or("request failed"),
+            ));
+        }
+        let known = total.or_else(|| {
+            response
+                .headers()
+                .get(reqwest::header::CONTENT_LENGTH)
+                .and_then(|value| value.to_str().ok())
+                .and_then(|value| value.parse().ok())
+        });
+        if let Some(total) = known {
+            if total > 0 && paths.destination.exists() && !request.overwrite {
+                return Err(NetError::DestinationExists(
+                    paths.destination.display().to_string(),
+                ));
+            }
+        }
+        let part = if let Some(total) = known {
+            PartFile::open(&paths.part, total, PreallocateMode::Sparse)?
+        } else {
+            PartFile::open_unbounded(&paths.part)?
+        };
+        if known == Some(0) {
+            part.set_len(0)?;
+        }
+        let mut stream = response.bytes_stream();
+        let mut cursor = 0_u64;
+        let mut last_emit = Instant::now();
+        let mut meter = SpeedMeter::new();
+        loop {
+            let next = tokio::select! {
+                _ = cancel.cancelled() => return Err(NetError::Cancelled),
+                next = tokio::time::timeout(
+                    Duration::from_secs(self.config.idle_timeout_secs.max(1)),
+                    stream.next(),
+                ) => next,
+            };
+            let chunk = match next {
+                Err(_) => {
+                    return Err(NetError::Protocol(format!(
+                        "no data received for {}s",
+                        self.config.idle_timeout_secs
+                    )));
+                }
+                Ok(None) => break,
+                Ok(Some(Err(error))) => return Err(NetError::Request(error)),
+                Ok(Some(Ok(chunk))) => chunk,
+            };
+            if let Some(total) = known {
+                let room = total.saturating_sub(cursor);
+                let take = usize::try_from(room.min(chunk.len() as u64)).unwrap_or(0);
+                if take > 0 {
+                    tokio::select! {
+                        _ = cancel.cancelled() => return Err(NetError::Cancelled),
+                        _ = limiter.acquire(take as u64) => {}
+                    }
+                    part.write_at(cursor, &chunk[..take])?;
+                    cursor += take as u64;
+                }
+                if cursor >= total {
+                    break;
+                }
+            } else {
+                let bytes = chunk.len() as u64;
+                tokio::select! {
+                    _ = cancel.cancelled() => return Err(NetError::Cancelled),
+                    _ = limiter.acquire(bytes) => {}
+                }
+                part.write_at(cursor, &chunk)?;
+                cursor += bytes;
+            }
+            if last_emit.elapsed() >= Duration::from_millis(200) {
+                meter.observe(cursor);
+                tracker.emit(
+                    DownloadState::Downloading,
+                    known,
+                    cursor,
+                    1,
+                    vec![SegmentProgress {
+                        id: SegmentId(0),
+                        start: 0,
+                        end: known.unwrap_or(cursor).saturating_sub(1),
+                        written: cursor,
+                        state: SegmentState::Active,
+                        attempts: 1,
+                    }],
+                    Some(probe.final_url.as_str()),
+                    None,
+                    None,
+                );
+                last_emit = Instant::now();
+            }
+        }
+        if let Some(total) = known {
+            if cursor != total {
+                return Err(NetError::ShortRead(total.saturating_sub(cursor)));
+            }
+            part.set_len(total)?;
+        } else {
+            part.set_len(cursor)?;
+        }
+        part.sync_all()?;
+        Ok(cursor)
+    }
+}
+
+#[derive(Debug)]
+enum WorkerOutcome {
+    Completed,
+    Stolen,
+    Cancelled,
+    Failed(NetError),
+}
+
+#[derive(Debug)]
+struct WorkerReport {
+    worker: WorkerId,
+    outcome: WorkerOutcome,
+}
+
+#[allow(clippy::too_many_arguments)]
+fn spawn_range_worker(
+    join: &mut JoinSet<WorkerReport>,
+    stops: &mut HashMap<WorkerId, Arc<AtomicU64>>,
+    progress_atoms: &mut HashMap<WorkerId, Arc<AtomicU64>>,
+    client: &Arc<NetClient>,
+    config: &EngineConfig,
+    part: &Arc<PartFile>,
+    limiter: &Arc<rustget_core::RateLimiter>,
+    url: &Url,
+    validator: Option<String>,
+    assignment: Assignment,
+    cancel: CancellationToken,
+) {
+    let stop = Arc::new(AtomicU64::new(u64::MAX));
+    let progress = Arc::new(AtomicU64::new(assignment.range.start));
+    stops.insert(assignment.worker, Arc::clone(&stop));
+    progress_atoms.insert(assignment.worker, Arc::clone(&progress));
+    let client = Arc::clone(client);
+    let part = Arc::clone(part);
+    let limiter = Arc::clone(limiter);
+    let url = url.clone();
+    let config = config.clone();
+    join.spawn(async move {
+        let worker = assignment.worker;
+        let outcome = range_worker(
+            &assignment,
+            client,
+            config,
+            part,
+            limiter,
+            url,
+            validator,
+            stop,
+            progress,
+            cancel,
+        )
+        .await;
+        WorkerReport { worker, outcome }
+    });
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn range_worker(
+    assignment: &Assignment,
+    client: Arc<NetClient>,
+    config: EngineConfig,
+    part: Arc<PartFile>,
+    limiter: Arc<rustget_core::RateLimiter>,
+    url: Url,
+    validator: Option<String>,
+    stop: Arc<AtomicU64>,
+    progress: Arc<AtomicU64>,
+    cancel: CancellationToken,
+) -> WorkerOutcome {
+    let retry = RetryPolicy::from_engine(&config);
+    let mut cursor = assignment.range.start;
+    let mut attempt = 0_u32;
+    loop {
+        match transfer_range(
+            &client,
+            &config,
+            &part,
+            &limiter,
+            &url,
+            validator.as_deref(),
+            assignment.range.end,
+            &stop,
+            &progress,
+            &cancel,
+            &mut cursor,
+        )
+        .await
+        {
+            Ok(TransferEnd::Completed) => return WorkerOutcome::Completed,
+            Ok(TransferEnd::Stolen) => return WorkerOutcome::Stolen,
+            Err(NetError::Cancelled) => return WorkerOutcome::Cancelled,
+            Err(error) => {
+                let class = error.class();
+                if !retry.should_retry(class, attempt + 1) {
+                    return WorkerOutcome::Failed(error);
+                }
+                attempt += 1;
+                let delay = retry.delay(class, attempt);
+                tracing::debug!(
+                    worker = assignment.worker.0,
+                    segment = assignment.segment.0,
+                    attempt,
+                    ?class,
+                    delay_ms = delay.as_millis(),
+                    %error,
+                    "range attempt failed"
+                );
+                tokio::select! {
+                    _ = cancel.cancelled() => return WorkerOutcome::Cancelled,
+                    _ = tokio::time::sleep(delay) => {}
+                }
+            }
+        }
+    }
+}
+
+enum TransferEnd {
+    Completed,
+    Stolen,
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn transfer_range(
+    client: &NetClient,
+    config: &EngineConfig,
+    part: &PartFile,
+    limiter: &rustget_core::RateLimiter,
+    url: &Url,
+    validator: Option<&str>,
+    end: u64,
+    stop: &AtomicU64,
+    progress: &AtomicU64,
+    cancel: &CancellationToken,
+    cursor: &mut u64,
+) -> Result<TransferEnd> {
+    let mut request = client
+        .apply_common(client.client().get(url.clone()))?
+        .header(reqwest::header::RANGE, format!("bytes={}-{end}", *cursor));
+    if let Some(validator) = validator {
+        request = request.header(reqwest::header::IF_RANGE, validator);
+    }
+    let response = tokio::select! {
+        _ = cancel.cancelled() => return Err(NetError::Cancelled),
+        response = request.send() => response?,
+    };
+    let status = response.status();
+    if status == reqwest::StatusCode::PARTIAL_CONTENT {
+        let header = response
+            .headers()
+            .get(reqwest::header::CONTENT_RANGE)
+            .and_then(|value| value.to_str().ok())
+            .ok_or_else(|| NetError::Header("206 without Content-Range".into()))?;
+        let (start, _end, _total) = parse_content_range(header)
+            .ok_or_else(|| NetError::Header(format!("invalid Content-Range '{header}'")))?;
+        if start != *cursor {
+            return Err(NetError::ContentRangeMismatch(header.to_string(), *cursor));
+        }
+    } else if status == reqwest::StatusCode::OK {
+        if validator.is_some() {
+            return Err(NetError::RemoteChanged(
+                "server ignored If-Range because the resource changed".into(),
+            ));
+        }
+        return Err(NetError::RangeUnsupported);
+    } else if status == reqwest::StatusCode::RANGE_NOT_SATISFIABLE {
+        return Err(NetError::RemoteChanged(
+            "server rejected the requested range (416)".into(),
+        ));
+    } else {
+        return Err(NetError::status(
+            status.as_u16(),
+            url.as_str(),
+            status.canonical_reason().unwrap_or("range request failed"),
+        ));
+    }
+
+    let mut stream = response.bytes_stream();
+    loop {
+        if let Some(boundary) = stop_boundary(stop, *cursor) {
+            if *cursor >= boundary {
+                return Ok(TransferEnd::Stolen);
+            }
+        }
+        let next = tokio::select! {
+            _ = cancel.cancelled() => return Err(NetError::Cancelled),
+            next = tokio::time::timeout(
+                Duration::from_secs(config.idle_timeout_secs.max(1)),
+                stream.next(),
+            ) => next,
+        };
+        let chunk = match next {
+            Err(_) => {
+                return Err(NetError::Protocol(format!(
+                    "no data received for {}s",
+                    config.idle_timeout_secs
+                )));
+            }
+            Ok(None) => {
+                if *cursor > end {
+                    return Ok(TransferEnd::Completed);
+                }
+                return Err(NetError::ShortRead(end + 1 - *cursor));
+            }
+            Ok(Some(Err(error))) => return Err(NetError::Request(error)),
+            Ok(Some(Ok(chunk))) => chunk,
+        };
+        let boundary = stop_boundary(stop, *cursor).unwrap_or(end + 1);
+        let room = (end + 1).saturating_sub(*cursor);
+        let allowed = chunk.len() as u64;
+        let allowed = allowed.min(room).min(boundary.saturating_sub(*cursor));
+        if allowed == 0 {
+            if *cursor >= boundary {
+                return Ok(TransferEnd::Stolen);
+            }
+            return Ok(TransferEnd::Completed);
+        }
+        tokio::select! {
+            _ = cancel.cancelled() => return Err(NetError::Cancelled),
+            _ = limiter.acquire(allowed) => {}
+        }
+        // A split may have arrived while waiting for a rate-limit token.
+        let boundary_now = stop_boundary(stop, *cursor);
+        let allowed = boundary_now.map_or(allowed, |boundary| {
+            allowed.min(boundary.saturating_sub(*cursor))
+        });
+        if allowed == 0 {
+            return Ok(TransferEnd::Stolen);
+        }
+        part.write_at(*cursor, &chunk[..usize::try_from(allowed).unwrap_or(0)])?;
+        *cursor += allowed;
+        progress.store(*cursor, Ordering::Release);
+        if boundary_now.is_some_and(|boundary| *cursor >= boundary) {
+            return Ok(TransferEnd::Stolen);
+        }
+        if *cursor > end {
+            return Ok(TransferEnd::Completed);
+        }
+    }
+}
+
+fn stop_boundary(stop: &AtomicU64, cursor: u64) -> Option<u64> {
+    let value = stop.load(Ordering::Acquire);
+    if value == u64::MAX {
+        None
+    } else {
+        Some(value.max(cursor))
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn dispatch_idle(
+    ledger: &mut SegmentLedger,
+    idle: WorkerId,
+    join: &mut JoinSet<WorkerReport>,
+    stops: &mut HashMap<WorkerId, Arc<AtomicU64>>,
+    progress_atoms: &mut HashMap<WorkerId, Arc<AtomicU64>>,
+    client: &Arc<NetClient>,
+    config: &EngineConfig,
+    part: &Arc<PartFile>,
+    limiter: &Arc<rustget_core::RateLimiter>,
+    url: &Url,
+    validator: Option<String>,
+    cancel: CancellationToken,
+    next_worker: &mut u64,
+) -> Result<()> {
+    if let Some(split) = ledger
+        .steal(idle)
+        .map_err(|error| NetError::Protocol(error.to_string()))?
+    {
+        if let Some(stop) = stops.get(&split.victim) {
+            stop.store(split.stop_at, Ordering::Release);
+        }
+        spawn_range_worker(
+            join,
+            stops,
+            progress_atoms,
+            client,
+            config,
+            part,
+            limiter,
+            url,
+            validator,
+            split.assignment,
+            cancel,
+        );
+        return Ok(());
+    }
+    if let Some(assignment) = ledger.claim(idle) {
+        spawn_range_worker(
+            join,
+            stops,
+            progress_atoms,
+            client,
+            config,
+            part,
+            limiter,
+            url,
+            validator,
+            assignment,
+            cancel,
+        );
+        return Ok(());
+    }
+    // No splittable work now. The idle worker is intentionally not respawned;
+    // another completion will trigger another dispatch.
+    let _ = next_worker;
+    Ok(())
+}
+
+fn sync_progress(ledger: &mut SegmentLedger, atoms: &HashMap<WorkerId, Arc<AtomicU64>>) {
+    for (worker, atomic) in atoms {
+        let _ = ledger.report_progress(*worker, atomic.load(Ordering::Acquire));
+    }
+}
+
+fn segment_progress(ledger: &SegmentLedger) -> Vec<SegmentProgress> {
+    ledger
+        .segments()
+        .iter()
+        .map(|segment| SegmentProgress {
+            id: segment.id,
+            start: segment.range.start,
+            end: segment.range.end,
+            written: segment.written,
+            state: segment.state,
+            attempts: segment.attempts,
+        })
+        .collect()
+}
+
+fn resolve_destination(request: &DownloadRequest, probe: &FileProbe) -> Result<PathBuf> {
+    let explicit = request.destination.is_some();
+    let destination = if let Some(destination) = &request.destination {
+        if destination.is_dir() {
+            destination.join(sanitize_filename(&probe.filename))
+        } else {
+            destination.clone()
+        }
+    } else {
+        request.directory.join(sanitize_filename(&probe.filename))
+    };
+    if !request.resume && destination.exists() && !request.overwrite {
+        if explicit {
+            return Err(NetError::DestinationExists(
+                destination.display().to_string(),
+            ));
+        }
+        return Ok(unique_destination(destination));
+    }
+    if request.overwrite && destination.exists() {
+        std::fs::remove_file(&destination)?;
+    }
+    Ok(destination)
+}
+
+fn reset_partial(paths: &DownloadPaths) -> Result<()> {
+    for path in [&paths.part, &paths.journal] {
+        if path.exists() {
+            std::fs::remove_file(path)?;
+        }
+    }
+    Ok(())
+}
+
+fn finish_empty(
+    request: &DownloadRequest,
+    probe: &FileProbe,
+    paths: &DownloadPaths,
+    started: Instant,
+) -> Result<DownloadSummary> {
+    let part = PartFile::reset(&paths.part, 0, PreallocateMode::None)?;
+    part.sync_all()?;
+    std::fs::rename(&paths.part, &paths.destination)?;
+    remove_journal(paths);
+    Ok(DownloadSummary {
+        id: request.id,
+        destination: paths.destination.clone(),
+        final_url: probe.final_url.to_string(),
+        total_size: 0,
+        downloaded: 0,
+        elapsed_ms: u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX),
+        segments: 0,
+        resumed: false,
+        checksum_verified: false,
+        average_speed_bps: 0.0,
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn finalize(
+    request: &DownloadRequest,
+    probe: &FileProbe,
+    paths: &DownloadPaths,
+    total: u64,
+    segments: usize,
+    resumed: bool,
+    started: Instant,
+    tracker: &mut Tracker,
+) -> Result<DownloadSummary> {
+    if let Some(spec) = &request.checksum {
+        verify_checksum(&paths.part, spec).await?;
+    }
+    if paths.destination.exists() {
+        if request.overwrite {
+            std::fs::remove_file(&paths.destination)?;
+        } else {
+            return Err(NetError::DestinationExists(
+                paths.destination.display().to_string(),
+            ));
+        }
+    }
+    std::fs::rename(&paths.part, &paths.destination)?;
+    remove_journal(paths);
+    let elapsed = started.elapsed();
+    let elapsed_ms = u64::try_from(elapsed.as_millis()).unwrap_or(u64::MAX);
+    let summary = DownloadSummary {
+        id: request.id,
+        destination: paths.destination.clone(),
+        final_url: probe.final_url.to_string(),
+        total_size: total,
+        downloaded: total,
+        elapsed_ms,
+        segments,
+        resumed,
+        checksum_verified: request.checksum.is_some(),
+        average_speed_bps: if elapsed.as_secs_f64() > 0.0 {
+            total as f64 / elapsed.as_secs_f64()
+        } else {
+            0.0
+        },
+    };
+    tracker.emit(
+        DownloadState::Complete,
+        Some(total),
+        total,
+        0,
+        Vec::new(),
+        Some(probe.final_url.as_str()),
+        None,
+        None,
+    );
+    Ok(summary)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn summary_without_transfer(
+    request: &DownloadRequest,
+    probe: &FileProbe,
+    paths: &DownloadPaths,
+    total: u64,
+    resumed: bool,
+    started: Instant,
+    tracker: &mut Tracker,
+) -> DownloadSummary {
+    tracker.emit(
+        DownloadState::Complete,
+        Some(total),
+        total,
+        0,
+        Vec::new(),
+        Some(probe.final_url.as_str()),
+        None,
+        None,
+    );
+    DownloadSummary {
+        id: request.id,
+        destination: paths.destination.clone(),
+        final_url: probe.final_url.to_string(),
+        total_size: total,
+        downloaded: total,
+        elapsed_ms: u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX),
+        segments: 0,
+        resumed,
+        checksum_verified: false,
+        average_speed_bps: 0.0,
+    }
+}
+
+fn remove_journal(paths: &DownloadPaths) {
+    let _ = std::fs::remove_file(&paths.journal);
+    let mut tmp = paths.journal.as_os_str().to_os_string();
+    tmp.push(".tmp");
+    let _ = std::fs::remove_file(Path::new(&tmp));
+}
+
+struct Tracker {
+    tx: watch::Sender<DownloadProgress>,
+    id: Uuid,
+    started: Instant,
+}
+
+impl Tracker {
+    fn new(tx: watch::Sender<DownloadProgress>, id: Uuid) -> Self {
+        Self {
+            tx,
+            id,
+            started: Instant::now(),
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn emit(
+        &self,
+        state: DownloadState,
+        total: Option<u64>,
+        downloaded: u64,
+        connections: usize,
+        segments: Vec<SegmentProgress>,
+        final_url: Option<&str>,
+        filename: Option<String>,
+        error: Option<String>,
+    ) {
+        let elapsed = self.started.elapsed().as_secs_f64().max(0.001);
+        let speed = downloaded as f64 / elapsed;
+        let eta = total.and_then(|total| {
+            (speed > 1.0 && total > downloaded)
+                .then_some(((total - downloaded) as f64 / speed) as u64)
+        });
+        let _ = self.tx.send(DownloadProgress {
+            task_id: self.id,
+            state,
+            total_size: total,
+            downloaded,
+            speed_bps: speed,
+            eta_secs: eta,
+            active_connections: connections,
+            segments,
+            final_url: final_url.map(str::to_string),
+            filename,
+            error,
+        });
+    }
+}
+
+struct SpeedMeter {
+    last: Instant,
+    last_bytes: u64,
+    smoothed: f64,
+}
+
+impl SpeedMeter {
+    fn new() -> Self {
+        Self {
+            last: Instant::now(),
+            last_bytes: 0,
+            smoothed: 0.0,
+        }
+    }
+
+    fn observe(&mut self, bytes: u64) -> f64 {
+        let now = Instant::now();
+        let elapsed = now.duration_since(self.last).as_secs_f64();
+        if elapsed > 0.0 {
+            let instant = (bytes.saturating_sub(self.last_bytes)) as f64 / elapsed;
+            self.smoothed = if self.smoothed == 0.0 {
+                instant
+            } else {
+                self.smoothed * 0.7 + instant * 0.3
+            };
+            self.last = now;
+            self.last_bytes = bytes;
+        }
+        self.smoothed
+    }
+}
+
+/// Merge any adjacent ranges (used by tests and journal diagnostics).
+#[must_use]
+pub fn merge_ranges(mut ranges: Vec<ByteRange>) -> Vec<ByteRange> {
+    ranges.sort_by_key(|range| range.start);
+    let mut merged: Vec<ByteRange> = Vec::with_capacity(ranges.len());
+    for range in ranges {
+        match merged.last_mut() {
+            Some(last) if range.start <= last.end.saturating_add(1) => {
+                last.end = last.end.max(range.end);
+            }
+            _ => merged.push(range),
+        }
+    }
+    merged
+}

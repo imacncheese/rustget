@@ -1,0 +1,32 @@
+[package]
+name = "rustget-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+rustget-media = { path = "../crates/rustget-media" }
+rustget-net = { path = "../crates/rustget-net" }
+url = "2.5.8"
+
+[[bin]]
+name = "hls_playlist"
+path = "fuzz_targets/hls_playlist.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "dash_mpd"
+path = "fuzz_targets/dash_mpd.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "content_range"
+path = "fuzz_targets/content_range.rs"
+test = false
+doc = false

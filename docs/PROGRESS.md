@@ -119,7 +119,7 @@ rustget-native-host 2                    PASS
 rustget-platform  3                     PASS
 clippy -D warnings                       PASS
 cargo fmt --check                        PASS
-total                                  121 tests
+total                                  122 tests
 ```
 
 Commands:

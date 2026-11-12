@@ -227,6 +227,17 @@ mod tests {
         assert!(safe.ends_with(".zip"));
     }
 
+    #[cfg(windows)]
+    #[test]
+    fn windows_case_collisions_get_a_unique_destination() {
+        let dir = tempfile::tempdir().unwrap();
+        let existing = dir.path().join("FILE.BIN");
+        std::fs::write(&existing, b"x").unwrap();
+        let unique = unique_destination(dir.path().join("file.bin"));
+        assert_ne!(unique, existing);
+        assert!(!unique.exists());
+    }
+
     #[test]
     fn urls_decode_to_filenames() {
         let url = url::Url::parse("https://example.test/a/my%20file.zip?x=1").unwrap();

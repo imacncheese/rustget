@@ -683,6 +683,27 @@
     if (message) toast(message, true);
   }
 
+  async function probeAdd() {
+    const url = $("#addUrl").value.trim();
+    const hint = $("#probeHint");
+    if (!/^https?:\/\//i.test(url)) {
+      hint.textContent = "Enter an http(s) URL first.";
+      return;
+    }
+    hint.textContent = "Checking…";
+    try {
+      const probe = await api("/api/v1/probe", {
+        method: "POST",
+        body: JSON.stringify({ url }),
+      });
+      const size = probe.total_size ? bytes(probe.total_size) : "unknown size";
+      const ranges = probe.range_supported ? "resumable" : "single stream";
+      hint.textContent = `${probe.filename} · ${size} · ${ranges}`;
+    } catch (error) {
+      hint.textContent = error.message;
+    }
+  }
+
   async function submitAdd(event) {
     event.preventDefault();
     const url = $("#addUrl").value.trim();
@@ -763,6 +784,7 @@
         if (text) $("#addUrl").value = text.trim();
       } catch { toast("Clipboard access was blocked by the browser", true); }
     });
+    $("#probeBtn").addEventListener("click", probeAdd);
 
     $$("#nav .nav-item").forEach((button) => button.addEventListener("click", () => {
       state.filter = button.dataset.filter;

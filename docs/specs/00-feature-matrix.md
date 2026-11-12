@@ -140,7 +140,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | D01 | Main window with category sidebar and table | MUST | P0 | M4 | ✅ | Screenshot `docs/assets/ui-main.png` |
 | D02 | Detail pane with per-segment progress | MUST | P0 | M4 | ✅ | Segment bars from live progress |
 | D03 | Add download dialog | MUST | P0 | M4 | ✅ | URL, folder, connections, limit, category, start |
-| D04 | File-info probe preview in dialog | SHOULD | P1 | M4 | ◐ | Probe happens after submit |
+| D04 | File-info probe preview in dialog | SHOULD | P1 | M4 | ✅ | “Check” calls `/api/v1/probe`; filename, size and range support shown before submit |
 | D05 | Video quality picker | SHOULD | P2 | M5 | — | Parsers only |
 | D06 | Scheduler weekly timeline | SHOULD | P2 | M4 | ✅ | Web UI timeline, add/delete form, API-backed; power actions not executed |
 | D07 | Settings, searchable/advanced collapse | SHOULD | P1 | M4 | ◐ | Small settings dialog only |
@@ -206,10 +206,10 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 72 |
+| ✅ implemented + verified | 73 |
 | ◐ partial | 41 |
 | ○ specified, not implemented | 1 |
-| — not started | 33 |
+| — not started | 32 |
 | **Total tracked** | **147** |
 
 By area:
@@ -219,7 +219,7 @@ By area:
 | A. Download engine | 46 | 22 | 18 | 0 | 6 |
 | B. Capture/integration | 22 | 9 | 9 | 0 | 4 |
 | C. Management | 30 | 20 | 4 | 0 | 6 |
-| D. UI/UX | 12 | 7 | 2 | 0 | 3 |
+| D. UI/UX | 12 | 8 | 2 | 0 | 2 |
 | E. Quality/security | 15 | 9 | 3 | 1 | 2 |
 | F. Platform/packaging | 10 | 2 | 2 | 0 | 6 |
 | G. Protocols/extensibility | 12 | 3 | 3 | 0 | 6 |

@@ -47,7 +47,7 @@
 - [x] REST + WebSocket API with token/origin checks.
 - [x] Web UI: virtualized list, details, segments, add/settings, themes.
 - [x] Queue priority Move up/down via PATCH API.
-- [x] Live speed sparkline and daemon single-instance lock.
+- [x] Live speed sparkline, URL probe preview and daemon single-instance lock.
 - [x] Opt-in scheduler power actions with platform command planning.
 - [x] Versioned JSON export/import for the download list.
 - [x] Scheduler weekly timeline and add/delete form in the web UI.

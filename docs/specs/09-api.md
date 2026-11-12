@@ -167,6 +167,15 @@ journal. Returns `204`.
 Opens the containing folder using the OS default handler. Returns `204` or
 `500`.
 
+### `POST /api/v1/probe`
+
+```json
+{"url":"https://example.test/file.zip"}
+```
+
+Returns `filename`, `total_size`, `final_url`, `range_supported`, `etag` and
+`last_modified` without creating a download. HTTP(S) only.
+
 ### `GET /api/v1/export`
 
 Returns a portable bundle:

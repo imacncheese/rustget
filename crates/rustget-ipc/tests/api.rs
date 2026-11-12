@@ -80,6 +80,20 @@ async fn requires_bearer_and_serves_the_ui() {
 async fn add_list_and_delete_download() {
     let (base, token, manager, origin, _temp) = start_api().await;
     let client = reqwest::Client::new();
+    let probed: serde_json::Value = client
+        .post(format!("{base}/api/v1/probe"))
+        .bearer_auth(&token)
+        .json(&serde_json::json!({"url": origin.file_url("file.bin")}))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(probed["filename"], "file.bin");
+    assert_eq!(probed["total_size"], 256 * 1024);
+    assert_eq!(probed["range_supported"], true);
+
     let response = client
         .post(format!("{base}/api/v1/downloads"))
         .bearer_auth(&token)

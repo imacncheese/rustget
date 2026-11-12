@@ -119,6 +119,7 @@ pub fn router(manager: Arc<DownloadManager>, config: &ApiConfig) -> Router {
         .route("/api/v1/downloads/{id}/resume", post(resume_download))
         .route("/api/v1/downloads/{id}/retry", post(retry_download))
         .route("/api/v1/downloads/{id}/open", post(open_download))
+        .route("/api/v1/probe", post(probe_url))
         .route("/api/v1/export", get(export_downloads))
         .route("/api/v1/import", post(import_downloads))
         .route("/api/v1/stats", get(stats))
@@ -457,6 +458,30 @@ async fn list_categories(
         .categories()
         .map_err(|error| ApiError::Internal(error.to_string()))?;
     Ok(Json(json!({"categories": categories})))
+}
+
+#[derive(Debug, Deserialize)]
+struct ProbeRequest {
+    url: String,
+}
+
+async fn probe_url(
+    State(state): State<ApiState>,
+    Json(input): Json<ProbeRequest>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let probe = state
+        .manager
+        .probe(&input.url)
+        .await
+        .map_err(|error| map_manager_error(&error))?;
+    Ok(Json(json!({
+        "filename": probe.filename,
+        "total_size": probe.total_size,
+        "final_url": probe.final_url.to_string(),
+        "range_supported": probe.range_supported,
+        "etag": probe.validator.etag,
+        "last_modified": probe.validator.last_modified,
+    })))
 }
 
 async fn export_downloads(

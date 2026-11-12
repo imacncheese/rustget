@@ -393,6 +393,17 @@ impl DownloadManager {
         Ok(record)
     }
 
+    pub async fn probe(&self, url: &str) -> Result<rustget_net::FileProbe> {
+        let url = Url::parse(url)?;
+        if !matches!(url.scheme(), "http" | "https") {
+            return Err(ManagerError::InvalidState(
+                "probe supports http and https only".into(),
+            ));
+        }
+        let downloader = Downloader::new(self.engine_for(None, None), RequestOptions::default())?;
+        Ok(downloader.probe(&url).await?)
+    }
+
     pub fn set_priority(&self, id: Uuid, priority: i32) -> Result<DownloadRecord> {
         let mut record = self.get(id)?;
         record.priority = priority;

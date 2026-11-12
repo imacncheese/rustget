@@ -27,7 +27,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | A01 | Dynamic file segmentation, selectable up to 32 connections | MUST | P0 | M1 | ✅ | `EngineConfig.max_connections <= 32`, ledger partitions; tested |
 | A02 | In-half split of the largest active segment when a connection frees | MUST | P0 | M2 | ✅ | `SegmentLedger::try_split`; engine publishes cooperative stop boundary; forced-slow test |
 | A03 | Adaptive connection growth while throughput improves | SHOULD | P1 | M2 | ✅ | 2 s AIMD sample in coordinator; only grows on >2% gain |
-| A04 | Connection reuse / keep-alive (avoid per-segment handshake) | MUST | P0 | M2 | ◐ | `reqwest` pool (`pool_max_idle_per_host`, 90 s idle); no own socket pool or explicit reuse proof |
+| A04 | Connection reuse / keep-alive (avoid per-segment handshake) | MUST | P0 | M2 | ✅ | Pooled `reqwest` connections; ranged worker reuse test bounds unique peers |
 | A05 | Resume after crash, power loss, network drop, IP change | MUST | P0 | M1 | ◐ | Process-kill resume proven byte-exact; power-loss fsync path configurable, not power-cut tested |
 | A06 | Resume validation with ETag/Last-Modified/size/If-Range | MUST | P0 | M1 | ✅ | Probe + journal validator; changing-ETag test |
 | A07 | Detect server change mid-transfer | MUST | P0 | M1 | ✅ | 200-to-If-Range and 416 classified as `RemoteChanged`; test |
@@ -206,8 +206,8 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 94 |
-| ◐ partial | 42 |
+| ✅ implemented + verified | 95 |
+| ◐ partial | 41 |
 | ○ specified, not implemented | 1 |
 | — not started | 10 |
 | **Total tracked** | **147** |
@@ -216,7 +216,7 @@ By area:
 
 | Area | Rows | ✅ | ◐ | ○ | — |
 |---|---:|---:|---:|---:|---:|
-| A. Download engine | 46 | 29 | 14 | 0 | 3 |
+| A. Download engine | 46 | 30 | 13 | 0 | 3 |
 | B. Capture/integration | 22 | 13 | 9 | 0 | 0 |
 | C. Management | 30 | 23 | 7 | 0 | 0 |
 | D. UI/UX | 12 | 10 | 2 | 0 | 0 |

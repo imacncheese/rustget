@@ -100,6 +100,7 @@ Request:
   "proxy": "http://127.0.0.1:3128",
   "client_cert": "C:/certs/client.pem",
   "digest_auth": ["user", "pass"],
+  "use_ytdlp": false,
   "destination": null,
   "directory": "D:\\Downloads",
   "category": "Archives",

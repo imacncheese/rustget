@@ -155,6 +155,12 @@ enum Command {
     Tag { id: String, tags: Vec<String> },
     /// Verify that a completed file exists and is readable (scanner hook helper).
     Scan { path: PathBuf },
+    /// Test-only yt-dlp resolver stub; prints the supplied URL with a marker.
+    YtdlpStub {
+        url: String,
+        #[arg(trailing_var_arg = true)]
+        rest: Vec<String>,
+    },
     /// Install, remove or inspect the per-user autostart entry.
     Autostart {
         #[command(subcommand)]
@@ -236,6 +242,9 @@ struct AddArgs {
     /// HTTP Digest password.
     #[arg(long)]
     digest_password: Option<String>,
+    /// Resolve the URL through the configured yt-dlp command.
+    #[arg(long)]
+    yt_dlp: bool,
     /// Exact output path or directory.
     #[arg(short, long)]
     output: Option<PathBuf>,
@@ -291,6 +300,12 @@ struct ServeArgs {
     /// Extra argument for `--scanner`; repeatable.
     #[arg(long = "scanner-arg")]
     scanner_args: Vec<String>,
+    /// yt-dlp program used for `--yt-dlp` downloads; the URL is appended.
+    #[arg(long)]
+    ytdlp: Option<PathBuf>,
+    /// Extra argument for `--ytdlp`; repeatable.
+    #[arg(long = "ytdlp-arg")]
+    ytdlp_args: Vec<String>,
 }
 
 struct PlatformPower;
@@ -336,6 +351,10 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
     if let Command::Scan { path } = &cli.command {
         return scan_file(path);
+    }
+    if let Command::YtdlpStub { url, .. } = &cli.command {
+        println!("{url}?resolved=1");
+        return Ok(());
     }
     let paths = Paths::resolve(&cli)?;
     match &cli.command {
@@ -386,7 +405,9 @@ async fn main() -> Result<()> {
         Command::Import { path } => import_downloads(&cli, &paths, path).await,
         Command::Tag { id, tags } => tag_download(&cli, &paths, id, tags).await,
         Command::Autostart { action, dry_run } => autostart(&paths, action, *dry_run),
-        Command::Scan { .. } => unreachable!("scan handled before path resolution"),
+        Command::Scan { .. } | Command::YtdlpStub { .. } => {
+            unreachable!("local helper handled before path resolution")
+        }
         Command::Schedule { action } => schedule_command(&cli, &paths, action).await,
         Command::Grab {
             url,
@@ -475,6 +496,12 @@ async fn serve(
         manager.set_setting("antivirus.scan_command", &serde_json::to_string(&command)?)?;
         println!("scanner:    {}", scanner.display());
     }
+    if let Some(ytdlp) = &args.ytdlp {
+        let mut command = vec![ytdlp.to_string_lossy().to_string()];
+        command.extend(args.ytdlp_args.iter().cloned());
+        manager.set_setting("ytdlp.command", &serde_json::to_string(&command)?)?;
+        println!("yt-dlp:     {}", ytdlp.display());
+    }
     if args.allow_power_actions {
         manager.set_power_hook(std::sync::Arc::new(PlatformPower));
         println!("power actions: ENABLED (shutdown/sleep/hibernate/exit)");
@@ -531,6 +558,7 @@ async fn add(cli: &Cli, paths: &Paths, args: &AddArgs) -> Result<()> {
             (Some(user), Some(password)) => Some((user.clone(), password.clone())),
             _ => None,
         },
+        use_ytdlp: args.yt_dlp,
         allow_duplicate: args.allow_duplicate,
         destination: args.output.clone(),
         directory: Some(paths.download_dir.clone()),
@@ -1035,6 +1063,7 @@ async fn grab(
                     client_cert: None,
                     digest_user: None,
                     digest_password: None,
+                    yt_dlp: false,
                     allow_duplicate: false,
                     output: None,
                     connections,
@@ -1216,6 +1245,7 @@ async fn batch(
             client_cert: None,
             digest_user: None,
             digest_password: None,
+            yt_dlp: false,
             allow_duplicate: false,
             output: None,
             connections,

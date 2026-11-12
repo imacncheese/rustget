@@ -71,6 +71,8 @@ pub struct NewDownload {
     pub proxy: Option<String>,
     pub client_cert: Option<PathBuf>,
     pub digest_auth: Option<(String, String)>,
+    #[serde(default)]
+    pub use_ytdlp: bool,
     pub destination: Option<PathBuf>,
     pub directory: Option<PathBuf>,
     #[serde(default)]
@@ -104,6 +106,7 @@ impl NewDownload {
             proxy: record.proxy.clone(),
             client_cert: record.client_cert.clone(),
             digest_auth: record.digest_auth.clone(),
+            use_ytdlp: record.use_ytdlp,
             destination: Some(record.destination.clone()),
             directory: record
                 .destination
@@ -132,6 +135,7 @@ impl Default for NewDownload {
             proxy: None,
             client_cert: None,
             digest_auth: None,
+            use_ytdlp: false,
             destination: None,
             directory: None,
             allow_duplicate: false,
@@ -262,7 +266,10 @@ impl DownloadManager {
     /// row. Probing before insertion is what makes Content-Disposition names
     /// and the final save path visible to every client immediately.
     pub async fn add(self: &Arc<Self>, request: NewDownload) -> Result<DownloadRecord> {
-        let url = Url::parse(&request.url)?;
+        let mut url = Url::parse(&request.url)?;
+        if request.use_ytdlp {
+            url = Url::parse(&self.resolve_with_ytdlp(&request.url).await?)?;
+        }
         if !matches!(url.scheme(), "http" | "https" | "ftp") {
             return Err(ManagerError::InvalidState(format!(
                 "unsupported URL scheme '{}' (ftps is not implemented yet)",
@@ -389,6 +396,7 @@ impl DownloadManager {
             proxy: request.proxy,
             client_cert: request.client_cert,
             digest_auth: request.digest_auth,
+            use_ytdlp: request.use_ytdlp,
             final_url: Some(final_url),
             destination,
             filename,
@@ -894,6 +902,52 @@ impl DownloadManager {
         );
     }
 
+    async fn resolve_with_ytdlp(&self, url: &str) -> Result<String> {
+        let Some(raw) = self.db.get_setting("ytdlp.command").map_err(|error| {
+            ManagerError::InvalidState(format!("cannot read yt-dlp command: {error}"))
+        })?
+        else {
+            return Err(ManagerError::InvalidState(
+                "yt-dlp resolution requested but ytdlp.command is not configured".into(),
+            ));
+        };
+        let mut parts: Vec<String> = serde_json::from_str(&raw).map_err(|error| {
+            ManagerError::InvalidState(format!("invalid ytdlp.command JSON: {error}"))
+        })?;
+        if parts.is_empty() {
+            return Err(ManagerError::InvalidState("ytdlp.command is empty".into()));
+        }
+        let program = parts.remove(0);
+        let output = tokio::time::timeout(
+            Duration::from_secs(60),
+            tokio::process::Command::new(&program)
+                .args(&parts)
+                .arg(url)
+                .stdin(std::process::Stdio::null())
+                .stderr(std::process::Stdio::piped())
+                .output(),
+        )
+        .await
+        .map_err(|_| ManagerError::InvalidState("yt-dlp resolution timed out".into()))?
+        .map_err(|error| ManagerError::InvalidState(format!("cannot run {program}: {error}")))?;
+        if !output.status.success() {
+            let stderr: String = String::from_utf8_lossy(&output.stderr)
+                .chars()
+                .take(500)
+                .collect();
+            return Err(ManagerError::InvalidState(format!(
+                "yt-dlp failed ({}): {stderr}",
+                output.status
+            )));
+        }
+        String::from_utf8_lossy(&output.stdout)
+            .lines()
+            .map(str::trim)
+            .find(|line| line.starts_with("http://") || line.starts_with("https://"))
+            .map(str::to_string)
+            .ok_or_else(|| ManagerError::InvalidState("yt-dlp returned no direct URL".into()))
+    }
+
     async fn scan_file(&self, path: &std::path::Path) -> Result<(), String> {
         let Some(raw) = self
             .db
@@ -1280,6 +1334,7 @@ mod tests {
             proxy: None,
             client_cert: None,
             digest_auth: None,
+            use_ytdlp: false,
             final_url: None,
             destination: PathBuf::new(),
             filename: String::new(),

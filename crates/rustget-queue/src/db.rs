@@ -32,6 +32,7 @@ impl Database {
                 proxy TEXT,
                 client_cert TEXT,
                 digest_auth TEXT,
+                use_ytdlp INTEGER NOT NULL DEFAULT 0,
                 final_url TEXT,
                 destination TEXT NOT NULL,
                 filename TEXT NOT NULL,
@@ -191,6 +192,25 @@ impl Database {
         if !has_digest {
             conn.execute("ALTER TABLE downloads ADD COLUMN digest_auth TEXT", [])?;
         }
+        let has_ytdlp = {
+            let mut statement = conn.prepare("PRAGMA table_info(downloads)")?;
+            let mut rows = statement.query([])?;
+            let mut found = false;
+            while let Some(row) = rows.next()? {
+                let name: String = row.get(1)?;
+                if name == "use_ytdlp" {
+                    found = true;
+                    break;
+                }
+            }
+            found
+        };
+        if !has_ytdlp {
+            conn.execute(
+                "ALTER TABLE downloads ADD COLUMN use_ytdlp INTEGER NOT NULL DEFAULT 0",
+                [],
+            )?;
+        }
         Ok(Self {
             conn: Mutex::new(conn),
         })
@@ -202,10 +222,10 @@ impl Database {
         let tags = serde_json::to_string(&record.tags).unwrap_or_else(|_| "[]".into());
         self.conn.lock().execute(
             r"INSERT INTO downloads (
-                id,url,mirrors,media_variant,proxy,client_cert,digest_auth,final_url,destination,filename,category,tags,status,total_size,downloaded,
+                id,url,mirrors,media_variant,proxy,client_cert,digest_auth,use_ytdlp,final_url,destination,filename,category,tags,status,total_size,downloaded,
                 speed_bps,connections,speed_limit,headers,checksum_algorithm,checksum_value,
                 etag,last_modified,error,priority,created_at_ms,updated_at_ms,completed_at_ms
-            ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23,?24,?25,?26,?27,?28)",
+            ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23,?24,?25,?26,?27,?28,?29)",
             params![
                 record.id.to_string(),
                 record.url,
@@ -217,6 +237,7 @@ impl Database {
                     .digest_auth
                     .as_ref()
                     .map(|auth| serde_json::to_string(auth).unwrap_or_else(|_| "null".into())),
+                i64::from(record.use_ytdlp),
                 record.final_url,
                 record.destination.to_string_lossy(),
                 record.filename,
@@ -249,10 +270,10 @@ impl Database {
         let tags = serde_json::to_string(&record.tags).unwrap_or_else(|_| "[]".into());
         self.conn.lock().execute(
             r"UPDATE downloads SET
-                url=?2, mirrors=?3, media_variant=?4, proxy=?5, client_cert=?6, digest_auth=?7, final_url=?8, destination=?9, filename=?10, category=?11, tags=?12, status=?13,
-                total_size=?14, downloaded=?15, speed_bps=?16, connections=?17, speed_limit=?18,
-                headers=?19, checksum_algorithm=?20, checksum_value=?21, etag=?22,
-                last_modified=?23, error=?24, priority=?25, updated_at_ms=?26, completed_at_ms=?27
+                url=?2, mirrors=?3, media_variant=?4, proxy=?5, client_cert=?6, digest_auth=?7, use_ytdlp=?8, final_url=?9, destination=?10, filename=?11, category=?12, tags=?13, status=?14,
+                total_size=?15, downloaded=?16, speed_bps=?17, connections=?18, speed_limit=?19,
+                headers=?20, checksum_algorithm=?21, checksum_value=?22, etag=?23,
+                last_modified=?24, error=?25, priority=?26, updated_at_ms=?27, completed_at_ms=?28
               WHERE id=?1",
             params![
                 record.id.to_string(),
@@ -265,6 +286,7 @@ impl Database {
                     .digest_auth
                     .as_ref()
                     .map(|auth| serde_json::to_string(auth).unwrap_or_else(|_| "null".into())),
+                i64::from(record.use_ytdlp),
                 record.final_url,
                 record.destination.to_string_lossy(),
                 record.filename,
@@ -542,6 +564,7 @@ fn map_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<DownloadRecord> {
         proxy,
         client_cert: client_cert.map(PathBuf::from),
         digest_auth: digest_json.and_then(|value| serde_json::from_str(&value).ok()),
+        use_ytdlp: row.get::<_, i64>("use_ytdlp")? != 0,
         final_url: row.get("final_url")?,
         destination: PathBuf::from(destination),
         filename: row.get("filename")?,
@@ -582,6 +605,7 @@ mod tests {
             proxy: Some("http://127.0.0.1:3128".into()),
             client_cert: Some(PathBuf::from("C:/certs/client.pem")),
             digest_auth: Some(("user".into(), "pass".into())),
+            use_ytdlp: true,
             final_url: None,
             destination: PathBuf::from("C:/downloads/file.bin"),
             filename: "file.bin".into(),

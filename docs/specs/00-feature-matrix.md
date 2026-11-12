@@ -120,7 +120,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | C16 | Tags | COULD | P2 | M6 | — | Category only |
 | C17 | Tray icon | SHOULD | P1 | M4 | — | Planned; no native shell |
 | C18 | Desktop notifications | SHOULD | P1 | M4 | ◐ | Browser Notification API; no OS integration |
-| C19 | Start with system | SHOULD | P2 | M6 | — | Planned |
+| C19 | Start with system | SHOULD | P2 | M6 | ◐ | Windows registry / Linux .desktop / macOS LaunchAgent code + `autostart` CLI; Windows registry write is denied in this environment, Unix paths not executed |
 | C20 | Single instance | MUST | P1 | M4 | ◐ | Daemon lock file enforced; no native desktop shell yet |
 | C21 | CLI: add/list/pause/resume/remove/schedule/config | MUST | P0 | M1 | ✅ | Implemented; pause/resume require daemon |
 | C22 | Headless daemon | MUST | P0 | M3 | ✅ | `rustget serve` |
@@ -207,9 +207,9 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | State | Count |
 |---|---:|
 | ✅ implemented + verified | 77 |
-| ◐ partial | 40 |
+| ◐ partial | 41 |
 | ○ specified, not implemented | 1 |
-| — not started | 29 |
+| — not started | 28 |
 | **Total tracked** | **147** |
 
 By area:
@@ -218,7 +218,7 @@ By area:
 |---|---:|---:|---:|---:|---:|
 | A. Download engine | 46 | 22 | 18 | 0 | 6 |
 | B. Capture/integration | 22 | 12 | 8 | 0 | 2 |
-| C. Management | 30 | 21 | 4 | 0 | 5 |
+| C. Management | 30 | 21 | 5 | 0 | 4 |
 | D. UI/UX | 12 | 8 | 2 | 0 | 2 |
 | E. Quality/security | 15 | 9 | 3 | 1 | 2 |
 | F. Platform/packaging | 10 | 2 | 2 | 0 | 6 |

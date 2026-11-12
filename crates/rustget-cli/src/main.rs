@@ -41,6 +41,13 @@ struct Cli {
 }
 
 #[derive(Debug, Subcommand)]
+enum AutostartAction {
+    Enable,
+    Disable,
+    Status,
+}
+
+#[derive(Debug, Subcommand)]
 enum Command {
     /// Add a download and wait for it (or queue it with --no-start).
     Add(AddArgs),
@@ -90,6 +97,14 @@ enum Command {
     },
     /// Import a previously exported download list (queued, not started).
     Import { path: PathBuf },
+    /// Install, remove or inspect the per-user autostart entry.
+    Autostart {
+        #[command(subcommand)]
+        action: AutostartAction,
+        /// Print the platform action without changing the system.
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Manage weekly download windows.
     Schedule {
         #[command(subcommand)]
@@ -275,6 +290,7 @@ async fn main() -> Result<()> {
         }
         Command::Export { path } => export_downloads(&paths, path.as_deref()).await,
         Command::Import { path } => import_downloads(&cli, &paths, path).await,
+        Command::Autostart { action, dry_run } => autostart(&paths, action, *dry_run),
         Command::Schedule { action } => schedule_command(&cli, &paths, action).await,
         Command::Grab {
             url,
@@ -744,6 +760,39 @@ async fn import_downloads(cli: &Cli, paths: &Paths, path: &std::path::Path) -> R
     );
     for failure in failures {
         eprintln!("failed: {failure}");
+    }
+    Ok(())
+}
+
+fn autostart(paths: &Paths, action: &AutostartAction, dry_run: bool) -> Result<()> {
+    let executable = std::env::current_exe().context("cannot locate the rustget executable")?;
+    let preview = rustget_platform::autostart_preview(&executable, &paths.data_dir);
+    match action {
+        AutostartAction::Status => {
+            let enabled = rustget_platform::autostart_status()?;
+            println!(
+                "autostart: {}",
+                if enabled { "enabled" } else { "disabled" }
+            );
+            println!("entry:     {preview}");
+        }
+        AutostartAction::Enable => {
+            println!("entry: {preview}");
+            if dry_run {
+                println!("dry run: no changes");
+            } else {
+                rustget_platform::autostart_enable(&executable, &paths.data_dir)?;
+                println!("autostart enabled");
+            }
+        }
+        AutostartAction::Disable => {
+            if dry_run {
+                println!("dry run: would remove the RustGet autostart entry");
+            } else {
+                rustget_platform::autostart_disable()?;
+                println!("autostart disabled");
+            }
+        }
     }
     Ok(())
 }

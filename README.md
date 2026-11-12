@@ -211,7 +211,7 @@ commands and output summary):
 - `rustget-media`: 6 parser/discovery tests.
 - `rustget-crawler`: 2 discovery/robots tests.
 - `rustget-native-host`: 2 framing tests.
-- `rustget-platform`: 2 single-instance lock/power-command tests.
+- `rustget-platform`: 3 single-instance/power/autostart command tests.
 
 Local benchmark (128 MiB loopback, 16 connections): RustGet 159.1 MiB/s latest
 median (152.5 MiB/s over 9 runs) vs aria2 119.9 MiB/s earlier; both byte-exact. See

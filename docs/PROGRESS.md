@@ -51,6 +51,7 @@
 - [x] Opt-in scheduler power actions with platform command planning.
 - [x] Versioned JSON export/import for downloads, settings, categories and schedules.
 - [x] Drag-and-drop http(s) links into the add dialog.
+- [~] Autostart CLI/platform entries; Windows registry writes blocked here.
 - [x] Scheduler weekly timeline and add/delete form in the web UI.
 - [x] Chromium/Firefox extension + native-messaging host (live tested).
 - [x] Opt-in browser-download takeover with options UI (default off).
@@ -99,10 +100,10 @@ rustget-cli       4 + 1 crash safety     PASS
 rustget-media     5                      PASS
 rustget-crawler   2                      PASS
 rustget-native-host 2                    PASS
-rustget-platform  2                     PASS
+rustget-platform  3                     PASS
 clippy -D warnings                       PASS
 cargo fmt --check                        PASS
-total                                  101 tests
+total                                  102 tests
 ```
 
 Commands:

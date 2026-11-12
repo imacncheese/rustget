@@ -98,6 +98,182 @@ pub fn execute_power(action: PowerAction) -> Result<PowerCommand, PowerError> {
 }
 
 #[derive(Debug, Error)]
+pub enum AutostartError {
+    #[error("autostart is not supported on this platform")]
+    Unsupported,
+    #[error("autostart command failed: {0}")]
+    Command(String),
+    #[error("cannot update autostart: {0}")]
+    Io(#[from] std::io::Error),
+}
+
+const AUTOSTART_VALUE: &str = "RustGet";
+const AUTOSTART_KEY: &str = r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run";
+
+fn autostart_command_line(executable: &Path, data_dir: &Path) -> String {
+    format!(
+        "\"{}\" --data-dir \"{}\" serve",
+        executable.display(),
+        data_dir.display()
+    )
+}
+
+#[must_use]
+pub fn autostart_preview(executable: &Path, data_dir: &Path) -> String {
+    if cfg!(windows) {
+        format!(
+            "reg.exe add {AUTOSTART_KEY} /v {AUTOSTART_VALUE} /t REG_SZ /d \"{}\" /f",
+            autostart_command_line(executable, data_dir)
+        )
+    } else if cfg!(target_os = "macos") {
+        format!(
+            "{} (ProgramArguments)",
+            macos_autostart_path()
+                .map(|path| path.display().to_string())
+                .unwrap_or_else(|| "~/Library/LaunchAgents/com.rustget.daemon.plist".into())
+        )
+    } else {
+        linux_autostart_path()
+            .map(|path| path.display().to_string())
+            .unwrap_or_else(|| "~/.config/autostart/rustget.desktop".into())
+    }
+}
+
+pub fn autostart_status() -> Result<bool, AutostartError> {
+    if cfg!(windows) {
+        let status = std::process::Command::new("reg.exe")
+            .args(["query", AUTOSTART_KEY, "/v", AUTOSTART_VALUE])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()?;
+        Ok(status.success())
+    } else if cfg!(target_os = "macos") {
+        Ok(macos_autostart_path()
+            .map(|path| path.is_file())
+            .unwrap_or(false))
+    } else {
+        Ok(linux_autostart_path()
+            .map(|path| path.is_file())
+            .unwrap_or(false))
+    }
+}
+
+pub fn autostart_enable(executable: &Path, data_dir: &Path) -> Result<(), AutostartError> {
+    if cfg!(windows) {
+        let status = std::process::Command::new("reg.exe")
+            .args([
+                "add",
+                AUTOSTART_KEY,
+                "/v",
+                AUTOSTART_VALUE,
+                "/t",
+                "REG_SZ",
+                "/d",
+                &autostart_command_line(executable, data_dir),
+                "/f",
+            ])
+            .status()?;
+        if status.success() {
+            return Ok(());
+        }
+        return Err(AutostartError::Command(format!("reg add exited {status}")));
+    }
+    if cfg!(target_os = "macos") {
+        let path = macos_autostart_path().ok_or(AutostartError::Unsupported)?;
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        let plist = format!(
+            r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>Label</key><string>com.rustget.daemon</string>
+<key>ProgramArguments</key><array>
+<string>{}</string><string>--data-dir</string><string>{}</string><string>serve</string>
+</array><key>RunAtLoad</key><true/>
+</dict></plist>
+"#,
+            xml_escape(&executable.display().to_string()),
+            xml_escape(&data_dir.display().to_string())
+        );
+        std::fs::write(path, plist)?;
+        return Ok(());
+    }
+    let path = linux_autostart_path().ok_or(AutostartError::Unsupported)?;
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let contents = format!(
+        "[Desktop Entry]\nType=Application\nName=RustGet\nComment=RustGet download manager daemon\nExec={}\nTerminal=false\nX-GNOME-Autostart-enabled=true\n",
+        desktop_escape(&autostart_command_line(executable, data_dir))
+    );
+    std::fs::write(path, contents)?;
+    Ok(())
+}
+
+pub fn autostart_disable() -> Result<(), AutostartError> {
+    if cfg!(windows) {
+        let _ = std::process::Command::new("reg.exe")
+            .args(["delete", AUTOSTART_KEY, "/v", AUTOSTART_VALUE, "/f"])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status();
+        return Ok(());
+    }
+    let path = if cfg!(target_os = "macos") {
+        macos_autostart_path()
+    } else {
+        linux_autostart_path()
+    };
+    if let Some(path) = path {
+        match std::fs::remove_file(path) {
+            Ok(()) => Ok(()),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+            Err(error) => Err(AutostartError::Io(error)),
+        }
+    } else {
+        Err(AutostartError::Unsupported)
+    }
+}
+
+fn home_dir() -> Option<PathBuf> {
+    std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USERPROFILE"))
+        .map(PathBuf::from)
+}
+
+fn linux_autostart_path() -> Option<PathBuf> {
+    std::env::var_os("XDG_CONFIG_HOME")
+        .map(PathBuf::from)
+        .or_else(|| home_dir().map(|home| home.join(".config")))
+        .map(|base| base.join("autostart").join("rustget.desktop"))
+}
+
+fn macos_autostart_path() -> Option<PathBuf> {
+    home_dir().map(|home| {
+        home.join("Library")
+            .join("LaunchAgents")
+            .join("com.rustget.daemon.plist")
+    })
+}
+
+fn desktop_escape(value: &str) -> String {
+    value
+        .replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('`', "\\`")
+        .replace('$', "\\$")
+}
+
+fn xml_escape(value: &str) -> String {
+    value
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+}
+
+#[derive(Debug, Error)]
 pub enum LockError {
     #[error("another RustGet instance is already using {0}")]
     AlreadyRunning(String),
@@ -147,6 +323,20 @@ impl Drop for InstanceLock {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn autostart_preview_contains_the_daemon_command() {
+        let preview = autostart_preview(Path::new("rustget.exe"), Path::new("D:/data"));
+        assert!(preview.contains("serve"));
+        if cfg!(windows) {
+            assert!(preview.contains("reg.exe"));
+            assert!(preview.contains("RustGet"));
+        } else if cfg!(target_os = "macos") {
+            assert!(preview.contains("LaunchAgents"));
+        } else {
+            assert!(preview.contains("autostart"));
+        }
+    }
 
     #[test]
     fn power_commands_are_constructed_without_execution() {

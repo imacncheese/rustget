@@ -28,6 +28,8 @@ Keep a Changelog and the project uses Semantic Versioning.
 - Cross-process single-instance lock for `rustget serve`.
 - Priority editing via API and the details pane (Move up/down).
 - Drag an http(s) link onto the window to prefill the add dialog.
+- `rustget autostart enable|disable|status` for Windows, Linux and macOS
+  (Windows registry write is blocked in the current test environment).
 - Portable JSON export/import for downloads, settings, categories and schedules,
   exposed through the API, CLI and Settings dialog.
 - Weekly scheduler windows with scheduler-owned pauses.

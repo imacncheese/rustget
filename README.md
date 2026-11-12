@@ -207,7 +207,7 @@ commands and output summary):
 - `rustget-ipc`: 4 API tests (auth, origin/Host rejection, add/list/delete).
 - `rustget-cli`: 4 pattern tests + 1 kill-process/resume test.
 - `rustget-testkit`: 5 protocol tests.
-- `rustget-media`: 5 parser/discovery tests.
+- `rustget-media`: 6 parser/discovery tests.
 - `rustget-crawler`: 2 discovery/robots tests.
 - `rustget-native-host`: 2 framing tests.
 

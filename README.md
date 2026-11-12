@@ -108,6 +108,16 @@ rustget batch urls.txt --connections 4
 
 See [the browser bridge spec](docs/specs/05-browser-bridge.md).
 
+## Windows portable package
+
+```powershell
+.\scripts\package-windows.ps1
+.\scripts\install-windows.ps1 -SourceZip .\dist\rustget-0.1.0-windows-x64.zip -AddToPath -StartMenuShortcut
+```
+
+See [docs/specs/18-packaging.md](docs/specs/18-packaging.md). MSI/NSIS and code
+signing are not implemented yet.
+
 ## What works
 
 - **Dynamic segmentation.** Starts with up to 32 connections. When a worker

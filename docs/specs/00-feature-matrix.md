@@ -50,7 +50,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | A24 | SFTP | COULD | P3 | M7 | — | Planned |
 | A25 | HLS (.m3u8) | SHOULD | P1 | M5 | ◐ | Master/media VOD, init map, ordered concat, AES-128 CBC + key fetch; audio groups/parallel segments/key rotation missing |
 | A26 | DASH (.mpd) | SHOULD | P1 | M5 | ◐ | Duration and SegmentTimeline VOD, `$Time$`/`$Number$`, concat, DRM rejection; live/multi-period/audio missing |
-| A27 | Magnet / BitTorrent | COULD | P3 | M7 | — | Out of current scope |
+| A27 | Magnet / BitTorrent | COULD | P3 | M7 | ⏭ | Skipped by user request; not part of remaining scope |
 | A28 | Probe: HEAD then GET `Range: bytes=0-0` | MUST | P0 | M1 | ✅ | Implemented; Content-Range/length parsing |
 | A29 | Content-Encoding pitfalls | MUST | P0 | M1 | ✅ | Forces `Accept-Encoding: identity`; rejects non-identity |
 | A30 | Basic authentication | MUST | P1 | M1 | ✅ | Persisted `basic_auth`, CLI/UI, add-probe + transfer tests |
@@ -177,7 +177,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | F01 | Windows 10/11 | MUST | P0 | M1 | ✅ | Built/tested on Windows 11 (GNU toolchain) |
 | F02 | Linux | MUST | P0 | M1 | ◐ | Unix positional writes compile path; not run in this environment |
 | F03 | macOS | MUST | P0 | M1 | ◐ | Unix path, no notarized build |
-| F04 | MSI/NSIS installer | SHOULD | P1 | M7 | — | Planned |
+| F04 | MSI/NSIS installer | SHOULD | P1 | M7 | ◐ | Portable ZIP + per-user install script verified; no MSI/NSIS |
 | F05 | AppImage/deb/rpm | SHOULD | P1 | M7 | — | Planned |
 | F06 | DMG | SHOULD | P1 | M7 | — | Planned |
 | F07 | File association | COULD | P2 | M7 | ◐ | Windows HKCU/Linux xdg-mime association helpers and CLI; live write unverified in sandbox |
@@ -207,21 +207,22 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | State | Count |
 |---|---:|
 | ✅ implemented + verified | 102 |
-| ◐ partial | 34 |
+| ◐ partial | 35 |
 | ○ specified, not implemented | 1 |
-| — not started | 10 |
+| — not started | 8 |
+| ⏭ skipped by request | 1 |
 | **Total tracked** | **147** |
 
 By area:
 
 | Area | Rows | ✅ | ◐ | ○ | — |
 |---|---:|---:|---:|---:|---:|
-| A. Download engine | 46 | 34 | 9 | 0 | 3 |
+| A. Download engine | 46 | 34 | 9 | 0 | 2 | 1 |
 | B. Capture/integration | 22 | 13 | 9 | 0 | 0 |
 | C. Management | 30 | 24 | 6 | 0 | 0 |
 | D. UI/UX | 12 | 12 | 0 | 0 | 0 |
 | E. Quality/security | 15 | 11 | 2 | 1 | 1 |
-| F. Platform/packaging | 10 | 2 | 4 | 0 | 4 |
+| F. Platform/packaging | 10 | 2 | 5 | 0 | 3 |
 | G. Protocols/extensibility | 12 | 6 | 4 | 0 | 2 |
 
 The count is maintained manually alongside the table; the parity scorecard gives

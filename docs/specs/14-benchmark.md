@@ -8,6 +8,18 @@
 **Clients:** RustGet 0.1.0, 16 connections; aria2 1.37.0, `-x16 -s16`
 **File:** 134,217,728 bytes; SHA-256 equality checked on both outputs
 
+## 0. Primitive microbenchmarks (Criterion)
+
+Command: `cargo bench -p rustget-core --bench ledger` (2026-11-12, same host)
+
+| Benchmark | Median |
+|---|---:|
+| `partition_1TiB_16` | 37.7 ns |
+| `split_1GiB_range` | 5.06 ns |
+| `ledger/create_1TiB` | 114.5 ns |
+
+These measure segmentation/scheduling primitives only, not network throughput.
+
 ## 1. Headline
 
 | Client | Runs (s) | Median | Effective throughput |

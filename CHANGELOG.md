@@ -26,6 +26,7 @@ Keep a Changelog and the project uses Semantic Versioning.
 - Opt-in scheduler power actions (`--allow-power-actions`) with tested command
   planning and a fake-hook test.
 - Cross-process single-instance lock for `rustget serve`.
+- Committed Criterion primitive benchmark results.
 - 10,000-record queue load regression test.
 - Windows case-collision path test.
 - Persisted Basic auth with CLI/UI and end-to-end tests.

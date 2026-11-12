@@ -159,7 +159,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | E03 | Fault injection / kill -9 resume | MUST | P0 | M2 | ✅ | `crash_safety.rs` |
 | E04 | Adversarial HTTP testkit | MUST | P0 | M0 | ✅ | no-Range, flaky, redirect, auth, throttle, ETag |
 | E05 | Fuzzing header/playlist/native parsers | SHOULD | P1 | M2 | ○ | Targets specified; not run in CI |
-| E06 | Benchmarks (`criterion`) | SHOULD | P1 | M1 | ◐ | Plan and script; no committed criterion run |
+| E06 | Benchmarks (`criterion`) | SHOULD | P1 | M1 | ✅ | Criterion ledger/partition bench run recorded in the benchmark report |
 | E07 | CI matrix Win/Linux/macOS | MUST | P0 | M0 | ✅ | `.github/workflows/ci.yml` (not yet executed in a hosted repo) |
 | E08 | `clippy -D warnings`, rustfmt, deny, audit | MUST | P0 | M0 | ◐ | fmt + clippy clean; deny/audit config present but not run locally |
 | E09 | Reproducible/signed installers | SHOULD | P1 | M7 | — | Planned |
@@ -206,8 +206,8 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 92 |
-| ◐ partial | 42 |
+| ✅ implemented + verified | 93 |
+| ◐ partial | 41 |
 | ○ specified, not implemented | 1 |
 | — not started | 12 |
 | **Total tracked** | **147** |
@@ -220,7 +220,7 @@ By area:
 | B. Capture/integration | 22 | 13 | 8 | 0 | 1 |
 | C. Management | 30 | 23 | 7 | 0 | 0 |
 | D. UI/UX | 12 | 10 | 2 | 0 | 0 |
-| E. Quality/security | 15 | 10 | 3 | 1 | 1 |
+| E. Quality/security | 15 | 11 | 2 | 1 | 1 |
 | F. Platform/packaging | 10 | 2 | 3 | 0 | 5 |
 | G. Protocols/extensibility | 12 | 6 | 4 | 0 | 2 |
 

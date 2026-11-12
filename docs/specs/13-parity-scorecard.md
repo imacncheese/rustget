@@ -26,8 +26,8 @@ Internet Download Manager feature parity, and it does not claim to be.
 
 | State | Count | Share |
 |---|---:|---:|
-| ✅ implemented + verified | 92 | 62.6% |
-| ◐ partial | 42 | 28.6% |
+| ✅ implemented + verified | 93 | 63.3% |
+| ◐ partial | 41 | 27.9% |
 | ○ specified only | 1 | 0.7% |
 | — not started | 12 | 8.2% |
 | **Total** | **147** | 100% |
@@ -44,7 +44,7 @@ wired to the UI.
 | Capture/integration (22) | 13 | 8 | 1 |
 | Management (30) | 23 | 7 | 0 |
 | UI/UX (12) | 10 | 2 | 0 |
-| Quality/security (15) | 10 | 3 | 1 |
+| Quality/security (15) | 11 | 2 | 1 |
 | Platform/packaging (10) | 2 | 3 | 5 |
 | Protocols/extensibility (12) | 6 | 4 | 2 |
 

@@ -28,6 +28,7 @@ Keep a Changelog and the project uses Semantic Versioning.
 - Chromium and Firefox MV3 extension sources with options page.
 - Opt-in browser-download takeover (default off, accept-before-cancel).
 - Native-messaging host with live daemon test.
+- Plain FTP downloads with `REST` resume and a local fixture.
 - HLS VOD downloads (master/media playlists, init maps, ordered segments).
 - DASH VOD downloads (duration-based SegmentTemplate), DRM rejection.
 - HLS/DASH segment progress units and bounded pseudo-segment UI events.

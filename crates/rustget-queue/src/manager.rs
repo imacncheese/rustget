@@ -210,42 +210,59 @@ impl DownloadManager {
     /// and the final save path visible to every client immediately.
     pub async fn add(self: &Arc<Self>, request: NewDownload) -> Result<DownloadRecord> {
         let url = Url::parse(&request.url)?;
-        if !matches!(url.scheme(), "http" | "https") {
+        if !matches!(url.scheme(), "http" | "https" | "ftp") {
             return Err(ManagerError::InvalidState(format!(
-                "unsupported URL scheme '{}'",
+                "unsupported URL scheme '{}' (ftps is not implemented yet)",
                 url.scheme()
             )));
         }
-        let base_config = self.engine_for(request.connections, request.speed_limit);
-        let options = RequestOptions {
-            headers: request.headers.clone(),
-            ..RequestOptions::default()
+        let is_ftp = url.scheme() == "ftp";
+        let parsed_mirrors: Vec<Url> = if is_ftp {
+            Vec::new()
+        } else {
+            request
+                .mirrors
+                .iter()
+                .filter_map(|mirror| Url::parse(mirror).ok())
+                .filter(|mirror| matches!(mirror.scheme(), "http" | "https"))
+                .collect()
         };
-        let downloader = Downloader::new(base_config.clone(), options)?
-            .with_host_limiter(Arc::clone(&self.host_limiter));
-        let parsed_mirrors: Vec<Url> = request
-            .mirrors
-            .iter()
-            .filter_map(|mirror| Url::parse(mirror).ok())
-            .filter(|mirror| matches!(mirror.scheme(), "http" | "https"))
-            .collect();
-        let mut probe = None;
-        let mut last_error = None;
-        for candidate in std::iter::once(&url).chain(parsed_mirrors.iter()) {
-            match downloader.probe(candidate).await {
-                Ok(found) => {
-                    probe = Some(found);
-                    break;
+        let (safe_name, final_url, total_size, etag, last_modified) = if is_ftp {
+            let name =
+                rustget_storage::filename_from_url(&url).unwrap_or_else(|| "download".into());
+            (sanitize_filename(&name), url.to_string(), None, None, None)
+        } else {
+            let base_config = self.engine_for(request.connections, request.speed_limit);
+            let options = RequestOptions {
+                headers: request.headers.clone(),
+                ..RequestOptions::default()
+            };
+            let downloader = Downloader::new(base_config, options)?
+                .with_host_limiter(Arc::clone(&self.host_limiter));
+            let mut probe = None;
+            let mut last_error = None;
+            for candidate in std::iter::once(&url).chain(parsed_mirrors.iter()) {
+                match downloader.probe(candidate).await {
+                    Ok(found) => {
+                        probe = Some(found);
+                        break;
+                    }
+                    Err(error) => last_error = Some(error),
                 }
-                Err(error) => last_error = Some(error),
             }
-        }
-        let Some(probe) = probe else {
-            return Err(last_error
-                .map(ManagerError::Net)
-                .unwrap_or_else(|| ManagerError::Net(NetError::InvalidUrl(url.to_string()))));
+            let Some(probe) = probe else {
+                return Err(last_error
+                    .map(ManagerError::Net)
+                    .unwrap_or_else(|| ManagerError::Net(NetError::InvalidUrl(url.to_string()))));
+            };
+            (
+                sanitize_filename(&probe.filename),
+                probe.final_url.to_string(),
+                probe.total_size,
+                probe.validator.etag,
+                probe.validator.last_modified,
+            )
         };
-        let safe_name = sanitize_filename(&probe.filename);
         let extension = std::path::Path::new(&safe_name)
             .extension()
             .and_then(|extension| extension.to_str())
@@ -297,12 +314,12 @@ impl DownloadManager {
                 .iter()
                 .map(std::string::ToString::to_string)
                 .collect(),
-            final_url: Some(probe.final_url.to_string()),
+            final_url: Some(final_url),
             destination,
             filename,
             category,
             status: DownloadStatus::Queued,
-            total_size: probe.total_size,
+            total_size,
             downloaded: 0,
             speed_bps: 0.0,
             connections: request
@@ -315,8 +332,8 @@ impl DownloadManager {
             headers: request.headers,
             checksum_algorithm: request.checksum_algorithm,
             checksum_value: request.checksum_value,
-            etag: probe.validator.etag,
-            last_modified: probe.validator.last_modified,
+            etag,
+            last_modified,
             error: None,
             priority: request.priority.unwrap_or(0),
             created_at_ms: now,
@@ -890,6 +907,46 @@ mod tests {
             std::fs::read(&stored.destination).unwrap(),
             expected_content(0x5EED_1234_ABCD_9876, 256 * 1024)
         );
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn manager_downloads_ftp_without_http_probe() {
+        use rustget_testkit::{FtpFixtureConfig, FtpTestServer};
+        let content = expected_content(0x5EED_1234_ABCD_9876, 256 * 1024);
+        let server = FtpTestServer::start(FtpFixtureConfig::new(content.clone()))
+            .await
+            .unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let manager = DownloadManager::new(ManagerConfig {
+            data_dir: dir.path().join("data"),
+            download_dir: dir.path().join("downloads"),
+            engine: EngineConfig::default(),
+            max_concurrent: 1,
+        })
+        .unwrap();
+        let mut events = manager.subscribe();
+        let record = manager
+            .add(NewDownload {
+                url: server.url(),
+                ..NewDownload::default()
+            })
+            .await
+            .unwrap();
+        tokio::time::timeout(Duration::from_secs(15), async {
+            loop {
+                if let Ok(ManagerEvent::Finished { id, status }) = events.recv().await {
+                    if id == record.id {
+                        assert_eq!(status, DownloadStatus::Completed);
+                        break;
+                    }
+                }
+            }
+        })
+        .await
+        .unwrap();
+        let stored = manager.get(record.id).unwrap();
+        assert_eq!(std::fs::read(&stored.destination).unwrap(), content);
+        server.shutdown().await;
     }
 
     #[test]

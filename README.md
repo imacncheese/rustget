@@ -24,8 +24,9 @@ modern UI. It is not affiliated with or endorsed by Tonec FZE.
 | Web UI | Working | headless-browser screenshot above |
 | Native-messaging browser bridge | Working | framing tests + live daemon test |
 | HLS / DASH downloads | VOD working | parser + end-to-end segment tests; AES/DRM not supported |
+| FTP | Plain FTP + resume | local FTP fixture; FTPS not supported |
 | Scheduler windows | Working | pure tests, daemon loop, web timeline |
-| FTP/FTPS, HTTP/3, BitTorrent, tray | Not implemented | see the parity scorecard |
+| FTPS, HTTP/3, BitTorrent, tray | Not implemented | see the parity scorecard |
 
 The authoritative, test-backed status is
 [`docs/specs/13-parity-scorecard.md`](docs/specs/13-parity-scorecard.md). The
@@ -48,6 +49,7 @@ Rust 1.85+ is required. On Linux, install a C toolchain and OpenSSL-free
 rustget add https://example.com/archive.zip --connections 16
 rustget add https://example.com/archive.zip --output ./archive.zip --limit 8
 rustget add https://primary.example/file.bin --mirror https://mirror.example/file.bin
+rustget add ftp://user:pass@ftp.example/file.bin
 rustget export queue.json
 rustget import queue.json
 ```
@@ -138,7 +140,7 @@ See [the browser bridge spec](docs/specs/05-browser-bridge.md).
 
 RustGet is an M0–M3 implementation with parts of M4/M5. It does **not** yet have:
 
-- FTP/FTPS/SFTP, HTTP/3/QUIC, BitTorrent/magnet or MMS.
+- FTPS/SFTP, HTTP/3/QUIC, BitTorrent/magnet or MMS (plain FTP is supported).
 - Digest/NTLM/Kerberos authentication, PAC, client certificates.
 - Learned/adaptive per-host limits (a fixed semaphore is implemented).
 - AES-128 HLS decryption, DASH SegmentTimeline/live manifests, separate
@@ -199,9 +201,9 @@ commands and output summary):
   gap/overlap invariants.
 - `rustget-storage`: 15 tests, including torn-journal recovery and out-of-order
   positional writes.
-- `rustget-net`: 7 unit + 17 integration tests (engine, work stealing, adaptive
-  growth, mirrors, host caps, HLS, DASH).
-- `rustget-queue`: 12 DB migration/manager/scheduler/HLS-routing/mirror tests.
+- `rustget-net`: 7 unit + 18 integration tests (engine, work stealing, adaptive
+  growth, mirrors, host caps, HLS, DASH, FTP).
+- `rustget-queue`: 13 DB migration/manager/scheduler/HLS/FTP/mirror tests.
 - `rustget-ipc`: 3 API tests (auth, origin rejection, add/list/delete).
 - `rustget-cli`: 4 pattern tests + 1 kill-process/resume test.
 - `rustget-testkit`: 5 protocol tests.
@@ -233,6 +235,7 @@ Gbps claim.
 - [Benchmark report](docs/specs/14-benchmark.md)
 - [Crawler spec](docs/specs/15-crawler.md)
 - [Media spec](docs/specs/16-media.md)
+- [FTP spec](docs/specs/17-ftp.md)
 - [ADRs](docs/adr/)
 
 ## Contributing and security

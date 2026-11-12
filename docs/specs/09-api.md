@@ -109,8 +109,10 @@ Request:
 }
 ```
 
-- Probes before insertion, so `filename`, `destination`, size and validators are
-  resolved.
+- HTTP(S) is probed before insertion, so `filename`, `destination`, size and
+  validators are resolved. Plain `ftp:` is inserted without an HTTP probe; FTPS
+  is rejected.
+- `mirrors` is an optional array of alternate HTTP(S) URLs.
 - `201 Created` with the record.
 - `400` for an invalid URL or state.
 - `500` for an unexpected probe/DB failure (the HTTP status mapping will be

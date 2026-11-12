@@ -6,6 +6,10 @@
 //! `/__admin/requests`.
 #![forbid(unsafe_code)]
 
+pub mod ftp;
+
+pub use ftp::{FtpFixtureConfig, FtpTestServer};
+
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;

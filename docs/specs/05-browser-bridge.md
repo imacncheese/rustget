@@ -86,8 +86,9 @@ Response envelope:
 | `pause` | `id` | updated record |
 | `resume` | `id` | updated record |
 
-Only `http` and `https` URLs are accepted by the host and by the manager. `file:`,
-`javascript:` and custom schemes are rejected.
+The browser host accepts only `http` and `https` URLs; `file:`, `javascript:` and
+custom schemes are rejected. The manager additionally accepts plain `ftp:` for
+CLI/API use, but the extension does not forward FTP URLs.
 
 ## 4. Extension permissions
 

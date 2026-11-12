@@ -18,7 +18,7 @@ Internet Download Manager feature parity, and it does not claim to be.
 | Media/HLS/DASH | mature grabber/muxer | parsers only | **early** |
 | Queue/scheduler | mature | queue + weekly windows | **partial** |
 | UI | native Windows, dense | modern web UI | **differentiation**, native shell missing |
-| Protocols | HTTP/FTP/MMS + auth/proxy breadth | HTTP(S) | **large gap** |
+| Protocols | HTTP/FTP/MMS + auth/proxy breadth | HTTP(S) + plain FTP | **large gap** (FTPS/MMS/auth breadth) |
 | Platform integration | tray, startup, shell | daemon + web | **large gap** |
 | Installers/updates | signed installers | source build | **not started** |
 
@@ -27,12 +27,12 @@ Internet Download Manager feature parity, and it does not claim to be.
 | State | Count | Share |
 |---|---:|---:|
 | ✅ implemented + verified | 69 | 46.9% |
-| ◐ partial | 40 | 27.2% |
+| ◐ partial | 41 | 27.9% |
 | ○ specified only | 1 | 0.7% |
-| — not started | 37 | 25.2% |
+| — not started | 36 | 24.5% |
 | **Total** | **147** | 100% |
 
-“Implemented or partial” = 109/147 = **74.1%** of the tracked surface. That
+“Implemented or partial” = 110/147 = **74.8%** of the tracked surface. That
 number is deliberately broad: a parser counts as partial even when it is not
 wired to the UI.
 
@@ -40,7 +40,7 @@ wired to the UI.
 
 | Area | Complete | Partial | Not started |
 |---|---:|---:|---:|
-| Download engine (46) | 22 | 17 | 7 |
+| Download engine (46) | 22 | 18 | 6 |
 | Capture/integration (22) | 9 | 9 | 4 |
 | Management (30) | 18 | 4 | 8 |
 | UI/UX (12) | 7 | 2 | 3 |
@@ -69,8 +69,9 @@ These are defensible claims, backed by code and tests:
 
 ## 4. What IDM does materially better
 
-1. **Protocol breadth.** FTP/FTPS, MMS, Digest/NTLM/Kerberos, client certs,
-   PAC/system proxy, per-host caps and mirror failover are not implemented.
+1. **Protocol/auth breadth.** FTPS, MMS, Digest/NTLM/Kerberos, client certs,
+   PAC/system proxy and learned per-host limits are not implemented. Plain FTP,
+   fixed per-host caps and mirrors are implemented.
 2. **Browser interception.** IDM's extension injects at `document_start` in all
    frames, observes requests and can take over downloads. RustGet requires a
    context-menu/media-panel action and does not intercept silently.
@@ -96,7 +97,7 @@ These are defensible claims, backed by code and tests:
 | M3 | queue/categories/scheduler, SQLite, API, event bus | **mostly complete**; queue UI/power actions missing |
 | M4 | desktop UI, tray, notifications, clipboard, batch/pattern | **partial**; web UI/batch done, native shell/tray/clipboard watcher missing |
 | M5 | extensions, native host, video sniffing, HLS/DASH, FFmpeg | **partial**; bridge and parsers done, interception/mux orchestration missing |
-| M6 | FTP/FTPS, proxies/PAC, NTLM/Digest, cookies, grabber | **not started** (explicit HTTP proxy field only) |
+| M6 | FTP/FTPS, proxies/PAC, NTLM/Digest, cookies, grabber | **partial**: plain FTP done; FTPS/PAC/NTLM/grabber UI missing |
 | M7 | HTTP/3, SFTP, BitTorrent, plugins, i18n, installers | **not started** |
 
 ## 6. Highest-risk gaps
@@ -104,7 +105,7 @@ These are defensible claims, backed by code and tests:
 | Risk | Why it matters | Mitigation |
 |---|---|---|
 | No automatic browser interception | Main IDM “it just works” behaviour | Add opt-in `webRequest`/downloads interception with per-site allowlist |
-| No FTP/auth breadth | Many enterprise/media use cases | FTP crate + Digest/NTLM; keep TLS via rustls |
+| No FTPS/auth breadth | Many enterprise/media use cases | FTPS via rustls + Digest/NTLM |
 | No end-to-end media | “Download this video” is a headline IDM feature | Wire HLS/DASH scheduler + FFmpeg; test with local manifests |
 | No tray/native shell | Desktop expectation | Tauri 2 or Slint shell over the same API |
 | Power-loss claim | fsync off by default | Add maximum-safety profile and VM power-cut test |
@@ -136,7 +137,7 @@ RustGet 0.1.0 is suitable for:
 It is **not** yet suitable as a drop-in IDM replacement for:
 
 - users who need automatic browser takeover;
-- FTP/media-site workflows;
+- FTPS and authenticated/media-site workflows (plain FTP works);
 - Windows tray/installer expectations;
 - non-English users;
 - mission-critical power-loss guarantees.
@@ -147,7 +148,6 @@ It is **not** yet suitable as a drop-in IDM replacement for:
    instance, autostart, clipboard monitor.
 2. **M5.1 media pipeline**: HLS/DASH download orchestration, AES-128 key fetch,
    FFmpeg mux, local manifest integration tests.
-3. **M6.1 protocol breadth**: FTP/FTPS, Digest, SOCKS5, per-host caps, mirror
-   failover.
+3. **M6.1 protocol breadth**: FTPS, Digest, SOCKS5, learned per-host limits.
 
 Each increment must update this scorecard with evidence, not adjectives.

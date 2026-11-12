@@ -56,6 +56,7 @@
 - [x] DASH VOD download path (duration SegmentTemplate, DRM rejection).
 - [x] Mirror/alternate-URL probe fallback and worker failover.
 - [x] Process-wide per-host connection semaphore.
+- [x] Plain FTP download with REST resume and local fixture.
 - [x] Queue priority editing and download-list export/import.
 - [x] Criterion ledger benchmarks and 128 MiB aria2 comparison.
 - [x] Adaptive concurrency growth test.
@@ -67,7 +68,7 @@
 - [ ] Fuzz targets actually run.
 - [ ] Tauri/native shell, tray, single-instance, autostart.
 - [ ] HLS AES-128/audio groups, DASH SegmentTimeline/live, parallel media segments.
-- [ ] FTP/FTPS, Digest, SOCKS5, learned per-host limits.
+- [ ] FTPS, Digest, SOCKS5, learned per-host limits.
 - [ ] Load test at 10k rows.
 - [ ] Accessibility audit.
 
@@ -88,8 +89,8 @@
 rustget-core     14 unit + 3 proptest   PASS
 rustget-storage  15                      PASS
 rustget-testkit   5                      PASS
-rustget-net       7 unit + 8 HTTP + 2 work/adaptive + 2 mirrors + 2 HLS + 2 DASH + 1 host cap  PASS
-rustget-queue     12                     PASS
+rustget-net       7 unit + 8 HTTP + 2 work/adaptive + 2 mirrors + 2 HLS + 2 DASH + 1 host cap + 1 FTP  PASS
+rustget-queue     13                     PASS
 rustget-ipc       3                      PASS
 rustget-cli       4 + 1 crash safety     PASS
 rustget-media     5                      PASS
@@ -97,7 +98,7 @@ rustget-crawler   2                      PASS
 rustget-native-host 2                    PASS
 clippy -D warnings                       PASS
 cargo fmt --check                        PASS
-total                                  90 tests
+total                                  92 tests
 ```
 
 Commands:

@@ -46,7 +46,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | A20 | HTTP/2 | MUST | P1 | M2 | ◐ | Enabled by `reqwest` (`http2` feature), no dedicated h2 test |
 | A21 | HTTP/3 / QUIC | COULD | P2 | M7 | — | `quinn`/`h3` not wired |
 | A22 | HTTPS with rustls | MUST | P0 | M1 | ✅ | `rustls-tls`, no OpenSSL system dependency |
-| A23 | FTP / FTPS | SHOULD | P2 | M6 | — | Planned; MMS intentionally out of scope |
+| A23 | FTP / FTPS | SHOULD | P2 | M6 | ◐ | Plain FTP download + `REST` resume with local fixture; FTPS/TLS and segmented FTP missing |
 | A24 | SFTP | COULD | P3 | M7 | — | Planned |
 | A25 | HLS (.m3u8) | SHOULD | P1 | M5 | ◐ | Master/media VOD download, init map, ordered concat, progress; AES-128/audio groups/parallel segments missing |
 | A26 | DASH (.mpd) | SHOULD | P1 | M5 | ◐ | Duration-based SegmentTemplate VOD download, DRM rejection; SegmentTimeline/live/audio missing |
@@ -207,16 +207,16 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | State | Count |
 |---|---:|
 | ✅ implemented + verified | 69 |
-| ◐ partial | 40 |
+| ◐ partial | 41 |
 | ○ specified, not implemented | 1 |
-| — not started | 37 |
+| — not started | 36 |
 | **Total tracked** | **147** |
 
 By area:
 
 | Area | Rows | ✅ | ◐ | ○ | — |
 |---|---:|---:|---:|---:|---:|
-| A. Download engine | 46 | 22 | 17 | 0 | 7 |
+| A. Download engine | 46 | 22 | 18 | 0 | 6 |
 | B. Capture/integration | 22 | 9 | 9 | 0 | 4 |
 | C. Management | 30 | 18 | 4 | 0 | 8 |
 | D. UI/UX | 12 | 7 | 2 | 0 | 3 |

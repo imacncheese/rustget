@@ -110,6 +110,10 @@ implemented, will be opt-in.
   future redesign will store sensitive headers in the OS keyring or redact them
   after the transfer.
 - Basic auth fields are not persisted today (and not exposed in the UI).
+- FTP URLs may contain plaintext credentials. They are persisted in the SQLite
+  `url` column. Prefer `RequestOptions.basic_auth` or an external credential
+  manager; plain FTP transports credentials in clear text and should only be used
+  on trusted networks.
 
 ## 4. Threat scenarios
 

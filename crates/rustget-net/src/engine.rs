@@ -182,6 +182,16 @@ impl Downloader {
     ) -> Result<DownloadSummary> {
         let started = Instant::now();
         let mut tracker = Tracker::new(progress, request.id);
+        if request.url.scheme() == "ftp" {
+            return self
+                .download_ftp(&request, cancel, &mut tracker, started)
+                .await;
+        }
+        if request.url.scheme() == "ftps" {
+            return Err(NetError::Protocol(
+                "FTPS is not supported yet; use plain ftp:// for now".into(),
+            ));
+        }
         if is_hls_url(&request.url) {
             return self
                 .download_hls(&request, cancel, &mut tracker, started)
@@ -304,6 +314,195 @@ impl Downloader {
         let summary = self
             .run_single(&request, &probe, &paths, cancel, &mut tracker, started)
             .await?;
+        Ok(summary)
+    }
+
+    async fn download_ftp(
+        &self,
+        request: &DownloadRequest,
+        cancel: CancellationToken,
+        tracker: &mut Tracker,
+        started: Instant,
+    ) -> Result<DownloadSummary> {
+        use suppaftp::types::FileType;
+        use suppaftp::{FtpError, FtpStream};
+
+        let host = request
+            .url
+            .host_str()
+            .ok_or_else(|| NetError::InvalidUrl("FTP URL has no host".into()))?
+            .to_string();
+        let port = request.url.port().unwrap_or(21);
+        let remote_path = percent_encoding::percent_decode_str(request.url.path())
+            .decode_utf8_lossy()
+            .to_string();
+        let (user, password) = if request.url.username().is_empty() {
+            self.client
+                .basic_auth()
+                .cloned()
+                .unwrap_or_else(|| ("anonymous".into(), String::new()))
+        } else {
+            (
+                request.url.username().to_string(),
+                request.url.password().unwrap_or("").to_string(),
+            )
+        };
+        let destination = ftp_destination(request)?;
+        if let Some(parent) = destination.parent() {
+            tokio::fs::create_dir_all(parent).await?;
+        }
+        let paths = DownloadPaths::new(&destination);
+        if paths.destination.exists() && !request.overwrite {
+            return Err(NetError::DestinationExists(
+                paths.destination.display().to_string(),
+            ));
+        }
+        tracker.emit(
+            DownloadState::Probing,
+            None,
+            0,
+            1,
+            Vec::new(),
+            Some(request.url.as_str()),
+            None,
+            None,
+        );
+        let total = Arc::new(AtomicU64::new(0));
+        let downloaded = Arc::new(AtomicU64::new(0));
+        let total_for_thread = Arc::clone(&total);
+        let downloaded_for_thread = Arc::clone(&downloaded);
+        let part_path = paths.part.clone();
+        let cancel_thread = cancel.clone();
+        let mut blocking = tokio::task::spawn_blocking(move || {
+            let mut ftp = FtpStream::connect((host.as_str(), port)).map_err(ftp_error)?;
+            ftp.login(&user, &password).map_err(ftp_error)?;
+            ftp.transfer_type(FileType::Binary).map_err(ftp_error)?;
+            let size = ftp.size(&remote_path).ok();
+            if let Some(size) = size {
+                total_for_thread.store(size as u64, Ordering::Release);
+            }
+            let existing = std::fs::metadata(&part_path).map_or(0, |meta| meta.len());
+            let offset = if size.is_some_and(|size| existing as usize > size) {
+                0
+            } else {
+                existing
+            };
+            downloaded_for_thread.store(offset, Ordering::Release);
+            let part = if let Some(size) = size {
+                PartFile::open(&part_path, size as u64, PreallocateMode::Sparse)?
+            } else {
+                PartFile::open_unbounded(&part_path)?
+            };
+            if offset > 0 {
+                ftp.resume_transfer(offset as usize).map_err(ftp_error)?;
+            }
+            let mut written = offset;
+            if size.is_none_or(|size| written < size as u64) {
+                let result = ftp.retr(&remote_path, |stream| {
+                    let mut buffer = [0_u8; 64 * 1024];
+                    loop {
+                        if cancel_thread.is_cancelled() {
+                            return Err(FtpError::ConnectionError(std::io::Error::new(
+                                std::io::ErrorKind::Interrupted,
+                                "download cancelled",
+                            )));
+                        }
+                        let read = stream
+                            .read(&mut buffer)
+                            .map_err(FtpError::ConnectionError)?;
+                        if read == 0 {
+                            break;
+                        }
+                        part.write_at(written, &buffer[..read])
+                            .map_err(FtpError::ConnectionError)?;
+                        written += read as u64;
+                        downloaded_for_thread.store(written, Ordering::Release);
+                    }
+                    Ok(())
+                });
+                if let Err(error) = result {
+                    if cancel_thread.is_cancelled() {
+                        return Err(NetError::Cancelled);
+                    }
+                    return Err(ftp_error(error));
+                }
+            }
+            if let Some(size) = size {
+                if written != size as u64 {
+                    return Err(NetError::ShortRead(size as u64 - written));
+                }
+            }
+            let _ = ftp.quit();
+            part.set_len(written)?;
+            part.sync_all()?;
+            Ok::<u64, NetError>(written)
+        });
+        let mut ticker = tokio::time::interval(Duration::from_millis(200));
+        ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+        let written = loop {
+            tokio::select! {
+                result = &mut blocking => {
+                    let written = result
+                        .map_err(|error| NetError::Protocol(format!("FTP worker failed: {error}")))??;
+                    break written;
+                }
+                _ = ticker.tick() => {
+                    let known = total.load(Ordering::Acquire);
+                    tracker.emit(
+                        DownloadState::Downloading,
+                        (known > 0).then_some(known),
+                        downloaded.load(Ordering::Acquire),
+                        1,
+                        vec![SegmentProgress {
+                            id: SegmentId(0),
+                            start: 0,
+                            end: known.saturating_sub(1),
+                            written: downloaded.load(Ordering::Acquire),
+                            state: SegmentState::Active,
+                            attempts: 1,
+                        }],
+                        Some(request.url.as_str()),
+                        None,
+                        None,
+                    );
+                }
+                _ = cancel.cancelled() => {
+                    let _ = (&mut blocking).await;
+                    return Err(NetError::Cancelled);
+                }
+            }
+        };
+        if let Some(spec) = &request.checksum {
+            verify_checksum(&paths.part, spec).await?;
+        }
+        std::fs::rename(&paths.part, &paths.destination)?;
+        remove_journal(&paths);
+        let summary = DownloadSummary {
+            id: request.id,
+            destination: paths.destination.clone(),
+            final_url: request.url.to_string(),
+            total_size: written,
+            downloaded: written,
+            elapsed_ms: u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX),
+            segments: 1,
+            resumed: false,
+            checksum_verified: request.checksum.is_some(),
+            average_speed_bps: if started.elapsed().as_secs_f64() > 0.0 {
+                written as f64 / started.elapsed().as_secs_f64()
+            } else {
+                0.0
+            },
+        };
+        tracker.emit(
+            DownloadState::Complete,
+            Some(written),
+            written,
+            0,
+            Vec::new(),
+            Some(request.url.as_str()),
+            None,
+            None,
+        );
         Ok(summary)
     }
 
@@ -1650,6 +1849,35 @@ fn segment_progress(ledger: &SegmentLedger) -> Vec<SegmentProgress> {
             attempts: segment.attempts,
         })
         .collect()
+}
+
+fn ftp_error(error: suppaftp::FtpError) -> NetError {
+    NetError::Ftp(error.to_string())
+}
+
+fn ftp_destination(request: &DownloadRequest) -> Result<PathBuf> {
+    let explicit = request.destination.is_some();
+    let name = rustget_storage::filename_from_url(&request.url)
+        .map(|name| sanitize_filename(&name))
+        .unwrap_or_else(|| "download".into());
+    let destination = if let Some(path) = &request.destination {
+        if path.is_dir() {
+            path.join(name)
+        } else {
+            path.clone()
+        }
+    } else {
+        request.directory.join(name)
+    };
+    if destination.exists() && !request.overwrite {
+        if explicit {
+            return Err(NetError::DestinationExists(
+                destination.display().to_string(),
+            ));
+        }
+        return Ok(unique_destination(destination));
+    }
+    Ok(destination)
 }
 
 fn is_hls_url(url: &Url) -> bool {

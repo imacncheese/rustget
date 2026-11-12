@@ -40,6 +40,8 @@ pub enum NetError {
     DestinationExists(String),
     #[error("protocol error: {0}")]
     Protocol(String),
+    #[error("FTP error: {0}")]
+    Ftp(String),
     #[error("invalid configuration: {0}")]
     Config(String),
 }
@@ -54,6 +56,10 @@ impl NetError {
             Self::Request(_) => ErrorClass::Transient,
             Self::Status { class, .. } => *class,
             Self::ShortRead(_) | Self::Io(_) => ErrorClass::Transient,
+            Self::Ftp(message) if message.contains("530") || message.contains("login") => {
+                ErrorClass::Auth
+            }
+            Self::Ftp(_) => ErrorClass::Transient,
             Self::RangeUnsupported => ErrorClass::RangeUnsupported,
             Self::RemoteChanged(_) | Self::ContentRangeMismatch(..) => ErrorClass::RangeChanged,
             Self::Cancelled => ErrorClass::Fatal,

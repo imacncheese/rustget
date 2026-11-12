@@ -66,6 +66,11 @@ impl NetClient {
         &self.user_agent
     }
 
+    #[must_use]
+    pub(crate) fn basic_auth(&self) -> Option<&(String, String)> {
+        self.options.basic_auth.as_ref()
+    }
+
     pub(crate) fn apply_common(
         &self,
         mut request: reqwest::RequestBuilder,

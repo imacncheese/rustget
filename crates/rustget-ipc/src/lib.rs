@@ -111,6 +111,8 @@ pub fn router(manager: Arc<DownloadManager>, config: &ApiConfig) -> Router {
             "/api/v1/downloads/{id}",
             get(get_download).delete(remove_download),
         )
+        .route("/api/v1/downloads/pause-all", post(pause_all))
+        .route("/api/v1/downloads/resume-all", post(resume_all))
         .route("/api/v1/downloads/{id}/pause", post(pause_download))
         .route("/api/v1/downloads/{id}/resume", post(resume_download))
         .route("/api/v1/downloads/{id}/retry", post(retry_download))
@@ -309,6 +311,16 @@ async fn get_download(
         .map_err(|error| map_manager_error(&error))?;
     let progress = state.manager.live_progress(id);
     Ok(Json(json!({"download": record, "progress": progress})))
+}
+
+async fn pause_all(State(state): State<ApiState>) -> Json<serde_json::Value> {
+    let count = state.manager.pause_all();
+    Json(json!({"paused": count}))
+}
+
+async fn resume_all(State(state): State<ApiState>) -> Json<serde_json::Value> {
+    let count = state.manager.resume_all();
+    Json(json!({"resumed": count}))
 }
 
 async fn pause_download(
@@ -596,25 +608,37 @@ fn map_manager_error(error: &rustget_queue::manager::ManagerError) -> ApiError {
 
 async fn index() -> impl IntoResponse {
     (
-        [(header::CONTENT_TYPE, "text/html; charset=utf-8")],
+        [
+            (header::CONTENT_TYPE, "text/html; charset=utf-8"),
+            (header::CACHE_CONTROL, "no-store"),
+        ],
         rustget_app::INDEX_HTML,
     )
 }
 async fn app_js() -> impl IntoResponse {
     (
-        [(header::CONTENT_TYPE, "text/javascript; charset=utf-8")],
+        [
+            (header::CONTENT_TYPE, "text/javascript; charset=utf-8"),
+            (header::CACHE_CONTROL, "no-store"),
+        ],
         rustget_app::APP_JS,
     )
 }
 async fn style_css() -> impl IntoResponse {
     (
-        [(header::CONTENT_TYPE, "text/css; charset=utf-8")],
+        [
+            (header::CONTENT_TYPE, "text/css; charset=utf-8"),
+            (header::CACHE_CONTROL, "no-store"),
+        ],
         rustget_app::STYLE_CSS,
     )
 }
 async fn favicon() -> impl IntoResponse {
     (
-        [(header::CONTENT_TYPE, "image/svg+xml")],
+        [
+            (header::CONTENT_TYPE, "image/svg+xml"),
+            (header::CACHE_CONTROL, "no-store"),
+        ],
         rustget_app::FAVICON_SVG,
     )
 }

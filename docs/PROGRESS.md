@@ -100,10 +100,11 @@ cargo test -p rustget-cli --test crash_safety -- --nocapture
 
 ## Known cleanup
 
-- `rustget-native-host` has an empty `lib.rs` target alongside `main.rs`.
 - `rustget-platform` is a placeholder.
 - Fuzz targets compile only with `cargo fuzz`; not yet run in CI.
 - The benchmark is loopback-only; no 1 Gbps measurement.
+- `cargo-deny`/`cargo-audit` are configured but not installed in this analysis
+  environment; CI runs them once hosted.
 
 ## Decision log
 

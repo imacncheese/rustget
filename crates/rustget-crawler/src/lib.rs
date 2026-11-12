@@ -182,7 +182,11 @@ impl Crawler {
                             .iter()
                             .any(|wanted| wanted.eq_ignore_ascii_case(extension))
                 });
-                if is_file && seen_files.insert(next.to_string()) && !next.path().ends_with('/') {
+                if is_file
+                    && robots.allowed(&next)
+                    && seen_files.insert(next.to_string())
+                    && !next.path().ends_with('/')
+                {
                     files.push(FoundFile {
                         url: next.to_string(),
                         source_page: url.to_string(),

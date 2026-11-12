@@ -54,6 +54,10 @@ enum Command {
     },
     /// Pause a download through the running daemon.
     Pause { id: String },
+    /// Pause every active and queued download.
+    PauseAll,
+    /// Resume every paused/failed download.
+    ResumeAll,
     /// Resume a paused download through the running daemon.
     Resume { id: String },
     /// Retry a failed download through the running daemon.
@@ -193,6 +197,8 @@ async fn main() -> Result<()> {
         Command::List(args) => list(&cli, &paths, args).await,
         Command::Info { id, json } => info(&cli, &paths, id, *json).await,
         Command::Pause { id } => simple_action(&cli, &paths, id, "pause").await,
+        Command::PauseAll => queue_action(&cli, &paths, "pause-all", "paused").await,
+        Command::ResumeAll => queue_action(&cli, &paths, "resume-all", "resumed").await,
         Command::Resume { id } => simple_action(&cli, &paths, id, "resume").await,
         Command::Retry { id } => simple_action(&cli, &paths, id, "retry").await,
         Command::Remove { id, delete_files } => remove(&cli, &paths, id, *delete_files).await,
@@ -555,6 +561,27 @@ async fn simple_action(cli: &Cli, paths: &Paths, id: &str, action: &str) -> Resu
     .await?;
     let record: DownloadRecord = serde_json::from_value(body)?;
     println!("{}  {}", record.status.as_str(), record.filename);
+    Ok(())
+}
+
+async fn queue_action(cli: &Cli, paths: &Paths, action: &str, field: &str) -> Result<()> {
+    if cli.local || !daemon_available(&cli.api).await {
+        bail!("this command requires a running `rustget serve` daemon");
+    }
+    let body = api_json(
+        &cli.api,
+        paths,
+        reqwest::Method::POST,
+        &format!("/api/v1/downloads/{action}"),
+        None::<&()>,
+    )
+    .await?;
+    println!(
+        "{field} {} download(s)",
+        body.get(field)
+            .and_then(serde_json::Value::as_u64)
+            .unwrap_or(0)
+    );
     Ok(())
 }
 

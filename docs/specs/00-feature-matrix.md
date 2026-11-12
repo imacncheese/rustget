@@ -106,7 +106,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | C02 | Priorities | MUST | P1 | M3 | ✅ | `priority` column, queue order test |
 | C03 | Concurrency limits | MUST | P0 | M3 | ✅ | `max_concurrent`, manager test |
 | C04 | Scheduler time windows | MUST | P0 | M3 | ✅ | Weekly day mask, start/stop, overnight; pure tests |
-| C05 | Start/stop/pause-all | MUST | P0 | M3 | ◐ | Pause/resume per item + scheduler; no global pause-all endpoint |
+| C05 | Start/stop/pause-all | MUST | P0 | M3 | ✅ | Per-item + `pause-all`/`resume-all` API and CLI; scheduler closes windows |
 | C06 | Auto shutdown/sleep/hibernate/exit | SHOULD | P1 | M6 | ◐ | Action persisted and surfaced; execution intentionally disabled |
 | C07 | Queue UI | MUST | P1 | M4 | — | Web UI has status filters, not a queue editor |
 | C08 | Per-download properties | MUST | P1 | M4 | ✅ | Details pane: path, URL, size, speeds, error |
@@ -206,8 +206,8 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 65 |
-| ◐ partial | 37 |
+| ✅ implemented + verified | 66 |
+| ◐ partial | 36 |
 | ○ specified, not implemented | 1 |
 | — not started | 44 |
 | **Total tracked** | **147** |
@@ -218,7 +218,7 @@ By area:
 |---|---:|---:|---:|---:|---:|
 | A. Download engine | 46 | 21 | 16 | 0 | 9 |
 | B. Capture/integration | 22 | 9 | 8 | 0 | 5 |
-| C. Management | 30 | 16 | 4 | 0 | 10 |
+| C. Management | 30 | 17 | 3 | 0 | 10 |
 | D. UI/UX | 12 | 6 | 2 | 0 | 4 |
 | E. Quality/security | 15 | 9 | 3 | 1 | 2 |
 | F. Platform/packaging | 10 | 1 | 2 | 0 | 7 |

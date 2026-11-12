@@ -55,6 +55,10 @@
     if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
     return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
   }
+  function progressRatio(record) {
+    if (!record || !record.total_size) return 0;
+    return Math.max(0, Math.min(1, (record.downloaded || 0) / record.total_size));
+  }
   function statusLabel(s) {
     return ({ finalizing: "finishing", downloading: "downloading" })[s] || s;
   }
@@ -202,7 +206,7 @@
     const key = state.sortKey;
     items.sort((a, b) => {
       let left, right;
-      if (key === "progress") { left = a.progress_ratio ?? 0; right = b.progress_ratio ?? 0; }
+      if (key === "progress") { left = progressRatio(a); right = progressRatio(b); }
       else if (key === "filename" || key === "status" || key === "category") {
         left = String(a[key] || "").toLowerCase(); right = String(b[key] || "").toLowerCase();
       } else { left = Number(a[key] || 0); right = Number(b[key] || 0); }
@@ -279,7 +283,7 @@
   }
 
   function rowHtml(record) {
-    const ratio = Math.max(0, Math.min(1, record.progress_ratio || 0));
+    const ratio = progressRatio(record);
     const percent = Math.round(ratio * 100);
     const done = record.status === "completed";
     const failed = record.status === "failed";
@@ -363,7 +367,7 @@
     const badge = $("#detailStatus");
     badge.textContent = statusLabel(record.status);
     badge.className = `badge ${record.status}`;
-    const ratio = Math.max(0, Math.min(1, record.progress_ratio || 0));
+    const ratio = progressRatio(record);
     $("#detailBar").style.width = `${Math.round(ratio * 100)}%`;
     $("#detailBar").style.background = record.status === "failed" ? "var(--danger)" : "";
     $("#detailSize").textContent = `${bytes(record.downloaded)} / ${record.total_size ? bytes(record.total_size) : "unknown"}`;
@@ -374,7 +378,8 @@
     $("#detailPath").title = record.destination || "";
     $("#detailUrl").textContent = record.final_url || record.url || "—";
     $("#detailUrl").title = record.final_url || record.url || "";
-    $("#detailConns").textContent = `${live?.active_connections ?? (active(record) ? record.connections : 0)} / ${record.connections}`;
+    const openConnections = live?.active_connections ?? (active(record) ? record.connections : 0);
+    $("#detailConns").textContent = `${openConnections} active`;
     const errorRow = $("#detailErrorRow");
     errorRow.hidden = !record.error;
     $("#detailError").textContent = record.error || "";
@@ -394,7 +399,7 @@
     if (!segments.length) {
       const segment = document.createElement("div");
       segment.className = "seg";
-      segment.innerHTML = `<i style="width:${Math.round((record.progress_ratio || 0) * 100)}%"></i>`;
+      segment.innerHTML = `<i style="width:${Math.round(progressRatio(record) * 100)}%"></i>`;
       container.appendChild(segment);
       return;
     }

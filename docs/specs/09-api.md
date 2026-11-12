@@ -121,6 +121,14 @@ Request:
 {"download": { ... }, "progress": { ... } | null}
 ```
 
+### `POST /api/v1/downloads/pause-all`
+
+Pauses every active/queued row. Returns `{"paused": N}`.
+
+### `POST /api/v1/downloads/resume-all`
+
+Resumes every paused/failed row. Returns `{"resumed": N}`.
+
 ### `POST /api/v1/downloads/{id}/pause`
 
 Cancels the task; the journal/part are retained. Returns the updated record with

@@ -312,6 +312,32 @@ impl DownloadManager {
         Ok(record)
     }
 
+    pub fn pause_all(&self) -> usize {
+        let items = self.db.list(None).unwrap_or_default();
+        let mut count = 0;
+        for item in items {
+            if (item.status.is_active() || item.status == DownloadStatus::Queued)
+                && self.pause(item.id).is_ok()
+            {
+                count += 1;
+            }
+        }
+        count
+    }
+
+    pub fn resume_all(self: &Arc<Self>) -> usize {
+        let items = self.db.list(None).unwrap_or_default();
+        let mut count = 0;
+        for item in items {
+            if (item.status == DownloadStatus::Paused || item.status == DownloadStatus::Failed)
+                && self.resume(item.id).is_ok()
+            {
+                count += 1;
+            }
+        }
+        count
+    }
+
     pub fn retry(self: &Arc<Self>, id: Uuid) -> Result<DownloadRecord> {
         let record = self.get(id)?;
         if record.status != DownloadStatus::Failed {

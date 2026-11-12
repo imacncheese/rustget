@@ -9,7 +9,7 @@ Keep a Changelog and the project uses Semantic Versioning.
 
 - Multi-segment HTTP(S) download engine with dynamic work stealing.
 - Cooperative stop boundaries for safe range splits.
-- Adaptive connection growth.
+- Adaptive connection growth and pause-all/resume-all.
 - Crash-safe `.part` + append-only JSONL resume journal.
 - Resume validation via ETag, Last-Modified, size and If-Range.
 - Single-stream fallback for servers that ignore ranges.
@@ -24,6 +24,7 @@ Keep a Changelog and the project uses Semantic Versioning.
 - Chromium and Firefox MV3 extension sources.
 - Native-messaging host with live daemon test.
 - HLS and DASH parsers; FFmpeg sidecar boundary.
+- Same-origin site crawler with robots.txt and extension filters.
 - Instrumented adversarial HTTP testkit.
 - Property tests for segment invariants.
 - Process-kill/resume crash-safety test.

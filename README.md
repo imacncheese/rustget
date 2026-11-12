@@ -120,6 +120,8 @@ See [the browser bridge spec](docs/specs/05-browser-bridge.md).
   view, keyboard shortcuts, light/dark/system themes, add dialog, settings.
 - **Browser bridge.** Standard 4-byte length-prefixed native messaging, context
   menu and a floating media panel for direct media URLs.
+- **Discovery.** Same-origin, depth-bounded site crawler with robots.txt,
+  extension filters and `rustget grab`; HLS/DASH manifest parsers.
 
 ## What is deliberately not claimed yet
 
@@ -217,6 +219,8 @@ Gbps claim.
 - [Testing strategy](docs/specs/12-testing.md)
 - [Parity scorecard](docs/specs/13-parity-scorecard.md)
 - [Benchmark report](docs/specs/14-benchmark.md)
+- [Crawler spec](docs/specs/15-crawler.md)
+- [Media spec](docs/specs/16-media.md)
 - [ADRs](docs/adr/)
 
 ## Contributing and security

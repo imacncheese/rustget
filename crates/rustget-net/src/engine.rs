@@ -330,6 +330,7 @@ impl Downloader {
         } else {
             PartFile::reset(&paths.part, total, PreallocateMode::Sparse)?
         });
+        tracker.set_baseline(ledger.downloaded_bytes());
         let mut journal = JournalStore::create(&paths.journal)?;
         let mut state = JournalState {
             task_id: request.id,
@@ -365,6 +366,7 @@ impl Downloader {
                 &limiter,
                 &request.url,
                 validator.clone(),
+                total,
                 assignment,
                 cancel.clone(),
             );
@@ -398,6 +400,7 @@ impl Downloader {
                         &limiter,
                         &request.url,
                         validator.clone(),
+                        total,
                         assignment,
                         cancel.clone(),
                     );
@@ -480,6 +483,7 @@ impl Downloader {
                                 &limiter,
                                 &request.url,
                                 validator.clone(),
+                                total,
                                 cancel.clone(),
                                 &mut next_worker,
                             )?;
@@ -556,6 +560,7 @@ impl Downloader {
                             &limiter,
                             &request.url,
                             validator.clone(),
+                            total,
                             split.assignment,
                             cancel.clone(),
                         );
@@ -624,6 +629,7 @@ impl Downloader {
             ));
         }
         reset_partial(paths)?;
+        tracker.set_baseline(0);
         tracker.emit(
             DownloadState::Downloading,
             total,
@@ -832,6 +838,7 @@ fn spawn_range_worker(
     limiter: &Arc<rustget_core::RateLimiter>,
     url: &Url,
     validator: Option<String>,
+    total: u64,
     assignment: Assignment,
     cancel: CancellationToken,
 ) {
@@ -854,6 +861,7 @@ fn spawn_range_worker(
             limiter,
             url,
             validator,
+            total,
             stop,
             progress,
             cancel,
@@ -872,6 +880,7 @@ async fn range_worker(
     limiter: Arc<rustget_core::RateLimiter>,
     url: Url,
     validator: Option<String>,
+    total: u64,
     stop: Arc<AtomicU64>,
     progress: Arc<AtomicU64>,
     cancel: CancellationToken,
@@ -887,6 +896,7 @@ async fn range_worker(
             &limiter,
             &url,
             validator.as_deref(),
+            total,
             assignment.range.end,
             &stop,
             &progress,
@@ -936,6 +946,7 @@ async fn transfer_range(
     limiter: &rustget_core::RateLimiter,
     url: &Url,
     validator: Option<&str>,
+    expected_total: u64,
     end: u64,
     stop: &AtomicU64,
     progress: &AtomicU64,
@@ -959,10 +970,15 @@ async fn transfer_range(
             .get(reqwest::header::CONTENT_RANGE)
             .and_then(|value| value.to_str().ok())
             .ok_or_else(|| NetError::Header("206 without Content-Range".into()))?;
-        let (start, _end, _total) = parse_content_range(header)
+        let (start, _end, response_total) = parse_content_range(header)
             .ok_or_else(|| NetError::Header(format!("invalid Content-Range '{header}'")))?;
         if start != *cursor {
             return Err(NetError::ContentRangeMismatch(header.to_string(), *cursor));
+        }
+        if response_total.is_some_and(|total| total != expected_total) {
+            return Err(NetError::RemoteChanged(format!(
+                "Content-Range total {response_total:?} differs from probed size {expected_total}"
+            )));
         }
     } else if status == reqwest::StatusCode::OK {
         if validator.is_some() {
@@ -1069,6 +1085,7 @@ fn dispatch_idle(
     limiter: &Arc<rustget_core::RateLimiter>,
     url: &Url,
     validator: Option<String>,
+    total: u64,
     cancel: CancellationToken,
     next_worker: &mut u64,
 ) -> Result<()> {
@@ -1089,6 +1106,7 @@ fn dispatch_idle(
             limiter,
             url,
             validator,
+            total,
             split.assignment,
             cancel,
         );
@@ -1105,6 +1123,7 @@ fn dispatch_idle(
             limiter,
             url,
             validator,
+            total,
             assignment,
             cancel,
         );
@@ -1295,7 +1314,9 @@ fn remove_journal(paths: &DownloadPaths) {
 struct Tracker {
     tx: watch::Sender<DownloadProgress>,
     id: Uuid,
-    started: Instant,
+    last_bytes: u64,
+    last_sample: Instant,
+    speed: f64,
 }
 
 impl Tracker {
@@ -1303,13 +1324,23 @@ impl Tracker {
         Self {
             tx,
             id,
-            started: Instant::now(),
+            last_bytes: 0,
+            last_sample: Instant::now(),
+            speed: 0.0,
         }
+    }
+
+    /// Establish the resumed byte count so the first progress event does not
+    /// report bytes downloaded by a previous process as instantaneous speed.
+    fn set_baseline(&mut self, downloaded: u64) {
+        self.last_bytes = downloaded;
+        self.last_sample = Instant::now();
+        self.speed = 0.0;
     }
 
     #[allow(clippy::too_many_arguments)]
     fn emit(
-        &self,
+        &mut self,
         state: DownloadState,
         total: Option<u64>,
         downloaded: u64,
@@ -1319,8 +1350,26 @@ impl Tracker {
         filename: Option<String>,
         error: Option<String>,
     ) {
-        let elapsed = self.started.elapsed().as_secs_f64().max(0.001);
-        let speed = downloaded as f64 / elapsed;
+        let now = Instant::now();
+        let elapsed = now.duration_since(self.last_sample).as_secs_f64();
+        if elapsed >= 0.05 && downloaded >= self.last_bytes {
+            let instant = (downloaded - self.last_bytes) as f64 / elapsed;
+            if downloaded > self.last_bytes {
+                self.speed = if self.speed == 0.0 {
+                    instant
+                } else {
+                    self.speed * 0.7 + instant * 0.3
+                };
+            } else {
+                self.speed *= 0.5;
+            }
+            self.last_bytes = downloaded;
+            self.last_sample = now;
+        }
+        if matches!(state, DownloadState::Complete) {
+            self.speed = 0.0;
+        }
+        let speed = self.speed;
         let eta = total.and_then(|total| {
             (speed > 1.0 && total > downloaded)
                 .then_some(((total - downloaded) as f64 / speed) as u64)

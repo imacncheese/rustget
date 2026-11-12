@@ -29,6 +29,7 @@ html[data-theme="light"] {
   color-scheme: light;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { height: 100%; }
 body {
   margin: 0;
@@ -39,6 +40,7 @@ body {
 }
 button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
+button:disabled { opacity: .38; cursor: not-allowed; }
 :focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
 .app { display: grid; grid-template-columns: 248px 1fr; height: 100vh; }
 .sidebar {

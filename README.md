@@ -169,7 +169,7 @@ crates/
   rustget-media     HLS/DASH parsers, FFmpeg sidecar boundary
   rustget-testkit   instrumented adversarial origin
   rustget-crawler   same-origin site crawler
-  rustget-platform  OS integration workspace (planned)
+  rustget-platform  OS integration hooks (partial)
 extensions/         Chromium + Firefox MV3 sources
 docs/adr/           architecture decisions
 docs/specs/         implementation-neutral specifications
@@ -211,8 +211,8 @@ commands and output summary):
 - `rustget-crawler`: 2 discovery/robots tests.
 - `rustget-native-host`: 2 framing tests.
 
-Local benchmark (128 MiB loopback, 16 connections): RustGet 167.5 MiB/s wall vs
-aria2 119.9 MiB/s, both byte-exact. See
+Local benchmark (128 MiB loopback, 16 connections): RustGet 159.1 MiB/s latest
+median (152.5 MiB/s over 9 runs) vs aria2 119.9 MiB/s earlier; both byte-exact. See
 [`docs/specs/14-benchmark.md`](docs/specs/14-benchmark.md); this is not a WAN/1
 Gbps claim.
 

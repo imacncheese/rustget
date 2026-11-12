@@ -78,8 +78,8 @@
   execute the proprietary installer. The experiments are documented and ready.
 - **Power-loss proof**: requires a VM/disk with controlled cache flushing; not
   available in this environment.
-- **1 Gbps benchmark**: no 1 Gbps link available; loopback results would be
-  meaningless as a saturation claim.
+- **1 Gbps benchmark**: no 1 Gbps link available; the loopback result (152.5
+  MiB/s median over 9 runs) is not a WAN saturation claim.
 - **Hosted CI evidence**: repository is local-only; workflow exists but has not
   run on GitHub.
 

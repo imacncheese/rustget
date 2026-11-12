@@ -12,10 +12,13 @@
 
 | Client | Runs (s) | Median | Effective throughput |
 |---|---|---:|---:|
-| RustGet | 0.704, 0.882, 0.764 | **0.764 s** | **167.5 MiB/s** |
-| aria2 | 1.116, 1.016, 1.067 | **1.067 s** | **119.9 MiB/s** |
+| RustGet (latest 3) | 0.804, 0.790, 0.925 | **0.804 s** | **159.1 MiB/s** |
+| RustGet (median of 9) | — | **0.839 s** | **152.5 MiB/s** |
+| aria2 (earlier run) | 1.116, 1.016, 1.067 | **1.067 s** | **119.9 MiB/s** |
 
-Wall-clock ratio: **1.40×** in RustGet's favour on this loopback origin.
+Wall-clock ratio: **1.33×** in RustGet's favour on this loopback origin.
+Run-to-run variance is material (144–167 MiB/s); the 9-run median is the stable
+number. The per-host semaphore added after the first benchmark is included.
 
 > This is a **loopback microbenchmark**, not a 1 Gbps WAN claim. Both clients
 > start a process, negotiate ranges and write the same 128 MiB. The origin's

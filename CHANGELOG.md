@@ -49,9 +49,9 @@ Keep a Changelog and the project uses Semantic Versioning.
 
 ### Known limitations
 
-- No FTP/FTPS/SFTP, HTTP/3, BitTorrent or MMS.
-- No automatic browser download interception.
-- No HLS/DASH download orchestration or FFmpeg mux integration.
+- No FTPS/SFTP, HTTP/3, BitTorrent or MMS (plain FTP works).
+- Browser interception is opt-in and source-tested, not browser-automated.
+- HLS/DASH VOD work; DASH live/audio groups, HLS key rotation and FFmpeg mux
+  wiring are still missing.
 - No tray, autostart, single-instance or installers.
-- No per-host connection caps or mirror failover.
 - English-only.

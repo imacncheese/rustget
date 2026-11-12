@@ -1,0 +1,31 @@
+[package]
+name = "rustget-ipc"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Authenticated loopback REST and WebSocket API for RustGet"
+
+[dependencies]
+rustget-app.workspace = true
+rustget-core.workspace = true
+rustget-net.workspace = true
+rustget-queue.workspace = true
+axum.workspace = true
+futures-util.workspace = true
+open.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tower-http.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+reqwest.workspace = true
+rustget-testkit.workspace = true
+tempfile.workspace = true
+
+[lints]
+workspace = true

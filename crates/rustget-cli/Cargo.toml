@@ -1,0 +1,40 @@
+[package]
+name = "rustget-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "RustGet command-line interface and daemon"
+
+[[bin]]
+name = "rustget"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+dirs.workspace = true
+open.workspace = true
+reqwest.workspace = true
+rustget-core.workspace = true
+rustget-crawler.workspace = true
+rustget-ipc.workspace = true
+rustget-net.workspace = true
+rustget-queue.workspace = true
+rustget-storage.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+url.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+rustget-testkit.workspace = true
+sha2.workspace = true
+tempfile.workspace = true
+
+[lints]
+workspace = true

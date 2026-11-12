@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>RustGet</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="app" id="app">
+    <aside class="sidebar" aria-label="Download categories">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">R</span>
+        <div>
+          <strong>RustGet</strong>
+          <small>fast · open · yours</small>
+        </div>
+      </div>
+      <nav class="nav" id="nav">
+        <button class="nav-item active" data-filter="all"><span class="dot all"></span>All downloads <span class="count" data-count="all">0</span></button>
+        <button class="nav-item" data-filter="downloading"><span class="dot active"></span>Downloading <span class="count" data-count="downloading">0</span></button>
+        <button class="nav-item" data-filter="queued"><span class="dot queued"></span>Queued <span class="count" data-count="queued">0</span></button>
+        <button class="nav-item" data-filter="paused"><span class="dot paused"></span>Paused <span class="count" data-count="paused">0</span></button>
+        <button class="nav-item" data-filter="completed"><span class="dot done"></span>Completed <span class="count" data-count="completed">0</span></button>
+        <button class="nav-item" data-filter="failed"><span class="dot failed"></span>Failed <span class="count" data-count="failed">0</span></button>
+      </nav>
+      <div class="nav-label">Categories</div>
+      <nav class="nav" id="categoryNav" aria-label="Download categories"></nav>
+      <div class="sidebar-foot">
+        <button class="ghost" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">◐ <span>Theme</span></button>
+        <button class="ghost" id="settingsBtn" title="Settings" aria-label="Settings">⚙ <span>Settings</span></button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="toolbar">
+        <div class="search-wrap">
+          <span aria-hidden="true">⌕</span>
+          <input id="search" type="search" placeholder="Search downloads" aria-label="Search downloads">
+        </div>
+        <button class="primary" id="addBtn">＋ Add download</button>
+      </header>
+
+      <section class="stats" aria-label="Transfer summary">
+        <div><small>Active</small><strong id="statActive">0</strong></div>
+        <div><small>Total speed</small><strong id="statSpeed">0 B/s</strong></div>
+        <div><small>Completed</small><strong id="statDone">0</strong></div>
+        <div><small>Data</small><strong id="statBytes">0 B</strong></div>
+      </section>
+
+      <section class="content">
+        <div class="list-pane">
+          <div class="list-header" role="row">
+            <button class="col col-name" data-sort="filename">Name <span class="sort"></span></button>
+            <button class="col col-size" data-sort="total_size">Size <span class="sort"></span></button>
+            <button class="col col-progress" data-sort="progress">Progress <span class="sort"></span></button>
+            <button class="col col-speed" data-sort="speed_bps">Speed <span class="sort"></span></button>
+            <button class="col col-status" data-sort="status">Status <span class="sort"></span></button>
+          </div>
+          <div class="list-viewport" id="listViewport" tabindex="0" aria-label="Download list">
+            <div class="list-spacer" id="listSpacer"></div>
+            <div class="list-rows" id="listRows"></div>
+            <div class="empty" id="empty">
+              <div class="empty-icon">⇣</div>
+              <h2>No downloads yet</h2>
+              <p>Paste a link or add one to get started.</p>
+              <button class="primary" id="emptyAdd">Add your first download</button>
+            </div>
+          </div>
+        </div>
+
+        <aside class="details" id="details" aria-label="Download details">
+          <div class="details-empty" id="detailsEmpty">
+            <p>Select a download to see its connections, segments and live progress.</p>
+          </div>
+          <div class="details-body" id="detailsBody" hidden>
+            <div class="details-head">
+              <div class="file-glyph" id="detailGlyph">⇩</div>
+              <div class="details-title">
+                <h2 id="detailName">file.bin</h2>
+                <span class="badge" id="detailStatus">queued</span>
+              </div>
+            </div>
+            <div class="bigbar"><div id="detailBar"></div></div>
+            <div class="detail-grid">
+              <div><small>Downloaded</small><span id="detailSize">—</span></div>
+              <div><small>Speed</small><span id="detailSpeed">—</span></div>
+              <div><small>ETA</small><span id="detailEta">—</span></div>
+              <div><small>Added</small><span id="detailAdded">—</span></div>
+            </div>
+            <div class="segments-block">
+              <div class="section-title"><span>Connections</span><span id="detailConns">0</span></div>
+              <div class="segments" id="detailSegments"></div>
+            </div>
+            <div class="meta">
+              <div><small>Saved to</small><code id="detailPath">—</code></div>
+              <div><small>Source</small><code id="detailUrl">—</code></div>
+              <div class="error-row" id="detailErrorRow" hidden><small>Error</small><span class="error" id="detailError"></span></div>
+            </div>
+            <div class="actions">
+              <button id="pauseBtn" class="secondary">Pause</button>
+              <button id="resumeBtn" class="secondary">Resume</button>
+              <button id="retryBtn" class="secondary">Retry</button>
+              <button id="openBtn" class="secondary">Open folder</button>
+              <button id="removeBtn" class="danger">Remove</button>
+            </div>
+          </div>
+        </aside>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="addDialog">
+    <form method="dialog" class="modal" id="addForm">
+      <header class="modal-head">
+        <h2>Add download</h2>
+        <button class="icon" value="cancel" aria-label="Close">✕</button>
+      </header>
+      <div class="modal-body">
+        <label class="field">
+          <span>URL</span>
+          <div class="input-row">
+            <input id="addUrl" type="url" required placeholder="https://example.com/file.zip" autocomplete="off" spellcheck="false">
+            <button type="button" class="secondary" id="pasteBtn" title="Paste from clipboard">Paste</button>
+          </div>
+        </label>
+        <div class="two">
+          <label class="field">
+            <span>Save folder</span>
+            <input id="addDir" type="text" placeholder="Default downloads folder" autocomplete="off">
+          </label>
+          <label class="field">
+            <span>Connections</span>
+            <input id="addConns" type="number" min="1" max="32" value="8">
+          </label>
+        </div>
+        <div class="two">
+          <label class="field">
+            <span>Speed limit (MB/s, 0 = unlimited)</span>
+            <input id="addLimit" type="number" min="0" step="0.1" value="0">
+          </label>
+          <label class="field">
+            <span>Category</span>
+            <input id="addCategory" type="text" value="General" list="categoryList">
+            <datalist id="categoryList">
+              <option>General</option><option>Music</option><option>Video</option>
+              <option>Programs</option><option>Documents</option><option>Archives</option>
+            </datalist>
+          </label>
+        </div>
+        <label class="check"><input type="checkbox" id="addStart" checked> Start immediately</label>
+        <p class="hint">RustGet probes the server before adding the download, so the real filename and size appear first.</p>
+      </div>
+      <footer class="modal-foot">
+        <button class="secondary" value="cancel">Cancel</button>
+        <button class="primary" id="addSubmit" value="default">Add download</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="settingsDialog">
+    <form method="dialog" class="modal narrow" id="settingsForm">
+      <header class="modal-head">
+        <h2>Settings</h2>
+        <button class="icon" value="cancel" aria-label="Close">✕</button>
+      </header>
+      <div class="modal-body">
+        <label class="field">
+          <span>API token</span>
+          <input id="tokenInput" type="password" autocomplete="off" spellcheck="false" placeholder="Paste the token printed by rustget serve">
+        </label>
+        <label class="field">
+          <span>Theme</span>
+          <select id="themeSelect">
+            <option value="system">System</option>
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Notifications on completion</span>
+          <select id="notifySelect"><option value="on">On</option><option value="off">Off</option></select>
+        </label>
+        <p class="hint">The token authorises this browser to your local RustGet daemon. It never leaves this machine.</p>
+      </div>
+      <footer class="modal-foot">
+        <button class="secondary" value="cancel">Close</button>
+        <button class="primary" id="settingsSave" value="default">Save</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="/app.js" defer></script>
+</body>
+</html>

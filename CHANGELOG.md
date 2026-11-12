@@ -26,6 +26,7 @@ Keep a Changelog and the project uses Semantic Versioning.
 - Opt-in scheduler power actions (`--allow-power-actions`) with tested command
   planning and a fake-hook test.
 - Cross-process single-instance lock for `rustget serve`.
+- Persisted Basic auth with CLI/UI and end-to-end tests.
 - Named command-based resolver plugins (`--plugin`, `--resolver`).
 - Persistent SQLite cookie jar with per-download opt-in.
 - Post-download action runner with `{file}` and timeout.

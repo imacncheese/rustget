@@ -71,6 +71,7 @@ pub struct NewDownload {
     pub proxy: Option<String>,
     pub client_cert: Option<PathBuf>,
     pub digest_auth: Option<(String, String)>,
+    pub basic_auth: Option<(String, String)>,
     #[serde(default)]
     pub use_ytdlp: bool,
     #[serde(default)]
@@ -110,6 +111,7 @@ impl NewDownload {
             proxy: record.proxy.clone(),
             client_cert: record.client_cert.clone(),
             digest_auth: record.digest_auth.clone(),
+            basic_auth: record.basic_auth.clone(),
             use_ytdlp: record.use_ytdlp,
             use_cookie_jar: record.use_cookie_jar,
             resolver: record.resolver.clone(),
@@ -141,6 +143,7 @@ impl Default for NewDownload {
             proxy: None,
             client_cert: None,
             digest_auth: None,
+            basic_auth: None,
             use_ytdlp: false,
             use_cookie_jar: false,
             resolver: None,
@@ -340,6 +343,7 @@ impl DownloadManager {
                 headers: request.headers.clone(),
                 proxy: request.proxy.clone(),
                 digest_auth: request.digest_auth.clone(),
+                basic_auth: request.basic_auth.clone(),
                 client_identity_pem,
                 cookie,
                 ..RequestOptions::default()
@@ -425,6 +429,7 @@ impl DownloadManager {
             proxy: request.proxy,
             client_cert: request.client_cert,
             digest_auth: request.digest_auth,
+            basic_auth: request.basic_auth,
             use_ytdlp: request.use_ytdlp,
             use_cookie_jar: request.use_cookie_jar,
             resolver: request.resolver.clone(),
@@ -833,6 +838,7 @@ impl DownloadManager {
             headers: record.headers.clone(),
             proxy: record.proxy.clone(),
             digest_auth: record.digest_auth.clone(),
+            basic_auth: record.basic_auth.clone(),
             client_identity_pem,
             cookie,
             ..RequestOptions::default()
@@ -1488,6 +1494,7 @@ mod tests {
             proxy: None,
             client_cert: None,
             digest_auth: None,
+            basic_auth: None,
             use_ytdlp: false,
             use_cookie_jar: false,
             resolver: None,

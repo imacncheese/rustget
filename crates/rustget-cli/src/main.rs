@@ -242,6 +242,12 @@ struct AddArgs {
     /// PEM client certificate + private key for mutual TLS.
     #[arg(long)]
     client_cert: Option<PathBuf>,
+    /// HTTP Basic username.
+    #[arg(long)]
+    basic_user: Option<String>,
+    /// HTTP Basic password.
+    #[arg(long)]
+    basic_password: Option<String>,
     /// HTTP Digest username.
     #[arg(long)]
     digest_user: Option<String>,
@@ -602,6 +608,10 @@ async fn add(cli: &Cli, paths: &Paths, args: &AddArgs) -> Result<()> {
         tags: args.tags.clone(),
         proxy: args.proxy.clone(),
         client_cert: args.client_cert.clone(),
+        basic_auth: match (&args.basic_user, &args.basic_password) {
+            (Some(user), Some(password)) => Some((user.clone(), password.clone())),
+            _ => None,
+        },
         digest_auth: match (&args.digest_user, &args.digest_password) {
             (Some(user), Some(password)) => Some((user.clone(), password.clone())),
             _ => None,
@@ -1111,6 +1121,8 @@ async fn grab(
                     tags: Vec::new(),
                     proxy: None,
                     client_cert: None,
+                    basic_user: None,
+                    basic_password: None,
                     digest_user: None,
                     digest_password: None,
                     yt_dlp: false,
@@ -1295,6 +1307,8 @@ async fn batch(
             tags: Vec::new(),
             proxy: None,
             client_cert: None,
+            basic_user: None,
+            basic_password: None,
             digest_user: None,
             digest_password: None,
             yt_dlp: false,

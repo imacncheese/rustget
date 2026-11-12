@@ -68,6 +68,7 @@ pub struct DownloadRecord {
     pub proxy: Option<String>,
     pub client_cert: Option<std::path::PathBuf>,
     pub digest_auth: Option<(String, String)>,
+    pub basic_auth: Option<(String, String)>,
     #[serde(default)]
     pub use_ytdlp: bool,
     #[serde(default)]

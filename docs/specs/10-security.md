@@ -116,6 +116,8 @@ implemented, will be opt-in.
   them only to matching domains/paths (and HTTPS-only when `Secure`).
 - Cross-host redirects are covered by a fixture that proves `Authorization` is
   not forwarded to the target origin.
+- HTTP Basic credentials are persisted as plaintext JSON in
+  `downloads.basic_auth`; Basic auth base64-encodes the password on the wire.
 - HTTP Digest credentials are persisted as JSON in `downloads.digest_auth`,
   plaintext at rest. Digest auth sends the password-derived response, not the
   plaintext password, over the wire.

@@ -922,6 +922,9 @@
     const digestUser = $("#addDigestUser").value.trim();
     const digestPass = $("#addDigestPass").value;
     if (digestUser && digestPass) body.digest_auth = [digestUser, digestPass];
+    const basicUser = $("#addBasicUser").value.trim();
+    const basicPass = $("#addBasicPass").value;
+    if (basicUser && basicPass) body.basic_auth = [basicUser, basicPass];
     if ($("#addYtdlp").checked) body.use_ytdlp = true;
     if ($("#addCookieJar").checked) body.use_cookie_jar = true;
     const submit = $("#addSubmit");

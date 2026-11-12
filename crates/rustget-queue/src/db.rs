@@ -32,6 +32,7 @@ impl Database {
                 proxy TEXT,
                 client_cert TEXT,
                 digest_auth TEXT,
+                basic_auth TEXT,
                 use_ytdlp INTEGER NOT NULL DEFAULT 0,
                 use_cookie_jar INTEGER NOT NULL DEFAULT 0,
                 resolver TEXT,
@@ -257,6 +258,22 @@ impl Database {
         if !has_resolver {
             conn.execute("ALTER TABLE downloads ADD COLUMN resolver TEXT", [])?;
         }
+        let has_basic = {
+            let mut statement = conn.prepare("PRAGMA table_info(downloads)")?;
+            let mut rows = statement.query([])?;
+            let mut found = false;
+            while let Some(row) = rows.next()? {
+                let name: String = row.get(1)?;
+                if name == "basic_auth" {
+                    found = true;
+                    break;
+                }
+            }
+            found
+        };
+        if !has_basic {
+            conn.execute("ALTER TABLE downloads ADD COLUMN basic_auth TEXT", [])?;
+        }
         Ok(Self {
             conn: Mutex::new(conn),
         })
@@ -268,10 +285,10 @@ impl Database {
         let tags = serde_json::to_string(&record.tags).unwrap_or_else(|_| "[]".into());
         self.conn.lock().execute(
             r"INSERT INTO downloads (
-                id,url,mirrors,media_variant,proxy,client_cert,digest_auth,use_ytdlp,use_cookie_jar,resolver,final_url,destination,filename,category,tags,status,total_size,downloaded,
+                id,url,mirrors,media_variant,proxy,client_cert,digest_auth,basic_auth,use_ytdlp,use_cookie_jar,resolver,final_url,destination,filename,category,tags,status,total_size,downloaded,
                 speed_bps,connections,speed_limit,headers,checksum_algorithm,checksum_value,
                 etag,last_modified,error,priority,created_at_ms,updated_at_ms,completed_at_ms
-            ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23,?24,?25,?26,?27,?28,?29,?30,?31)",
+            ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23,?24,?25,?26,?27,?28,?29,?30,?31,?32)",
             params![
                 record.id.to_string(),
                 record.url,
@@ -281,6 +298,10 @@ impl Database {
                 record.client_cert.as_ref().map(|path| path.to_string_lossy()),
                 record
                     .digest_auth
+                    .as_ref()
+                    .map(|auth| serde_json::to_string(auth).unwrap_or_else(|_| "null".into())),
+                record
+                    .basic_auth
                     .as_ref()
                     .map(|auth| serde_json::to_string(auth).unwrap_or_else(|_| "null".into())),
                 i64::from(record.use_ytdlp),
@@ -318,10 +339,10 @@ impl Database {
         let tags = serde_json::to_string(&record.tags).unwrap_or_else(|_| "[]".into());
         self.conn.lock().execute(
             r"UPDATE downloads SET
-                url=?2, mirrors=?3, media_variant=?4, proxy=?5, client_cert=?6, digest_auth=?7, use_ytdlp=?8, use_cookie_jar=?9, resolver=?10, final_url=?11, destination=?12, filename=?13, category=?14, tags=?15, status=?16,
-                total_size=?17, downloaded=?18, speed_bps=?19, connections=?20, speed_limit=?21,
-                headers=?22, checksum_algorithm=?23, checksum_value=?24, etag=?25,
-                last_modified=?26, error=?27, priority=?28, updated_at_ms=?29, completed_at_ms=?30
+                url=?2, mirrors=?3, media_variant=?4, proxy=?5, client_cert=?6, digest_auth=?7, basic_auth=?8, use_ytdlp=?9, use_cookie_jar=?10, resolver=?11, final_url=?12, destination=?13, filename=?14, category=?15, tags=?16, status=?17,
+                total_size=?18, downloaded=?19, speed_bps=?20, connections=?21, speed_limit=?22,
+                headers=?23, checksum_algorithm=?24, checksum_value=?25, etag=?26,
+                last_modified=?27, error=?28, priority=?29, updated_at_ms=?30, completed_at_ms=?31
               WHERE id=?1",
             params![
                 record.id.to_string(),
@@ -332,6 +353,10 @@ impl Database {
                 record.client_cert.as_ref().map(|path| path.to_string_lossy()),
                 record
                     .digest_auth
+                    .as_ref()
+                    .map(|auth| serde_json::to_string(auth).unwrap_or_else(|_| "null".into())),
+                record
+                    .basic_auth
                     .as_ref()
                     .map(|auth| serde_json::to_string(auth).unwrap_or_else(|_| "null".into())),
                 i64::from(record.use_ytdlp),
@@ -691,6 +716,7 @@ fn map_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<DownloadRecord> {
     let proxy: Option<String> = row.get("proxy")?;
     let client_cert: Option<String> = row.get("client_cert")?;
     let digest_json: Option<String> = row.get("digest_auth")?;
+    let basic_json: Option<String> = row.get("basic_auth")?;
     let total: Option<i64> = row.get("total_size")?;
     let downloaded: i64 = row.get("downloaded")?;
     let connections: i64 = row.get("connections")?;
@@ -708,6 +734,7 @@ fn map_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<DownloadRecord> {
         proxy,
         client_cert: client_cert.map(PathBuf::from),
         digest_auth: digest_json.and_then(|value| serde_json::from_str(&value).ok()),
+        basic_auth: basic_json.and_then(|value| serde_json::from_str(&value).ok()),
         use_ytdlp: row.get::<_, i64>("use_ytdlp")? != 0,
         use_cookie_jar: row.get::<_, i64>("use_cookie_jar")? != 0,
         resolver: row.get("resolver")?,
@@ -751,6 +778,7 @@ mod tests {
             proxy: Some("http://127.0.0.1:3128".into()),
             client_cert: Some(PathBuf::from("C:/certs/client.pem")),
             digest_auth: Some(("user".into(), "pass".into())),
+            basic_auth: Some(("basic-user".into(), "basic-pass".into())),
             use_ytdlp: true,
             use_cookie_jar: true,
             resolver: Some("test-plugin".into()),
@@ -802,6 +830,10 @@ mod tests {
         assert_eq!(
             loaded.digest_auth,
             Some(("user".to_string(), "pass".to_string()))
+        );
+        assert_eq!(
+            loaded.basic_auth,
+            Some(("basic-user".to_string(), "basic-pass".to_string()))
         );
     }
 

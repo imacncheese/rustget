@@ -53,9 +53,9 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | A27 | Magnet / BitTorrent | COULD | P3 | M7 | — | Out of current scope |
 | A28 | Probe: HEAD then GET `Range: bytes=0-0` | MUST | P0 | M1 | ✅ | Implemented; Content-Range/length parsing |
 | A29 | Content-Encoding pitfalls | MUST | P0 | M1 | ✅ | Forces `Accept-Encoding: identity`; rejects non-identity |
-| A30 | Basic authentication | MUST | P1 | M1 | ◐ | `RequestOptions.basic_auth` exists; not persisted or exposed in UI/CLI |
+| A30 | Basic authentication | MUST | P1 | M1 | ✅ | Persisted `basic_auth`, CLI/UI, add-probe + transfer tests |
 | A31 | Digest / NTLM / Negotiate / Kerberos | SHOULD | P2 | M6 | ◐ | HTTP Digest MD5/SHA-256 + qop=auth implemented/tested; NTLM/Negotiate/Kerberos missing |
-| A32 | Cookies | MUST | P1 | M1 | ◐ | Native host passes cookie header; no cookie jar/refresh |
+| A32 | Cookies | MUST | P1 | M1 | ✅ | Explicit Cookie header plus persistent jar with Set-Cookie refresh and session reuse |
 | A33 | Custom headers, Referer, User-Agent | MUST | P1 | M1 | ✅ | CLI `-H`, manager persists headers; UA config |
 | A34 | Client certificates | COULD | P2 | M6 | ✅ | PEM client cert+key (`client_cert`/`--client-cert`), mutual-TLS success and rejection tests |
 | A35 | HTTP/HTTPS/SOCKS5 proxy, system proxy, PAC | SHOULD | P2 | M6 | ◐ | Explicit HTTP proxy in `RequestOptions`; no SOCKS/PAC/system detection |
@@ -206,8 +206,8 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 88 |
-| ◐ partial | 46 |
+| ✅ implemented + verified | 90 |
+| ◐ partial | 44 |
 | ○ specified, not implemented | 1 |
 | — not started | 12 |
 | **Total tracked** | **147** |
@@ -216,7 +216,7 @@ By area:
 
 | Area | Rows | ✅ | ◐ | ○ | — |
 |---|---:|---:|---:|---:|---:|
-| A. Download engine | 46 | 24 | 19 | 0 | 3 |
+| A. Download engine | 46 | 26 | 17 | 0 | 3 |
 | B. Capture/integration | 22 | 13 | 8 | 0 | 1 |
 | C. Management | 30 | 23 | 7 | 0 | 0 |
 | D. UI/UX | 12 | 10 | 2 | 0 | 0 |

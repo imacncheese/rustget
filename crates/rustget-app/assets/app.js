@@ -624,6 +624,8 @@
     };
     const directory = $("#addDir").value.trim();
     if (directory) body.directory = directory;
+    const mirrors = $("#addMirrors").value.split(/[\s,]+/).map((item) => item.trim()).filter(Boolean);
+    if (mirrors.length) body.mirrors = mirrors;
     const submit = $("#addSubmit");
     submit.disabled = true;
     submit.textContent = "Adding…";

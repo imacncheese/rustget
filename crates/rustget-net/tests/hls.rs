@@ -32,6 +32,7 @@ async fn downloads_master_playlist_and_concatenates_segments() {
     let req = DownloadRequest {
         id: Uuid::new_v4(),
         url: url::Url::parse(&server.file_url("master.m3u8")).unwrap(),
+        mirrors: Vec::new(),
         destination: None,
         directory: temp.path().to_path_buf(),
         resume: false,
@@ -82,6 +83,7 @@ async fn rejects_encrypted_hls_cleanly() {
     let req = DownloadRequest {
         id: Uuid::new_v4(),
         url: url::Url::parse(&server.file_url("enc.m3u8")).unwrap(),
+        mirrors: Vec::new(),
         destination: None,
         directory: temp.path().to_path_buf(),
         resume: false,

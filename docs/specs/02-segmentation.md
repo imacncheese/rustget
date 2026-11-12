@@ -157,6 +157,20 @@ A worker only reports `Completed` when its cursor reaches `end + 1`, or `Stolen`
 when it reaches its stop boundary. The coordinator always re-reads the atomic
 cursor before `finish`, so a last-moment chunk cannot be lost from accounting.
 
+## 5.1 Mirrors and alternate URLs
+
+A download may carry zero or more mirror URLs expected to expose the same
+representation. The probe tries the primary first, then each mirror, and starts
+the transfer against the first reachable candidate. The worker list contains the
+active URL plus every distinct mirror.
+
+Each worker keeps a URL index. On a `Transient` or `RateLimited` failure, it
+advances the index and retries the same byte range from its durable cursor. It
+does **not** rotate on auth, range-changed or unsupported-range errors, because
+those require a policy decision rather than another endpoint. The probe validator
+is sent to mirrors too; a byte-identical mirror is expected to share the ETag.
+This assumption is documented and tested with two local origins.
+
 ## 6. Failure handling
 
 - **Short read**: cursor is between `start` and `end`; retry the same range from

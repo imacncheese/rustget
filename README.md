@@ -24,7 +24,7 @@ modern UI. It is not affiliated with or endorsed by Tonec FZE.
 | Web UI | Working | headless-browser screenshot above |
 | Native-messaging browser bridge | Working | framing tests + live daemon test |
 | HLS / DASH downloads | VOD working | parser + end-to-end segment tests; AES/DRM not supported |
-| Scheduler windows | Basic | pure schedule tests + daemon loop |
+| Scheduler windows | Working | pure tests, daemon loop, web timeline |
 | FTP/FTPS, HTTP/3, BitTorrent, tray | Not implemented | see the parity scorecard |
 
 The authoritative, test-backed status is
@@ -47,6 +47,7 @@ Rust 1.85+ is required. On Linux, install a C toolchain and OpenSSL-free
 ```sh
 rustget add https://example.com/archive.zip --connections 16
 rustget add https://example.com/archive.zip --output ./archive.zip --limit 8
+rustget add https://primary.example/file.bin --mirror https://mirror.example/file.bin
 ```
 
 The CLI waits for completion and prints the final path. If a daemon is running,
@@ -111,7 +112,8 @@ See [the browser bridge spec](docs/specs/05-browser-bridge.md).
   resume.
 - **Protocol behavior.** HEAD probe with `Range: bytes=0-0` fallback, 206
   validation, `If-Range`, `ETag`/`Last-Modified`/size drift detection, redirect
-  handling, 200 fallback to a single stream, retry/backoff with jitter.
+  handling, 200 fallback to a single stream, retry/backoff with jitter, and
+  mirror/alternate-URL failover (`--mirror`).
 - **Integrity.** MD5, SHA-1, SHA-256 and BLAKE3 verification before the final
   rename.
 - **Storage.** Sparse preallocation, positional writes, collision-safe filenames,
@@ -121,7 +123,8 @@ See [the browser bridge spec](docs/specs/05-browser-bridge.md).
 - **UI.** Virtualized list (10k+ rows), search/filter/sort, per-segment detail
   view, keyboard shortcuts, light/dark/system themes, add dialog, settings.
 - **Browser bridge.** Standard 4-byte length-prefixed native messaging, context
-  menu and a floating media panel for direct media URLs.
+  menu, floating media panel, and an opt-in browser-download takeover that only
+  cancels after RustGet accepts the request.
 - **Media.** HLS master/media VOD and duration-template DASH VOD downloads,
   ordered segment concatenation, encryption/DRM rejection, FFmpeg sidecar
   boundary; `rustget add https://site/master.m3u8`.
@@ -134,7 +137,7 @@ RustGet is an M0–M3 implementation with parts of M4/M5. It does **not** yet ha
 
 - FTP/FTPS/SFTP, HTTP/3/QUIC, BitTorrent/magnet or MMS.
 - Digest/NTLM/Kerberos authentication, PAC, client certificates.
-- Per-host connection caps or mirror failover.
+- Per-host connection caps.
 - AES-128 HLS decryption, DASH SegmentTimeline/live manifests, separate
   audio/video muxing, or parallel segment download/resume for media.
 - Tray integration, OS autostart, single-instance desktop shell, native
@@ -160,7 +163,7 @@ crates/
   rustget-native-host  browser native-messaging binary
   rustget-media     HLS/DASH parsers, FFmpeg sidecar boundary
   rustget-testkit   instrumented adversarial origin
-  rustget-crawler   site-grabber workspace (planned)
+  rustget-crawler   same-origin site crawler
   rustget-platform  OS integration workspace (planned)
 extensions/         Chromium + Firefox MV3 sources
 docs/adr/           architecture decisions
@@ -193,9 +196,9 @@ commands and output summary):
   gap/overlap invariants.
 - `rustget-storage`: 15 tests, including torn-journal recovery and out-of-order
   positional writes.
-- `rustget-net`: 5 unit + 14 integration tests (engine, work stealing, adaptive
-  growth, HLS, DASH).
-- `rustget-queue`: 10 DB/manager/scheduler/HLS-routing tests.
+- `rustget-net`: 5 unit + 16 integration tests (engine, work stealing, adaptive
+  growth, mirrors, HLS, DASH).
+- `rustget-queue`: 11 DB/manager/scheduler/HLS-routing/mirror tests.
 - `rustget-ipc`: 3 API tests (auth, origin rejection, add/list/delete).
 - `rustget-cli`: 4 pattern tests + 1 kill-process/resume test.
 - `rustget-testkit`: 5 protocol tests.

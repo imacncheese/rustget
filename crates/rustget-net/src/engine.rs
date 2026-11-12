@@ -93,6 +93,8 @@ impl DownloadProgress {
 pub struct DownloadRequest {
     pub id: Uuid,
     pub url: Url,
+    /// Alternate URLs expected to expose the same bytes. Used for failover.
+    pub mirrors: Vec<Url>,
     /// Explicit file path, or `None` to derive a sanitized name in `directory`.
     pub destination: Option<PathBuf>,
     pub directory: PathBuf,
@@ -189,7 +191,30 @@ impl Downloader {
             None,
             None,
         );
-        let probe = self.client.probe(&request.url, &self.config).await?;
+        let mut request = request;
+        let mut candidates = vec![request.url.clone()];
+        candidates.extend(request.mirrors.iter().cloned());
+        candidates.dedup();
+        let mut probe = None;
+        let mut last_error = None;
+        for candidate in &candidates {
+            match self.client.probe(candidate, &self.config).await {
+                Ok(found) => {
+                    request.url = candidate.clone();
+                    probe = Some(found);
+                    break;
+                }
+                Err(error) => last_error = Some(error),
+            }
+        }
+        let probe = match probe {
+            Some(probe) => probe,
+            None => {
+                return Err(
+                    last_error.unwrap_or_else(|| NetError::Protocol("no usable URL".into()))
+                );
+            }
+        };
         let destination = resolve_destination(&request, &probe)?;
         let paths = DownloadPaths::new(&destination);
         if let Some(parent) = destination.parent() {
@@ -775,6 +800,13 @@ impl Downloader {
             self.config.max_speed_bytes_per_sec.unwrap_or(0),
         ));
         let validator = probe.validator.if_range().map(str::to_string);
+        let mut worker_urls = vec![request.url.clone()];
+        for mirror in &request.mirrors {
+            if !worker_urls.contains(mirror) {
+                worker_urls.push(mirror.clone());
+            }
+        }
+        let worker_urls = Arc::new(worker_urls);
         let mut join: JoinSet<WorkerReport> = JoinSet::new();
         let mut stops: HashMap<WorkerId, Arc<AtomicU64>> = HashMap::new();
         let mut progress_atoms: HashMap<WorkerId, Arc<AtomicU64>> = HashMap::new();
@@ -789,7 +821,7 @@ impl Downloader {
                 &self.config,
                 &part,
                 &limiter,
-                &request.url,
+                &worker_urls,
                 validator.clone(),
                 total,
                 assignment,
@@ -823,7 +855,7 @@ impl Downloader {
                         &self.config,
                         &part,
                         &limiter,
-                        &request.url,
+                        &worker_urls,
                         validator.clone(),
                         total,
                         assignment,
@@ -906,7 +938,7 @@ impl Downloader {
                                 &self.config,
                                 &part,
                                 &limiter,
-                                &request.url,
+                                &worker_urls,
                                 validator.clone(),
                                 total,
                                 cancel.clone(),
@@ -983,7 +1015,7 @@ impl Downloader {
                             &self.config,
                             &part,
                             &limiter,
-                            &request.url,
+                            &worker_urls,
                             validator.clone(),
                             total,
                             split.assignment,
@@ -1261,7 +1293,7 @@ fn spawn_range_worker(
     config: &EngineConfig,
     part: &Arc<PartFile>,
     limiter: &Arc<rustget_core::RateLimiter>,
-    url: &Url,
+    urls: &Arc<Vec<Url>>,
     validator: Option<String>,
     total: u64,
     assignment: Assignment,
@@ -1274,7 +1306,7 @@ fn spawn_range_worker(
     let client = Arc::clone(client);
     let part = Arc::clone(part);
     let limiter = Arc::clone(limiter);
-    let url = url.clone();
+    let urls = Arc::clone(urls);
     let config = config.clone();
     join.spawn(async move {
         let worker = assignment.worker;
@@ -1284,7 +1316,7 @@ fn spawn_range_worker(
             config,
             part,
             limiter,
-            url,
+            urls,
             validator,
             total,
             stop,
@@ -1303,7 +1335,7 @@ async fn range_worker(
     config: EngineConfig,
     part: Arc<PartFile>,
     limiter: Arc<rustget_core::RateLimiter>,
-    url: Url,
+    urls: Arc<Vec<Url>>,
     validator: Option<String>,
     total: u64,
     stop: Arc<AtomicU64>,
@@ -1313,13 +1345,17 @@ async fn range_worker(
     let retry = RetryPolicy::from_engine(&config);
     let mut cursor = assignment.range.start;
     let mut attempt = 0_u32;
+    let mut url_index = 0_usize;
     loop {
+        let Some(url) = urls.get(url_index) else {
+            return WorkerOutcome::Failed(NetError::Protocol("mirror list is empty".into()));
+        };
         match transfer_range(
             &client,
             &config,
             &part,
             &limiter,
-            &url,
+            url,
             validator.as_deref(),
             total,
             assignment.range.end,
@@ -1339,6 +1375,14 @@ async fn range_worker(
                     return WorkerOutcome::Failed(error);
                 }
                 attempt += 1;
+                if urls.len() > 1
+                    && matches!(
+                        class,
+                        rustget_core::ErrorClass::Transient | rustget_core::ErrorClass::RateLimited
+                    )
+                {
+                    url_index = (url_index + 1) % urls.len();
+                }
                 let delay = retry.delay(class, attempt);
                 tracing::debug!(
                     worker = assignment.worker.0,
@@ -1508,7 +1552,7 @@ fn dispatch_idle(
     config: &EngineConfig,
     part: &Arc<PartFile>,
     limiter: &Arc<rustget_core::RateLimiter>,
-    url: &Url,
+    urls: &Arc<Vec<Url>>,
     validator: Option<String>,
     total: u64,
     cancel: CancellationToken,
@@ -1529,7 +1573,7 @@ fn dispatch_idle(
             config,
             part,
             limiter,
-            url,
+            urls,
             validator,
             total,
             split.assignment,
@@ -1546,7 +1590,7 @@ fn dispatch_idle(
             config,
             part,
             limiter,
-            url,
+            urls,
             validator,
             total,
             assignment,

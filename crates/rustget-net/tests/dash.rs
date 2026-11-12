@@ -37,6 +37,7 @@ async fn downloads_duration_template_and_concatenates() {
     let req = DownloadRequest {
         id: Uuid::new_v4(),
         url: url::Url::parse(&server.file_url("manifest.mpd")).unwrap(),
+        mirrors: Vec::new(),
         destination: None,
         directory: temp.path().to_path_buf(),
         resume: false,
@@ -74,6 +75,7 @@ async fn rejects_drm_manifest() {
     let req = DownloadRequest {
         id: Uuid::new_v4(),
         url: url::Url::parse(&server.file_url("drm.mpd")).unwrap(),
+        mirrors: Vec::new(),
         destination: None,
         directory: temp.path().to_path_buf(),
         resume: false,

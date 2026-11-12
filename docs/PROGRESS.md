@@ -48,9 +48,11 @@
 - [x] Web UI: virtualized list, details, segments, add/settings, themes.
 - [x] Scheduler weekly timeline and add/delete form in the web UI.
 - [x] Chromium/Firefox extension + native-messaging host (live tested).
+- [x] Opt-in browser-download takeover with options UI (default off).
 - [x] HLS/DASH parsers, FFmpeg sidecar boundary.
 - [x] HLS VOD download path (master/media, init map, ordered segments).
 - [x] DASH VOD download path (duration SegmentTemplate, DRM rejection).
+- [x] Mirror/alternate-URL probe fallback and worker failover.
 - [x] Criterion ledger benchmarks and 128 MiB aria2 comparison.
 - [x] Adaptive concurrency growth test.
 - [x] Same-origin crawler with robots.txt and CLI `grab`.
@@ -82,8 +84,8 @@
 rustget-core     14 unit + 3 proptest   PASS
 rustget-storage  15                      PASS
 rustget-testkit   5                      PASS
-rustget-net       5 unit + 8 HTTP + 2 work/adaptive + 2 HLS + 2 DASH  PASS
-rustget-queue     10                     PASS
+rustget-net       5 unit + 8 HTTP + 2 work/adaptive + 2 mirrors + 2 HLS + 2 DASH  PASS
+rustget-queue     11                     PASS
 rustget-ipc       3                      PASS
 rustget-cli       4 + 1 crash safety     PASS
 rustget-media     5                      PASS
@@ -91,6 +93,7 @@ rustget-crawler   2                      PASS
 rustget-native-host 2                    PASS
 clippy -D warnings                       PASS
 cargo fmt --check                        PASS
+total                                  86 tests
 ```
 
 Commands:

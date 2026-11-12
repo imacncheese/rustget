@@ -95,6 +95,7 @@ Request:
 ```json
 {
   "url": "https://example.test/file.zip",
+  "mirrors": ["https://mirror.example/file.zip"],
   "destination": null,
   "directory": "D:\\Downloads",
   "category": "Archives",

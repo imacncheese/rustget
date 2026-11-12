@@ -37,7 +37,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | A11 | Bounded write buffering, no whole-file memory | MUST | P0 | M1 | ✅ | 64 KiB network chunks, direct `pwrite`; no file-sized buffer |
 | A12 | Safe `.part` + metadata journal | MUST | P0 | M1 | ✅ | `.part` + append-only `.rustget`; torn-tail test |
 | A13 | Journal records positions several times per minute | MUST | P0 | M1 | ✅ | 250 ms default checkpoint; kill test observes progress |
-| A14 | Mirror / alternate URL failover | SHOULD | P1 | M2 | — | Config/API not present |
+| A14 | Mirror / alternate URL failover | SHOULD | P1 | M2 | ✅ | Probe fallback + per-worker URL rotation on transient/rate-limit errors; two-origin tests |
 | A15 | Retry with exponential backoff and jitter | MUST | P0 | M2 | ✅ | `RetryPolicy`, capped, jitter; unit tests |
 | A16 | Per-error-class retry policies | SHOULD | P1 | M2 | ◐ | HTTP classes and transient/fatal; no user-editable per-class table |
 | A17 | Global and per-download speed limit (token bucket) | MUST | P0 | M2 | ◐ | Per-download token bucket and global config; no single process-wide shared bucket |
@@ -78,7 +78,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | B01 | Chromium MV3 extension | MUST | P1 | M5 | ◐ | Context menu, media panel, native messaging; loaded source, not store-published |
 | B02 | Firefox extension | MUST | P1 | M5 | ◐ | MV3 manifest and shared sources; not browser-tested |
 | B03 | Edge | SHOULD | P1 | M5 | ◐ | Chromium MV3 by construction; not tested |
-| B04 | Automatic download interception | MUST | P1 | M5 | — | Deliberately not silently cancelling browser downloads yet |
+| B04 | Automatic download interception | MUST | P1 | M5 | ◐ | Opt-in `downloads.onCreated`: accepts in RustGet first, then cancels; source-tested, not browser-automated |
 | B05 | Media request sniffing | SHOULD | P1 | M5 | ◐ | Direct `video/audio/source` + media-link detection; no `webRequest` sniffer |
 | B06 | Floating “download this video” affordance | SHOULD | P1 | M5 | ✅ | Injected panel lists detected media, max 5 visible |
 | B07 | Native Messaging host (Rust) | MUST | P1 | M5 | ✅ | Standard framing, ping/add/list/pause/resume; live daemon test |
@@ -207,18 +207,18 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 67 |
-| ◐ partial | 36 |
+| ✅ implemented + verified | 68 |
+| ◐ partial | 37 |
 | ○ specified, not implemented | 1 |
-| — not started | 43 |
+| — not started | 41 |
 | **Total tracked** | **147** |
 
 By area:
 
 | Area | Rows | ✅ | ◐ | ○ | — |
 |---|---:|---:|---:|---:|---:|
-| A. Download engine | 46 | 21 | 16 | 0 | 9 |
-| B. Capture/integration | 22 | 9 | 8 | 0 | 5 |
+| A. Download engine | 46 | 22 | 16 | 0 | 8 |
+| B. Capture/integration | 22 | 9 | 9 | 0 | 4 |
 | C. Management | 30 | 17 | 3 | 0 | 10 |
 | D. UI/UX | 12 | 7 | 2 | 0 | 3 |
 | E. Quality/security | 15 | 9 | 3 | 1 | 2 |

@@ -29,6 +29,7 @@ async fn grows_connections_when_throughput_improves() {
     let req = DownloadRequest {
         id: Uuid::new_v4(),
         url: url::Url::parse(&server.file_url("adaptive.bin")).unwrap(),
+        mirrors: Vec::new(),
         destination: None,
         directory: temp.path().to_path_buf(),
         resume: false,

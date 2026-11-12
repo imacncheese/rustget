@@ -26,6 +26,7 @@ fn request(url: String, directory: &std::path::Path) -> DownloadRequest {
     DownloadRequest {
         id: Uuid::new_v4(),
         url: url::Url::parse(&url).unwrap(),
+        mirrors: Vec::new(),
         destination: None,
         directory: directory.to_path_buf(),
         resume: false,
@@ -162,6 +163,7 @@ async fn cancels_and_resumes_from_journal() {
     let req = DownloadRequest {
         id: Uuid::new_v4(),
         url: url::Url::parse(&server.file_url("resume.bin")).unwrap(),
+        mirrors: Vec::new(),
         destination: Some(destination.clone()),
         directory: temp.path().to_path_buf(),
         resume: false,
@@ -206,6 +208,7 @@ async fn cancels_and_resumes_from_journal() {
     let req = DownloadRequest {
         id: Uuid::new_v4(),
         url: url::Url::parse(&server.file_url("resume.bin")).unwrap(),
+        mirrors: Vec::new(),
         destination: Some(destination.clone()),
         directory: temp.path().to_path_buf(),
         resume: true,

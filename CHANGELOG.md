@@ -13,6 +13,7 @@ Keep a Changelog and the project uses Semantic Versioning.
 - Crash-safe `.part` + append-only JSONL resume journal.
 - Resume validation via ETag, Last-Modified, size and If-Range.
 - Single-stream fallback for servers that ignore ranges.
+- Mirror/alternate-URL probe fallback and per-worker failover.
 - Retry with exponential backoff and jitter; error classification.
 - Token-bucket speed limiting.
 - MD5/SHA-1/SHA-256/BLAKE3 checksum verification.
@@ -21,7 +22,8 @@ Keep a Changelog and the project uses Semantic Versioning.
 - Category auto-routing by file extension.
 - Authenticated loopback REST + WebSocket API.
 - Web UI with virtualized list, live segment view, add dialog and themes.
-- Chromium and Firefox MV3 extension sources.
+- Chromium and Firefox MV3 extension sources with options page.
+- Opt-in browser-download takeover (default off, accept-before-cancel).
 - Native-messaging host with live daemon test.
 - HLS VOD downloads (master/media playlists, init maps, ordered segments).
 - DASH VOD downloads (duration-based SegmentTemplate), DRM rejection.

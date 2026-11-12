@@ -61,6 +61,8 @@ impl DownloadStatus {
 pub struct DownloadRecord {
     pub id: Uuid,
     pub url: String,
+    #[serde(default)]
+    pub mirrors: Vec<String>,
     pub final_url: Option<String>,
     pub destination: PathBuf,
     pub filename: String,

@@ -31,6 +31,7 @@ async fn steals_work_from_a_slow_segment_and_still_writes_exact_bytes() {
     let req = DownloadRequest {
         id: Uuid::new_v4(),
         url: url::Url::parse(&server.file_url("slow.bin")).unwrap(),
+        mirrors: Vec::new(),
         destination: None,
         directory: temp.path().to_path_buf(),
         resume: false,

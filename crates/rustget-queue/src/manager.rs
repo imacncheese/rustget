@@ -62,6 +62,8 @@ impl ManagerConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewDownload {
     pub url: String,
+    #[serde(default)]
+    pub mirrors: Vec<String>,
     pub destination: Option<PathBuf>,
     pub directory: Option<PathBuf>,
     pub category: Option<String>,
@@ -84,6 +86,7 @@ impl Default for NewDownload {
     fn default() -> Self {
         Self {
             url: String::new(),
+            mirrors: Vec::new(),
             destination: None,
             directory: None,
             category: None,
@@ -192,7 +195,28 @@ impl DownloadManager {
             ..RequestOptions::default()
         };
         let downloader = Downloader::new(base_config.clone(), options)?;
-        let probe = downloader.probe(&url).await?;
+        let parsed_mirrors: Vec<Url> = request
+            .mirrors
+            .iter()
+            .filter_map(|mirror| Url::parse(mirror).ok())
+            .filter(|mirror| matches!(mirror.scheme(), "http" | "https"))
+            .collect();
+        let mut probe = None;
+        let mut last_error = None;
+        for candidate in std::iter::once(&url).chain(parsed_mirrors.iter()) {
+            match downloader.probe(candidate).await {
+                Ok(found) => {
+                    probe = Some(found);
+                    break;
+                }
+                Err(error) => last_error = Some(error),
+            }
+        }
+        let Some(probe) = probe else {
+            return Err(last_error
+                .map(ManagerError::Net)
+                .unwrap_or_else(|| ManagerError::Net(NetError::InvalidUrl(url.to_string()))));
+        };
         let safe_name = sanitize_filename(&probe.filename);
         let extension = std::path::Path::new(&safe_name)
             .extension()
@@ -241,6 +265,10 @@ impl DownloadManager {
         let record = DownloadRecord {
             id: Uuid::new_v4(),
             url: url.to_string(),
+            mirrors: parsed_mirrors
+                .iter()
+                .map(std::string::ToString::to_string)
+                .collect(),
             final_url: Some(probe.final_url.to_string()),
             destination,
             filename,
@@ -532,6 +560,11 @@ impl DownloadManager {
         let request = DownloadRequest {
             id: record.id,
             url: Url::parse(&record.url).unwrap_or_else(|_| Url::parse("http://invalid").unwrap()),
+            mirrors: record
+                .mirrors
+                .iter()
+                .filter_map(|mirror| Url::parse(mirror).ok())
+                .collect(),
             destination: Some(record.destination.clone()),
             directory: self.config.download_dir.clone(),
             resume: was_paused || DownloadPaths::new(&record.destination).part.exists(),
@@ -671,6 +704,7 @@ mod tests {
         let record = manager
             .add(NewDownload {
                 url: server.file_url("file.bin"),
+                mirrors: Vec::new(),
                 ..NewDownload::default()
             })
             .await
@@ -718,6 +752,7 @@ mod tests {
         let record = manager
             .add(NewDownload {
                 url: server.file_url("song.mp3"),
+                mirrors: Vec::new(),
                 start: false,
                 ..NewDownload::default()
             })
@@ -754,6 +789,7 @@ mod tests {
         let record = manager
             .add(NewDownload {
                 url: server.file_url("stream.m3u8"),
+                mirrors: Vec::new(),
                 ..NewDownload::default()
             })
             .await
@@ -775,11 +811,54 @@ mod tests {
         assert_eq!(std::fs::read(&stored.destination).unwrap(), b"AAABBB");
     }
 
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn manager_uses_mirror_when_primary_is_down() {
+        let mirror = TestServer::start(TestkitConfig::single(256 * 1024))
+            .await
+            .unwrap();
+        let temp = tempfile::tempdir().unwrap();
+        let manager = DownloadManager::new(ManagerConfig {
+            data_dir: temp.path().join("data"),
+            download_dir: temp.path().join("downloads"),
+            engine: EngineConfig::default(),
+            max_concurrent: 1,
+        })
+        .unwrap();
+        let mut events = manager.subscribe();
+        let record = manager
+            .add(NewDownload {
+                url: "http://127.0.0.1:1/down".into(),
+                mirrors: vec![mirror.file_url("file.bin")],
+                ..NewDownload::default()
+            })
+            .await
+            .unwrap();
+        assert_eq!(record.mirrors.len(), 1);
+        tokio::time::timeout(Duration::from_secs(15), async {
+            loop {
+                if let Ok(ManagerEvent::Finished { id, status }) = events.recv().await {
+                    if id == record.id {
+                        assert_eq!(status, DownloadStatus::Completed);
+                        break;
+                    }
+                }
+            }
+        })
+        .await
+        .unwrap();
+        let stored = manager.get(record.id).unwrap();
+        assert_eq!(
+            std::fs::read(&stored.destination).unwrap(),
+            expected_content(0x5EED_1234_ABCD_9876, 256 * 1024)
+        );
+    }
+
     #[test]
     fn progress_is_mapped_to_record() {
         let mut record = DownloadRecord {
             id: Uuid::new_v4(),
             url: String::new(),
+            mirrors: Vec::new(),
             final_url: None,
             destination: PathBuf::new(),
             filename: String::new(),

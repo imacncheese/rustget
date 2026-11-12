@@ -132,6 +132,9 @@ struct ScheduleAdd {
 #[derive(Debug, Args)]
 struct AddArgs {
     url: String,
+    /// Alternate URL expected to serve the same bytes; repeatable.
+    #[arg(long = "mirror")]
+    mirrors: Vec<String>,
     /// Exact output path or directory.
     #[arg(short, long)]
     output: Option<PathBuf>,
@@ -351,6 +354,7 @@ async fn add(cli: &Cli, paths: &Paths, args: &AddArgs) -> Result<()> {
     };
     let request = NewDownload {
         url: args.url.clone(),
+        mirrors: args.mirrors.clone(),
         destination: args.output.clone(),
         directory: Some(paths.download_dir.clone()),
         category: Some(args.category.clone()),
@@ -664,6 +668,7 @@ async fn grab(
                 paths,
                 &AddArgs {
                     url: file.url,
+                    mirrors: Vec::new(),
                     output: None,
                     connections,
                     limit: 0.0,
@@ -837,6 +842,7 @@ async fn batch(
     for url in urls {
         let args = AddArgs {
             url,
+            mirrors: Vec::new(),
             output: None,
             connections,
             limit: 0.0,

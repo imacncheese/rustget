@@ -344,6 +344,15 @@ impl DownloadManager {
         Ok(record)
     }
 
+    pub fn set_priority(&self, id: Uuid, priority: i32) -> Result<DownloadRecord> {
+        let mut record = self.get(id)?;
+        record.priority = priority;
+        record.updated_at_ms = chrono::Utc::now().timestamp_millis();
+        self.db.update(&record)?;
+        let _ = self.events.send(ManagerEvent::Updated(record.clone()));
+        Ok(record)
+    }
+
     pub fn pause_all(&self) -> usize {
         let items = self.db.list(None).unwrap_or_default();
         let mut count = 0;

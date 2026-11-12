@@ -180,6 +180,9 @@ editable block dialog. The screenshot is
 | `Esc` | Clear selection / close dialog |
 | `Tab` | Native focus traversal |
 
+The details actions include **Move up/Move down**, which PATCH the queue priority.
+There is no drag reorder yet.
+
 ### 7.2 Screen reader
 
 - Sidebar is a `nav` with an accessible label.

@@ -108,7 +108,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | C04 | Scheduler time windows | MUST | P0 | M3 | ✅ | Weekly day mask, start/stop, overnight; pure tests |
 | C05 | Start/stop/pause-all | MUST | P0 | M3 | ✅ | Per-item + `pause-all`/`resume-all` API and CLI; scheduler closes windows |
 | C06 | Auto shutdown/sleep/hibernate/exit | SHOULD | P1 | M6 | ◐ | Action persisted and surfaced; execution intentionally disabled |
-| C07 | Queue UI | MUST | P1 | M4 | — | Web UI has status filters, not a queue editor |
+| C07 | Queue UI | MUST | P1 | M4 | ◐ | Status filters + priority Move up/down in details; no drag reorder or per-queue lanes |
 | C08 | Per-download properties | MUST | P1 | M4 | ✅ | Details pane: path, URL, size, speeds, error |
 | C09 | Per-connection view | MUST | P1 | M4 | ✅ | Live segment list over WebSocket |
 | C10 | Live speed chart | SHOULD | P1 | M4 | — | Numeric speed only |
@@ -208,9 +208,9 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | State | Count |
 |---|---:|
 | ✅ implemented + verified | 68 |
-| ◐ partial | 38 |
+| ◐ partial | 39 |
 | ○ specified, not implemented | 1 |
-| — not started | 40 |
+| — not started | 39 |
 | **Total tracked** | **147** |
 
 By area:
@@ -219,7 +219,7 @@ By area:
 |---|---:|---:|---:|---:|---:|
 | A. Download engine | 46 | 22 | 17 | 0 | 7 |
 | B. Capture/integration | 22 | 9 | 9 | 0 | 4 |
-| C. Management | 30 | 17 | 3 | 0 | 10 |
+| C. Management | 30 | 17 | 4 | 0 | 9 |
 | D. UI/UX | 12 | 7 | 2 | 0 | 3 |
 | E. Quality/security | 15 | 9 | 3 | 1 | 2 |
 | F. Platform/packaging | 10 | 1 | 2 | 0 | 7 |

@@ -109,7 +109,9 @@ pub fn router(manager: Arc<DownloadManager>, config: &ApiConfig) -> Router {
         .route("/api/v1/downloads", get(list_downloads).post(add_download))
         .route(
             "/api/v1/downloads/{id}",
-            get(get_download).delete(remove_download),
+            get(get_download)
+                .patch(patch_download)
+                .delete(remove_download),
         )
         .route("/api/v1/downloads/pause-all", post(pause_all))
         .route("/api/v1/downloads/resume-all", post(resume_all))
@@ -321,6 +323,27 @@ async fn pause_all(State(state): State<ApiState>) -> Json<serde_json::Value> {
 async fn resume_all(State(state): State<ApiState>) -> Json<serde_json::Value> {
     let count = state.manager.resume_all();
     Json(json!({"resumed": count}))
+}
+
+#[derive(Debug, Deserialize)]
+struct PatchDownload {
+    priority: Option<i32>,
+}
+
+async fn patch_download(
+    State(state): State<ApiState>,
+    AxumPath(id): AxumPath<String>,
+    Json(input): Json<PatchDownload>,
+) -> Result<Json<rustget_queue::DownloadRecord>, ApiError> {
+    let id = parse_id(&id)?;
+    if let Some(priority) = input.priority {
+        return state
+            .manager
+            .set_priority(id, priority)
+            .map(Json)
+            .map_err(|error| map_manager_error(&error));
+    }
+    Err(ApiError::BadRequest("no supported fields supplied".into()))
 }
 
 async fn pause_download(

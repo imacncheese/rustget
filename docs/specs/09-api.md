@@ -122,6 +122,16 @@ Request:
 {"download": { ... }, "progress": { ... } | null}
 ```
 
+### `PATCH /api/v1/downloads/{id}`
+
+Updates queue priority. Higher values are promoted first.
+
+```json
+{"priority": 7}
+```
+
+Returns the updated record.
+
 ### `POST /api/v1/downloads/pause-all`
 
 Pauses every active/queued row. Returns `{"paused": N}`.

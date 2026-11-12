@@ -96,6 +96,18 @@ async fn add_list_and_delete_download() {
     let id = record["id"].as_str().unwrap().to_string();
     assert_eq!(record["filename"], "file.bin");
 
+    let patched: serde_json::Value = client
+        .patch(format!("{base}/api/v1/downloads/{id}"))
+        .bearer_auth(&token)
+        .json(&serde_json::json!({"priority": 7}))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(patched["priority"], 7);
+
     let deadline = tokio::time::Instant::now() + Duration::from_secs(20);
     loop {
         let response = client

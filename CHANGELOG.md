@@ -19,6 +19,7 @@ Keep a Changelog and the project uses Semantic Versioning.
 - Token-bucket speed limiting.
 - MD5/SHA-1/SHA-256/BLAKE3 checksum verification.
 - SQLite WAL catalogue, queues, priorities and concurrency limits.
+- Priority editing via API and the details pane (Move up/down).
 - Weekly scheduler windows with scheduler-owned pauses.
 - Category auto-routing by file extension.
 - Authenticated loopback REST + WebSocket API.

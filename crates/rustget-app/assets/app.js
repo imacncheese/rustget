@@ -564,6 +564,20 @@
     if (!state.selected) return;
     await action(`/api/v1/downloads/${state.selected}/retry`);
   }
+  async function changePriority(delta) {
+    const record = state.downloads.find((item) => item.id === state.selected);
+    if (!record) return;
+    try {
+      const updated = await api(`/api/v1/downloads/${record.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ priority: (record.priority || 0) + delta }),
+      });
+      const index = state.downloads.findIndex((item) => item.id === updated.id);
+      if (index >= 0) state.downloads[index] = updated;
+      renderAll();
+      toast(`Priority ${updated.priority > 0 ? "+" : ""}${updated.priority}`);
+    } catch (error) { toast(error.message, true); }
+  }
   async function removeSelected() {
     if (!state.selected) return;
     const record = state.downloads.find((item) => item.id === state.selected);
@@ -681,6 +695,8 @@
     $("#retryBtn").addEventListener("click", retrySelected);
     $("#removeBtn").addEventListener("click", removeSelected);
     $("#openBtn").addEventListener("click", openSelected);
+    $("#upBtn").addEventListener("click", () => changePriority(1));
+    $("#downBtn").addEventListener("click", () => changePriority(-1));
 
     $("#pasteBtn").addEventListener("click", async () => {
       try {

@@ -7,6 +7,7 @@ feature set popularised by Internet Download Manager: dynamic multi-connection
 segmentation, crash-safe resume, queues, a local API, browser integration and a
 modern UI. It is not affiliated with or endorsed by Tonec FZE.
 
+![RustGet German UI](docs/assets/ui-de-main.png)
 ![RustGet first-run wizard](docs/assets/ui-wizard.png)
 ![RustGet main window](docs/assets/ui-main.png)
 

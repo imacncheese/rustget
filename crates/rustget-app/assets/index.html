@@ -15,24 +15,24 @@
         <span class="brand-mark" aria-hidden="true">R</span>
         <div>
           <strong>RustGet</strong>
-          <small>fast · open · yours</small>
+          <small data-i18n="tagline">fast · open · yours</small>
         </div>
       </div>
       <nav class="nav" id="nav">
-        <button class="nav-item active" data-filter="all"><span class="dot all"></span>All downloads <span class="count" data-count="all">0</span></button>
-        <button class="nav-item" data-filter="downloading"><span class="dot active"></span>Downloading <span class="count" data-count="downloading">0</span></button>
-        <button class="nav-item" data-filter="queued"><span class="dot queued"></span>Queued <span class="count" data-count="queued">0</span></button>
-        <button class="nav-item" data-filter="paused"><span class="dot paused"></span>Paused <span class="count" data-count="paused">0</span></button>
-        <button class="nav-item" data-filter="completed"><span class="dot done"></span>Completed <span class="count" data-count="completed">0</span></button>
-        <button class="nav-item" data-filter="failed"><span class="dot failed"></span>Failed <span class="count" data-count="failed">0</span></button>
+        <button class="nav-item active" data-filter="all"><span class="dot all"></span><span data-i18n="nav.all">All downloads</span> <span class="count" data-count="all">0</span></button>
+        <button class="nav-item" data-filter="downloading"><span class="dot active"></span><span data-i18n="nav.downloading">Downloading</span> <span class="count" data-count="downloading">0</span></button>
+        <button class="nav-item" data-filter="queued"><span class="dot queued"></span><span data-i18n="nav.queued">Queued</span> <span class="count" data-count="queued">0</span></button>
+        <button class="nav-item" data-filter="paused"><span class="dot paused"></span><span data-i18n="nav.paused">Paused</span> <span class="count" data-count="paused">0</span></button>
+        <button class="nav-item" data-filter="completed"><span class="dot done"></span><span data-i18n="nav.completed">Completed</span> <span class="count" data-count="completed">0</span></button>
+        <button class="nav-item" data-filter="failed"><span class="dot failed"></span><span data-i18n="nav.failed">Failed</span> <span class="count" data-count="failed">0</span></button>
       </nav>
-      <div class="nav-label">Categories</div>
+      <div class="nav-label" data-i18n="nav.categories">Categories</div>
       <nav class="nav" id="categoryNav" aria-label="Download categories"></nav>
       <div class="sidebar-foot">
-        <button class="ghost" id="schedulesBtn" title="Scheduler" aria-label="Scheduler">▦ <span>Scheduler</span></button>
-        <button class="ghost" id="logsBtn" title="Logs" aria-label="Logs">☰ <span>Logs</span></button>
-        <button class="ghost" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">◐ <span>Theme</span></button>
-        <button class="ghost" id="settingsBtn" title="Settings" aria-label="Settings">⚙ <span>Settings</span></button>
+        <button class="ghost" id="schedulesBtn" title="Scheduler" aria-label="Scheduler">▦ <span data-i18n="nav.scheduler">Scheduler</span></button>
+        <button class="ghost" id="logsBtn" title="Logs" aria-label="Logs">☰ <span data-i18n="nav.logs">Logs</span></button>
+        <button class="ghost" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">◐ <span data-i18n="nav.theme">Theme</span></button>
+        <button class="ghost" id="settingsBtn" title="Settings" aria-label="Settings">⚙ <span data-i18n="nav.settings">Settings</span></button>
       </div>
     </aside>
 
@@ -40,42 +40,42 @@
       <header class="toolbar">
         <div class="search-wrap">
           <span aria-hidden="true">⌕</span>
-          <input id="search" type="search" placeholder="Search downloads" aria-label="Search downloads">
+          <input id="search" type="search" placeholder="Search downloads" data-i18n-placeholder="search" aria-label="Search downloads">
         </div>
-        <button class="primary" id="addBtn">＋ Add download</button>
+        <button class="primary" id="addBtn">＋ <span data-i18n="add">Add download</span></button>
       </header>
 
       <section class="stats" aria-label="Transfer summary">
-        <div><small>Active</small><strong id="statActive">0</strong></div>
-        <div><small>Total speed</small><strong id="statSpeed">0 B/s</strong></div>
-        <div><small>Completed</small><strong id="statDone">0</strong></div>
-        <div><small>Data</small><strong id="statBytes">0 B</strong></div>
+        <div><small data-i18n="stats.active">Active</small><strong id="statActive">0</strong></div>
+        <div><small data-i18n="stats.speed">Total speed</small><strong id="statSpeed">0 B/s</strong></div>
+        <div><small data-i18n="stats.done">Completed</small><strong id="statDone">0</strong></div>
+        <div><small data-i18n="stats.data">Data</small><strong id="statBytes">0 B</strong></div>
       </section>
 
       <section class="content">
         <div class="list-pane">
           <div class="list-header" role="row">
-            <button class="col col-name" data-sort="filename">Name <span class="sort"></span></button>
-            <button class="col col-size" data-sort="total_size">Size <span class="sort"></span></button>
-            <button class="col col-progress" data-sort="progress">Progress <span class="sort"></span></button>
-            <button class="col col-speed" data-sort="speed_bps">Speed <span class="sort"></span></button>
-            <button class="col col-status" data-sort="status">Status <span class="sort"></span></button>
+            <button class="col col-name" data-sort="filename"><span data-i18n="table.name">Name</span> <span class="sort"></span></button>
+            <button class="col col-size" data-sort="total_size"><span data-i18n="table.size">Size</span> <span class="sort"></span></button>
+            <button class="col col-progress" data-sort="progress"><span data-i18n="table.progress">Progress</span> <span class="sort"></span></button>
+            <button class="col col-speed" data-sort="speed_bps"><span data-i18n="table.speed">Speed</span> <span class="sort"></span></button>
+            <button class="col col-status" data-sort="status"><span data-i18n="table.status">Status</span> <span class="sort"></span></button>
           </div>
           <div class="list-viewport" id="listViewport" tabindex="0" aria-label="Download list">
             <div class="list-spacer" id="listSpacer"></div>
             <div class="list-rows" id="listRows"></div>
             <div class="empty" id="empty">
               <div class="empty-icon">⇣</div>
-              <h2>No downloads yet</h2>
-              <p>Paste a link or add one to get started.</p>
-              <button class="primary" id="emptyAdd">Add your first download</button>
+              <h2 data-i18n="empty.title">No downloads yet</h2>
+              <p data-i18n="empty.body">Paste a link or add one to get started.</p>
+              <button class="primary" id="emptyAdd" data-i18n="empty.first">Add your first download</button>
             </div>
           </div>
         </div>
 
         <aside class="details" id="details" aria-label="Download details">
           <div class="details-empty" id="detailsEmpty">
-            <p>Select a download to see its connections, segments and live progress.</p>
+            <p data-i18n="details.empty">Select a download to see its connections, segments and live progress.</p>
           </div>
           <div class="details-body" id="detailsBody" hidden>
             <div class="details-head">
@@ -96,11 +96,11 @@
               <canvas id="speedChart"></canvas>
             </div>
             <div class="segments-block">
-              <div class="section-title"><span>Connections</span><span id="detailConns">0</span></div>
+              <div class="section-title"><span data-i18n="details.connections">Connections</span><span id="detailConns">0</span></div>
               <div class="segments" id="detailSegments"></div>
             </div>
             <div class="tags-block">
-              <div class="section-title"><span>Tags</span></div>
+              <div class="section-title"><span data-i18n="details.tags">Tags</span></div>
               <div class="tags" id="detailTags"></div>
               <div class="input-row">
                 <input id="tagInput" type="text" maxlength="40" placeholder="Add tag" autocomplete="off">
@@ -108,18 +108,18 @@
               </div>
             </div>
             <div class="meta">
-              <div><small>Saved to</small><code id="detailPath">—</code></div>
-              <div><small>Source</small><code id="detailUrl">—</code></div>
+              <div><small data-i18n="details.saved">Saved to</small><code id="detailPath">—</code></div>
+              <div><small data-i18n="details.source">Source</small><code id="detailUrl">—</code></div>
               <div class="error-row" id="detailErrorRow" hidden><small>Error</small><span class="error" id="detailError"></span></div>
             </div>
             <div class="actions">
-              <button id="pauseBtn" class="secondary">Pause</button>
-              <button id="resumeBtn" class="secondary">Resume</button>
-              <button id="retryBtn" class="secondary">Retry</button>
-              <button id="openBtn" class="secondary">Open folder</button>
-              <button id="upBtn" class="secondary">Move up</button>
-              <button id="downBtn" class="secondary">Move down</button>
-              <button id="removeBtn" class="danger">Remove</button>
+              <button id="pauseBtn" class="secondary" data-i18n="details.pause">Pause</button>
+              <button id="resumeBtn" class="secondary" data-i18n="details.resume">Resume</button>
+              <button id="retryBtn" class="secondary" data-i18n="details.retry">Retry</button>
+              <button id="openBtn" class="secondary" data-i18n="details.open">Open folder</button>
+              <button id="upBtn" class="secondary" data-i18n="details.up">Move up</button>
+              <button id="downBtn" class="secondary" data-i18n="details.down">Move down</button>
+              <button id="removeBtn" class="danger" data-i18n="details.remove">Remove</button>
             </div>
           </div>
         </aside>
@@ -130,36 +130,36 @@
   <dialog id="addDialog">
     <form method="dialog" class="modal" id="addForm">
       <header class="modal-head">
-        <h2>Add download</h2>
+        <h2 data-i18n="dialog.add">Add download</h2>
         <button class="icon" value="cancel" aria-label="Close">✕</button>
       </header>
       <div class="modal-body">
         <label class="field">
-          <span>URL</span>
+          <span data-i18n="field.url">URL</span>
           <div class="input-row">
             <input id="addUrl" type="url" required placeholder="https://example.com/file.zip" autocomplete="off" spellcheck="false">
             <button type="button" class="secondary" id="pasteBtn" title="Paste from clipboard">Paste</button>
-            <button type="button" class="secondary" id="probeBtn" title="Check filename and size">Check</button>
+            <button type="button" class="secondary" id="probeBtn" title="Check filename and size" data-i18n="field.check">Check</button>
           </div>
           <span class="hint" id="probeHint" aria-live="polite"></span>
         </label>
         <div class="two">
           <label class="field">
-            <span>Save folder</span>
+            <span data-i18n="field.folder">Save folder</span>
             <input id="addDir" type="text" placeholder="Default downloads folder" autocomplete="off">
           </label>
           <label class="field">
-            <span>Connections</span>
+            <span data-i18n="field.connections">Connections</span>
             <input id="addConns" type="number" min="1" max="32" value="8">
           </label>
         </div>
         <div class="two">
           <label class="field">
-            <span>Speed limit (MB/s, 0 = unlimited)</span>
+            <span data-i18n="field.limit">Speed limit (MB/s, 0 = unlimited)</span>
             <input id="addLimit" type="number" min="0" step="0.1" value="0">
           </label>
           <label class="field">
-            <span>Category</span>
+            <span data-i18n="field.category">Category</span>
             <input id="addCategory" type="text" value="General" list="categoryList">
             <datalist id="categoryList">
               <option>General</option><option>Music</option><option>Video</option>
@@ -172,23 +172,23 @@
           <select id="addVariant"><option value="">Auto (best)</option></select>
         </label>
         <label class="field">
-          <span>HTTP proxy (optional)</span>
+          <span data-i18n="field.proxy">HTTP proxy (optional)</span>
           <input id="addProxy" type="text" placeholder="http://127.0.0.1:3128" autocomplete="off" spellcheck="false">
         </label>
         <label class="field">
-          <span>Tags (comma separated, optional)</span>
+          <span data-i18n="field.tags">Tags (comma separated, optional)</span>
           <input id="addTags" type="text" placeholder="linux, iso" autocomplete="off">
         </label>
         <label class="field">
-          <span>Mirror URLs (comma separated, optional)</span>
+          <span data-i18n="field.mirrors">Mirror URLs (comma separated, optional)</span>
           <input id="addMirrors" type="text" placeholder="https://mirror.example/file.zip" autocomplete="off" spellcheck="false">
         </label>
-        <label class="check"><input type="checkbox" id="addStart" checked> Start immediately</label>
+        <label class="check"><input type="checkbox" id="addStart" checked> <span data-i18n="field.start">Start immediately</span></label>
         <p class="hint">RustGet probes the server before adding the download, so the real filename and size appear first.</p>
       </div>
       <footer class="modal-foot">
-        <button class="secondary" value="cancel">Cancel</button>
-        <button class="primary" id="addSubmit" value="default">Add download</button>
+        <button class="secondary" value="cancel" data-i18n="action.cancel">Cancel</button>
+        <button class="primary" id="addSubmit" value="default" data-i18n="action.add">Add download</button>
       </footer>
     </form>
   </dialog>
@@ -196,16 +196,16 @@
   <dialog id="settingsDialog">
     <form method="dialog" class="modal narrow" id="settingsForm">
       <header class="modal-head">
-        <h2>Settings</h2>
+        <h2 data-i18n="dialog.settings">Settings</h2>
         <button class="icon" value="cancel" aria-label="Close">✕</button>
       </header>
       <div class="modal-body">
         <label class="field">
-          <span>API token</span>
+          <span data-i18n="field.token">API token</span>
           <input id="tokenInput" type="password" autocomplete="off" spellcheck="false" placeholder="Paste the token printed by rustget serve">
         </label>
         <label class="field">
-          <span>Theme</span>
+          <span data-i18n="field.theme">Theme</span>
           <select id="themeSelect">
             <option value="system">System</option>
             <option value="dark">Dark</option>
@@ -213,18 +213,25 @@
           </select>
         </label>
         <label class="field">
-          <span>Notifications on completion</span>
+          <span data-i18n="field.notifications">Notifications on completion</span>
           <select id="notifySelect"><option value="on">On</option><option value="off">Off</option></select>
         </label>
+        <label class="field">
+          <span data-i18n="field.language">Language</span>
+          <select id="languageSelect">
+            <option value="en" data-i18n="language.en">English</option>
+            <option value="de" data-i18n="language.de">Deutsch</option>
+          </select>
+        </label>
         <div class="two">
-          <button type="button" class="secondary" id="exportConfigBtn">Export config</button>
-          <button type="button" class="secondary" id="importConfigBtn">Import config</button>
+          <button type="button" class="secondary" id="exportConfigBtn" data-i18n="settings.export">Export config</button>
+          <button type="button" class="secondary" id="importConfigBtn" data-i18n="settings.import">Import config</button>
           <input id="importConfigFile" type="file" accept="application/json,.json" hidden>
         </div>
         <p class="hint">Export includes downloads, settings, categories and schedules. The token authorises this browser to your local RustGet daemon; it never leaves this machine.</p>
       </div>
       <footer class="modal-foot">
-        <button class="secondary" value="cancel">Close</button>
+        <button class="secondary" value="cancel" data-i18n="action.close">Close</button>
         <button class="primary" id="settingsSave" value="default">Save</button>
       </footer>
     </form>
@@ -234,23 +241,23 @@
     <div class="modal narrow wizard">
       <div class="wizard-step" data-step="1">
         <div class="wizard-logo">R</div>
-        <h2>Welcome to RustGet</h2>
-        <p class="hint">Fast, open and local. Three things to know:</p>
+        <h2 data-i18n="wizard.welcome">Welcome to RustGet</h2>
+        <p class="hint" data-i18n="wizard.lead">Fast, open and local. Three things to know:</p>
         <ul class="wizard-list">
-          <li>Paste a link or drag one onto the window.</li>
-          <li>The daemon stores tokens and downloads only on this machine.</li>
-          <li>Use the sidebar Scheduler, Logs and Settings when you need them.</li>
+          <li data-i18n="wizard.li1">Paste a link or drag one onto the window.</li>
+          <li data-i18n="wizard.li2">The daemon stores tokens and downloads only on this machine.</li>
+          <li data-i18n="wizard.li3">Use the sidebar Scheduler, Logs and Settings when you need them.</li>
         </ul>
-        <button class="primary" id="wizardNext">Get started</button>
+        <button class="primary" id="wizardNext" data-i18n="wizard.start">Get started</button>
       </div>
       <div class="wizard-step" data-step="2" hidden>
-        <h2>Connect this browser</h2>
-        <p class="hint">Paste the API token printed by <code>rustget serve</code>. It never leaves this machine.</p>
+        <h2 data-i18n="wizard.connect">Connect this browser</h2>
+        <p class="hint" data-i18n="wizard.tokenHint">Paste the API token printed by rustget serve. It never leaves this machine.</p>
         <label class="field"><span>API token</span><input id="wizardToken" type="password" autocomplete="off" spellcheck="false"></label>
         <p class="hint error" id="wizardError" hidden></p>
         <div class="wizard-actions">
-          <button class="secondary" id="wizardBack">Back</button>
-          <button class="primary" id="wizardFinish">Test &amp; finish</button>
+          <button class="secondary" id="wizardBack" data-i18n="wizard.back">Back</button>
+          <button class="primary" id="wizardFinish" data-i18n="wizard.finish">Test &amp; finish</button>
         </div>
       </div>
     </div>
@@ -259,7 +266,7 @@
   <dialog id="logsDialog">
     <div class="modal wide">
       <header class="modal-head">
-        <h2>Logs</h2>
+        <h2 data-i18n="dialog.logs">Logs</h2>
         <button class="icon" id="logsClose" aria-label="Close">✕</button>
       </header>
       <div class="modal-body">
@@ -275,7 +282,7 @@
   <dialog id="schedulesDialog">
     <div class="modal wide">
       <header class="modal-head">
-        <h2>Scheduler</h2>
+        <h2 data-i18n="dialog.scheduler">Scheduler</h2>
         <button class="icon" id="schedulesClose" aria-label="Close">✕</button>
       </header>
       <div class="modal-body">
@@ -315,6 +322,7 @@
   </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="/i18n.js" defer></script>
   <script src="/app.js" defer></script>
 </body>
 </html>

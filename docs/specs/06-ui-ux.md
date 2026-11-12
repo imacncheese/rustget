@@ -5,6 +5,7 @@ implemented; video picker and first-run wizard are design-only
 **Code:** `crates/rustget-app/assets`
 **Reference screenshots:** [main](../assets/ui-main.png),
 [first-run wizard](../assets/ui-wizard.png),
+[German UI](../assets/ui-de-main.png),
 [live speed](../assets/ui-speed.png), [scheduler](../assets/ui-scheduler.png)
 
 ## 1. Design principles
@@ -193,6 +194,11 @@ stream.
 Settings has **Export config** and **Import config** actions. The export is the
 same JSON bundle as the API (downloads, settings, categories, schedules); import
 reloads the queue after applying the bundle.
+
+The language selector in Settings switches the core UI between English and
+German using `assets/i18n.js` and `data-i18n` attributes; the choice is persisted
+in `localStorage` and `?lang=de` is supported for testing. Dynamic strings and
+Fluent message formatting are not complete yet.
 
 With no token (and no valid saved token), the first-run wizard opens instead of
 the settings form: a welcome step, then a token field whose value is tested

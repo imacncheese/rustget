@@ -194,6 +194,7 @@ pub fn router(manager: Arc<DownloadManager>, config: &ApiConfig) -> Router {
         .route("/", get(index))
         .route("/index.html", get(index))
         .route("/app.js", get(app_js))
+        .route("/i18n.js", get(i18n_js))
         .route("/style.css", get(style_css))
         .route("/favicon.svg", get(favicon))
         .fallback(get(index))
@@ -891,6 +892,16 @@ async fn app_js() -> impl IntoResponse {
         rustget_app::APP_JS,
     )
 }
+async fn i18n_js() -> impl IntoResponse {
+    (
+        [
+            (header::CONTENT_TYPE, "text/javascript; charset=utf-8"),
+            (header::CACHE_CONTROL, "no-store"),
+        ],
+        rustget_app::I18N_JS,
+    )
+}
+
 async fn style_css() -> impl IntoResponse {
     (
         [

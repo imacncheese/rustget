@@ -6,6 +6,28 @@
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
+  const I18N = window.RUSTGET_I18N || { en: {} };
+  let language = localStorage.getItem("rustget.lang");
+  if (!language) language = (navigator.language || "").toLowerCase().startsWith("de") ? "de" : "en";
+
+  function t(key) {
+    return I18N[language]?.[key] ?? I18N.en?.[key] ?? key;
+  }
+
+  function applyLanguage(next = language) {
+    language = I18N[next] ? next : "en";
+    localStorage.setItem("rustget.lang", language);
+    document.documentElement.lang = language;
+    for (const node of document.querySelectorAll("[data-i18n]")) {
+      node.textContent = t(node.dataset.i18n);
+    }
+    for (const node of document.querySelectorAll("[data-i18n-placeholder]")) {
+      node.placeholder = t(node.dataset.i18nPlaceholder);
+    }
+    const select = $("#languageSelect");
+    if (select) select.value = language;
+  }
+
   const speedHistory = new Map();
   const state = {
     token: "",
@@ -401,7 +423,7 @@
     nav.innerHTML = "";
     const all = document.createElement("button");
     all.className = `nav-item${state.category ? "" : " active"}`;
-    all.innerHTML = `<span class="dot"></span>All categories`;
+    all.innerHTML = `<span class="dot"></span>${t("nav.allCategories")}`;
     all.onclick = () => { state.category = ""; state.lastRange = ""; renderAll(); };
     nav.appendChild(all);
     for (const name of names) {
@@ -480,10 +502,10 @@
       const title = empty.querySelector("h2");
       const copy = empty.querySelector("p");
       if (state.downloads.length === 0) {
-        title.textContent = "No downloads yet";
-        copy.textContent = "Paste a link or add one to get started.";
+        title.textContent = t("empty.title");
+        copy.textContent = t("empty.body");
       } else {
-        title.textContent = "No matching downloads";
+        title.textContent = t("empty.none");
         copy.textContent = "Try clearing the search or choosing another filter.";
       }
       return;
@@ -797,6 +819,7 @@
   function openSettings(message) {
     $("#tokenInput").value = state.token;
     $("#themeSelect").value = localStorage.getItem("rustget.theme") || "system";
+    $("#languageSelect").value = language;
     $("#notifySelect").value = state.notify ? "on" : "off";
     $("#settingsDialog").showModal();
     if (message) toast(message, true);
@@ -952,6 +975,10 @@
     $("#schedulesClose").addEventListener("click", () => $("#schedulesDialog").close());
     $("#scheduleForm").addEventListener("submit", submitSchedule);
     $("#themeBtn").addEventListener("click", cycleTheme);
+    $("#languageSelect").addEventListener("change", (event) => {
+      applyLanguage(event.target.value);
+      renderCategories();
+    });
     $("#addForm").addEventListener("submit", submitAdd);
     $("#pauseBtn").addEventListener("click", pauseSelected);
     $("#resumeBtn").addEventListener("click", resumeSelected);
@@ -1110,7 +1137,13 @@
 
   function boot() {
     readToken();
+    const requested = new URLSearchParams(location.search).get("lang");
+    if (requested && I18N[requested]) {
+      localStorage.setItem("rustget.lang", requested);
+      language = requested;
+    }
     applyTheme();
+    applyLanguage();
     bind();
     renderAll();
     if (!state.token) {

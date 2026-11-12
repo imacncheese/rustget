@@ -55,6 +55,7 @@
 - [x] Persisted tags with API/CLI/UI editing and tag search.
 - [x] In-app log viewer over a bounded tracing buffer.
 - [x] Two-step first-run wizard with token validation.
+- [~] English/German UI catalog and language selector (partial, non-Fluent).
 - [x] Explicit per-download HTTP proxy with a live proxy fixture.
 - [~] Autostart CLI/platform entries; Windows registry writes blocked here.
 - [x] Scheduler weekly timeline and add/delete form in the web UI.

@@ -95,6 +95,9 @@ async fn requires_bearer_and_serves_the_ui() {
     let page = client.get(format!("{base}/")).send().await.unwrap();
     assert_eq!(page.status(), 200);
     assert!(page.text().await.unwrap().contains("RustGet"));
+    let i18n = client.get(format!("{base}/i18n.js")).send().await.unwrap();
+    assert_eq!(i18n.status(), 200);
+    assert!(i18n.text().await.unwrap().contains("nav.downloading"));
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

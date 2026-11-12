@@ -124,7 +124,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | C20 | Single instance | MUST | P1 | M4 | ◐ | Daemon lock file enforced; no native desktop shell yet |
 | C21 | CLI: add/list/pause/resume/remove/schedule/config | MUST | P0 | M1 | ✅ | Implemented; pause/resume require daemon |
 | C22 | Headless daemon | MUST | P0 | M3 | ✅ | `rustget serve` |
-| C23 | i18n via Fluent | SHOULD | P2 | M7 | — | English only |
+| C23 | i18n via Fluent | SHOULD | P2 | M7 | ◐ | JSON catalog (English/German), persisted language selector, core UI translated; not Fluent and dynamic strings incomplete |
 | C24 | Accessibility (labels, focus, screen reader) | MUST | P1 | M4 | ◐ | Semantic labels/keyboard; no screen-reader audit |
 | C25 | Light/dark/system themes | MUST | P1 | M4 | ✅ | CSS variables, persisted theme |
 | C26 | Keyboard shortcuts | SHOULD | P1 | M4 | ✅ | Ctrl+N/F, Space, Delete, arrows, Esc |
@@ -207,9 +207,9 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | State | Count |
 |---|---:|
 | ✅ implemented + verified | 81 |
-| ◐ partial | 42 |
+| ◐ partial | 43 |
 | ○ specified, not implemented | 1 |
-| — not started | 23 |
+| — not started | 22 |
 | **Total tracked** | **147** |
 
 By area:
@@ -218,7 +218,7 @@ By area:
 |---|---:|---:|---:|---:|---:|
 | A. Download engine | 46 | 22 | 18 | 0 | 6 |
 | B. Capture/integration | 22 | 12 | 8 | 0 | 2 |
-| C. Management | 30 | 23 | 5 | 0 | 2 |
+| C. Management | 30 | 23 | 6 | 0 | 1 |
 | D. UI/UX | 12 | 10 | 2 | 0 | 0 |
 | E. Quality/security | 15 | 9 | 3 | 1 | 2 |
 | F. Platform/packaging | 10 | 2 | 2 | 0 | 6 |

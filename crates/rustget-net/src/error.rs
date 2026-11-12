@@ -38,6 +38,8 @@ pub enum NetError {
     UnsupportedChecksum,
     #[error("destination already exists: {0}")]
     DestinationExists(String),
+    #[error("insufficient disk space: need {needed} bytes, {available} available")]
+    InsufficientSpace { needed: u64, available: u64 },
     #[error("protocol error: {0}")]
     Protocol(String),
     #[error("FTP error: {0}")]
@@ -69,6 +71,7 @@ impl NetError {
             | Self::ChecksumMismatch { .. }
             | Self::UnsupportedChecksum
             | Self::DestinationExists(_)
+            | Self::InsufficientSpace { .. }
             | Self::Protocol(_)
             | Self::Config(_) => ErrorClass::Fatal,
         }

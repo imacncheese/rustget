@@ -305,6 +305,13 @@ impl Downloader {
         let paths = DownloadPaths::new(&destination);
         if let Some(parent) = destination.parent() {
             tokio::fs::create_dir_all(parent).await?;
+            if let Some(total) = probe.total_size {
+                let available = fs2::available_space(parent)?;
+                let needed = total.saturating_add(self.config.reserve_bytes);
+                if needed > available {
+                    return Err(NetError::InsufficientSpace { needed, available });
+                }
+            }
         }
         tracker.emit(
             DownloadState::Downloading,

@@ -16,6 +16,7 @@ blake3.workspace = true
 cbc.workspace = true
 cipher.workspace = true
 bytes.workspace = true
+fs2.workspace = true
 futures-util.workspace = true
 hex.workspace = true
 http.workspace = true

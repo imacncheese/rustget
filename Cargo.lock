@@ -3451,6 +3451,7 @@ dependencies = [
  "bytes",
  "cbc",
  "cipher",
+ "fs2",
  "futures-util",
  "hex",
  "http",

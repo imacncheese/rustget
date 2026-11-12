@@ -63,7 +63,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | A37 | MD5 / SHA-1 / SHA-256 / BLAKE3 verification | MUST | P1 | M1 | ✅ | Streaming hashes, pre-rename verification; tests |
 | A38 | Post-download open/run/extract | SHOULD | P2 | M4 | ✅ | Open folder, argv post-action runner, safe ZIP extraction with fixture test |
 | A39 | Antivirus scan hook | SHOULD | P2 | M6 | ✅ | `antivirus.scan_command` JSON argv, file appended, 60 s timeout, no shell; success/failure tests |
-| A40 | Disk-full handling | MUST | P0 | M2 | ◐ | I/O errors surfaced; no preflight free-space reservation/retry UI |
+| A40 | Disk-full handling | MUST | P0 | M2 | ✅ | `reserve_bytes` free-space preflight before writes; I/O errors surfaced; forced-reservation test |
 | A41 | Slow-loris / idle timeout | MUST | P0 | M2 | ✅ | Idle timeout on stream and probe |
 | A42 | Mid-stream reset recovery | MUST | P0 | M2 | ✅ | Flaky-origin test retries and verifies bytes |
 | A43 | DNS failure, captive portal classification | SHOULD | P1 | M2 | ◐ | Error classes exist; no portal detection |
@@ -206,8 +206,8 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 95 |
-| ◐ partial | 41 |
+| ✅ implemented + verified | 96 |
+| ◐ partial | 40 |
 | ○ specified, not implemented | 1 |
 | — not started | 10 |
 | **Total tracked** | **147** |
@@ -216,7 +216,7 @@ By area:
 
 | Area | Rows | ✅ | ◐ | ○ | — |
 |---|---:|---:|---:|---:|---:|
-| A. Download engine | 46 | 30 | 13 | 0 | 3 |
+| A. Download engine | 46 | 31 | 12 | 0 | 3 |
 | B. Capture/integration | 22 | 13 | 9 | 0 | 0 |
 | C. Management | 30 | 23 | 7 | 0 | 0 |
 | D. UI/UX | 12 | 10 | 2 | 0 | 0 |

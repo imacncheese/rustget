@@ -24,6 +24,7 @@ implemented. The JSON below is the target stable schema.
     "connections": 8,
     "max_connections": 32,
     "max_connections_per_host": 16,
+    "reserve_bytes": 67108864,
     "antivirus_scan_command": ["clamscan", "--no-summary"],
     "min_segment_size": 262144,
     "read_buffer_size": 65536,

@@ -1,9 +1,10 @@
 # UI/UX specification
 
-**Status:** main window, add dialog, details and settings implemented; scheduler
-timeline, video picker and first-run wizard are design-only
+**Status:** main window, add dialog, details, settings and scheduler timeline
+implemented; video picker and first-run wizard are design-only
 **Code:** `crates/rustget-app/assets`
-**Reference screenshot:** [ui-main.png](../assets/ui-main.png)
+**Reference screenshots:** [main](../assets/ui-main.png),
+[scheduler](../assets/ui-scheduler.png)
 
 ## 1. Design principles
 
@@ -154,15 +155,15 @@ Wednesday  ░░░████████░░░░░░░░░░░░
 ...
 ```
 
+- A seven-row timeline renders API-backed windows.
+- Add/delete through the same `/api/v1/schedules` contract as the CLI.
+- Overnight windows split across midnight.
 - Each row is a day; blocks are schedule windows.
-- Clicking a block opens its editor.
-- Dragging creates a window; snapping is 15 minutes.
-- Overlaps render with a hatched pattern.
-- A vertical “now” line is visible.
-- A legend distinguishes “download window” from “queue stop” only.
 
-This is not implemented in the web UI yet; the API/CLI support the underlying
-windows.
+Implemented: rendering, add/delete, validation, overnight split. Not implemented:
+drag-to-create, 15-minute snapping, overlap hatching, a “now” line, and an
+editable block dialog. The screenshot is
+[ui-scheduler.png](../assets/ui-scheduler.png).
 
 ## 7. Interaction model
 
@@ -220,7 +221,7 @@ icon set planned.
 
 ## 10. Current gaps
 
-1. Scheduler timeline, video quality picker, first-run wizard.
+1. Video quality picker, first-run wizard, scheduler drag editing.
 2. Multi-select and batch actions.
 3. Queue reordering UI.
 4. Speed graph.

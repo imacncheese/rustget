@@ -184,6 +184,22 @@ dialog { border: 0; padding: 0; background: transparent; color: var(--text); }
 dialog::backdrop { background: rgba(0,0,0,.62); backdrop-filter: blur(3px); }
 .modal { width: min(560px, calc(100vw - 32px)); background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 30px 90px rgba(0,0,0,.5); }
 .modal.narrow { width: min(430px, calc(100vw - 32px)); }
+.modal.wide { width: min(760px, calc(100vw - 32px)); }
+.sched-week { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; }
+.sched-day { display: grid; grid-template-columns: 38px 1fr; align-items: center; gap: 8px; }
+.sched-day > span { color: var(--muted); font-size: 10px; text-transform: uppercase; }
+.sched-track { position: relative; height: 20px; border-radius: 6px; background: var(--panel-2); border: 1px solid var(--line); overflow: hidden; background-image: linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: calc(100% / 6) 100%; }
+.sched-block { position: absolute; top: 2px; bottom: 2px; border-radius: 4px; background: color-mix(in srgb, var(--accent-2) 65%, transparent); border: 1px solid color-mix(in srgb, var(--accent-2) 80%, white 10%); }
+.sched-list { display: flex; flex-direction: column; gap: 5px; max-height: 170px; overflow: auto; }
+.sched-row { display: flex; align-items: center; gap: 9px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; }
+.sched-row strong { font-size: 12px; }
+.sched-row span { color: var(--muted); font-size: 11px; }
+.sched-row button { margin-left: auto; }
+.schedule-form { border-top: 1px solid var(--line); padding-top: 13px; display: flex; flex-direction: column; gap: 11px; }
+.weekdays { display: flex; flex-wrap: wrap; gap: 10px; color: var(--muted); font-size: 12px; }
+.weekdays label { display: flex; align-items: center; gap: 5px; }
+.weekdays input { accent-color: var(--accent); }
+@media (max-width: 760px) { .sched-day { grid-template-columns: 34px 1fr; } }
 .modal-head, .modal-foot { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; }
 .modal-head { border-bottom: 1px solid var(--line); }
 .modal-head h2 { margin: 0; font-size: 17px; }

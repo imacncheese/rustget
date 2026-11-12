@@ -13,6 +13,7 @@
     filter: "all",
     category: "",
     categories: [],
+    schedules: [],
     search: "",
     sortKey: "created_at_ms",
     sortDir: -1,
@@ -179,6 +180,119 @@
       }
       load();
     }
+  }
+
+  // ---------- scheduler ----------
+  const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+  async function openSchedules() {
+    $("#schedulesDialog").showModal();
+    try {
+      const data = await api("/api/v1/schedules");
+      state.schedules = data.schedules || [];
+      renderSchedules();
+    } catch (error) {
+      toast(error.message, true);
+    }
+  }
+
+  function clock(minutes) {
+    if (minutes === null || minutes === undefined) return "—";
+    return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+  }
+
+  function dayList(mask) {
+    return DAY_NAMES.filter((_, index) => mask & (1 << index)).join(", ");
+  }
+
+  function renderSchedules() {
+    const week = $("#schedWeek");
+    week.innerHTML = "";
+    for (let day = 0; day < 7; day++) {
+      const row = document.createElement("div");
+      row.className = "sched-day";
+      const label = document.createElement("span");
+      label.textContent = DAY_NAMES[day];
+      const track = document.createElement("div");
+      track.className = "sched-track";
+      for (const schedule of state.schedules) {
+        if (!(schedule.days & (1 << day))) continue;
+        const start = schedule.start_min ?? 0;
+        const stop = schedule.stop_min ?? 1440;
+        if (start < stop) addBlock(track, start, stop, schedule.name);
+        else if (start > stop) {
+          addBlock(track, start, 1440, schedule.name);
+          addBlock(track, 0, stop, schedule.name);
+        } else {
+          addBlock(track, 0, 1440, schedule.name);
+        }
+      }
+      row.append(label, track);
+      week.appendChild(row);
+    }
+    const list = $("#schedList");
+    list.innerHTML = "";
+    if (!state.schedules.length) {
+      const empty = document.createElement("p");
+      empty.className = "hint";
+      empty.textContent = "No schedules. The daemon always allows downloads.";
+      list.appendChild(empty);
+      return;
+    }
+    for (const schedule of state.schedules) {
+      const row = document.createElement("div");
+      row.className = "sched-row";
+      const name = document.createElement("strong");
+      name.textContent = schedule.name;
+      const detail = document.createElement("span");
+      detail.textContent = `${schedule.start_min === null ? "always" : clock(schedule.start_min)}–${schedule.stop_min === null ? "always" : clock(schedule.stop_min)} · ${dayList(schedule.days)} · ${schedule.action}`;
+      const remove = document.createElement("button");
+      remove.className = "danger";
+      remove.textContent = "Delete";
+      remove.onclick = async () => {
+        try {
+          await api(`/api/v1/schedules/${schedule.id}`, { method: "DELETE" });
+          state.schedules = state.schedules.filter((entry) => entry.id !== schedule.id);
+          renderSchedules();
+        } catch (error) { toast(error.message, true); }
+      };
+      row.append(name, detail, remove);
+      list.appendChild(row);
+    }
+  }
+
+  function addBlock(track, start, stop, label) {
+    const block = document.createElement("div");
+    block.className = "sched-block";
+    block.title = `${label}: ${clock(start)}–${clock(stop)}`;
+    block.style.left = `${(start / 1440) * 100}%`;
+    block.style.width = `${Math.max(0.4, ((stop - start) / 1440) * 100)}%`;
+    track.appendChild(block);
+  }
+
+  async function submitSchedule(event) {
+    event.preventDefault();
+    const start = $("#schedStart").value.trim() || null;
+    const stop = $("#schedStop").value.trim() || null;
+    if (!start && !stop) { toast("Set a start or stop time", true); return; }
+    const days = $$("#schedDays input:checked").reduce((mask, input) => mask | (1 << Number(input.value)), 0);
+    if (!days) { toast("Choose at least one day", true); return; }
+    try {
+      await api("/api/v1/schedules", {
+        method: "POST",
+        body: JSON.stringify({
+          name: $("#schedName").value.trim() || "Schedule",
+          start, stop, days,
+          action: $("#schedAction").value,
+        }),
+      });
+      $("#scheduleForm").reset();
+      $$("#schedDays input").forEach((input, index) => { input.checked = index < 5; });
+      const data = await api("/api/v1/schedules");
+      state.schedules = data.schedules || [];
+      renderSchedules();
+      toast("Schedule added");
+    } catch (error) { toast(error.message, true); }
   }
 
   function notify(record) {
@@ -555,6 +669,9 @@
     $("#addBtn").addEventListener("click", openAdd);
     $("#emptyAdd").addEventListener("click", openAdd);
     $("#settingsBtn").addEventListener("click", () => openSettings());
+    $("#schedulesBtn").addEventListener("click", openSchedules);
+    $("#schedulesClose").addEventListener("click", () => $("#schedulesDialog").close());
+    $("#scheduleForm").addEventListener("submit", submitSchedule);
     $("#themeBtn").addEventListener("click", cycleTheme);
     $("#addForm").addEventListener("submit", submitAdd);
     $("#pauseBtn").addEventListener("click", pauseSelected);

@@ -142,7 +142,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | D03 | Add download dialog | MUST | P0 | M4 | ✅ | URL, folder, connections, limit, category, start |
 | D04 | File-info probe preview in dialog | SHOULD | P1 | M4 | ◐ | Probe happens after submit |
 | D05 | Video quality picker | SHOULD | P2 | M5 | — | Parsers only |
-| D06 | Scheduler weekly timeline | SHOULD | P2 | M4 | — | CLI/API only |
+| D06 | Scheduler weekly timeline | SHOULD | P2 | M4 | ✅ | Web UI timeline, add/delete form, API-backed; power actions not executed |
 | D07 | Settings, searchable/advanced collapse | SHOULD | P1 | M4 | ◐ | Small settings dialog only |
 | D08 | First-run wizard | SHOULD | P1 | M4 | — | Token dialog is the only onboarding |
 | D09 | HiDPI | MUST | P1 | M4 | ✅ | CSS pixels, no fixed raster assets |
@@ -207,10 +207,10 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 66 |
+| ✅ implemented + verified | 67 |
 | ◐ partial | 36 |
 | ○ specified, not implemented | 1 |
-| — not started | 44 |
+| — not started | 43 |
 | **Total tracked** | **147** |
 
 By area:
@@ -220,7 +220,7 @@ By area:
 | A. Download engine | 46 | 21 | 16 | 0 | 9 |
 | B. Capture/integration | 22 | 9 | 8 | 0 | 5 |
 | C. Management | 30 | 17 | 3 | 0 | 10 |
-| D. UI/UX | 12 | 6 | 2 | 0 | 4 |
+| D. UI/UX | 12 | 7 | 2 | 0 | 3 |
 | E. Quality/security | 15 | 9 | 3 | 1 | 2 |
 | F. Platform/packaging | 10 | 1 | 2 | 0 | 7 |
 | G. Protocols/extensibility | 12 | 3 | 2 | 0 | 7 |

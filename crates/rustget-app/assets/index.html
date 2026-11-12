@@ -29,6 +29,7 @@
       <div class="nav-label">Categories</div>
       <nav class="nav" id="categoryNav" aria-label="Download categories"></nav>
       <div class="sidebar-foot">
+        <button class="ghost" id="schedulesBtn" title="Scheduler" aria-label="Scheduler">▦ <span>Scheduler</span></button>
         <button class="ghost" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">◐ <span>Theme</span></button>
         <button class="ghost" id="settingsBtn" title="Settings" aria-label="Settings">⚙ <span>Settings</span></button>
       </div>
@@ -190,6 +191,48 @@
         <button class="primary" id="settingsSave" value="default">Save</button>
       </footer>
     </form>
+  </dialog>
+
+  <dialog id="schedulesDialog">
+    <div class="modal wide">
+      <header class="modal-head">
+        <h2>Scheduler</h2>
+        <button class="icon" id="schedulesClose" aria-label="Close">✕</button>
+      </header>
+      <div class="modal-body">
+        <p class="hint">Windows are local time. Overnight windows are supported; the daemon applies them every 10 seconds.</p>
+        <div class="sched-week" id="schedWeek" aria-label="Weekly schedule timeline"></div>
+        <div class="sched-list" id="schedList"></div>
+        <form id="scheduleForm" class="schedule-form">
+          <div class="two">
+            <label class="field"><span>Name</span><input id="schedName" required placeholder="Night downloads"></label>
+            <label class="field"><span>On completion</span>
+              <select id="schedAction">
+                <option value="none">Nothing</option>
+                <option value="exit">Exit RustGet</option>
+                <option value="sleep">Sleep</option>
+                <option value="shutdown">Shut down</option>
+              </select>
+            </label>
+          </div>
+          <div class="two">
+            <label class="field"><span>Start (HH:MM)</span><input id="schedStart" placeholder="01:00" pattern="[0-2][0-9]:[0-5][0-9]"></label>
+            <label class="field"><span>Stop (HH:MM)</span><input id="schedStop" placeholder="06:00" pattern="[0-2][0-9]:[0-5][0-9]"></label>
+          </div>
+          <div class="weekdays" id="schedDays" aria-label="Days">
+            <label><input type="checkbox" value="0" checked>Mon</label>
+            <label><input type="checkbox" value="1" checked>Tue</label>
+            <label><input type="checkbox" value="2" checked>Wed</label>
+            <label><input type="checkbox" value="3" checked>Thu</label>
+            <label><input type="checkbox" value="4" checked>Fri</label>
+            <label><input type="checkbox" value="5">Sat</label>
+            <label><input type="checkbox" value="6">Sun</label>
+          </div>
+          <p class="hint">Power actions are recorded but not executed in 0.1 until the platform safety gate is enabled.</p>
+          <button class="primary" id="schedAdd" type="submit">Add schedule</button>
+        </form>
+      </div>
+    </div>
   </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>

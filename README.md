@@ -9,6 +9,8 @@ modern UI. It is not affiliated with or endorsed by Tonec FZE.
 
 ![RustGet main window](docs/assets/ui-main.png)
 
+![RustGet scheduler](docs/assets/ui-scheduler.png)
+
 ## Status at a glance
 
 | Area | State | Evidence |

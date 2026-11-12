@@ -75,6 +75,8 @@ pub struct NewDownload {
     pub use_ytdlp: bool,
     #[serde(default)]
     pub use_cookie_jar: bool,
+    #[serde(default)]
+    pub resolver: Option<String>,
     pub destination: Option<PathBuf>,
     pub directory: Option<PathBuf>,
     #[serde(default)]
@@ -110,6 +112,7 @@ impl NewDownload {
             digest_auth: record.digest_auth.clone(),
             use_ytdlp: record.use_ytdlp,
             use_cookie_jar: record.use_cookie_jar,
+            resolver: record.resolver.clone(),
             destination: Some(record.destination.clone()),
             directory: record
                 .destination
@@ -140,6 +143,7 @@ impl Default for NewDownload {
             digest_auth: None,
             use_ytdlp: false,
             use_cookie_jar: false,
+            resolver: None,
             destination: None,
             directory: None,
             allow_duplicate: false,
@@ -271,8 +275,12 @@ impl DownloadManager {
     /// and the final save path visible to every client immediately.
     pub async fn add(self: &Arc<Self>, request: NewDownload) -> Result<DownloadRecord> {
         let mut url = Url::parse(&request.url)?;
-        if request.use_ytdlp {
-            url = Url::parse(&self.resolve_with_ytdlp(&request.url).await?)?;
+        let resolver = request
+            .resolver
+            .clone()
+            .or_else(|| request.use_ytdlp.then(|| "yt-dlp".to_string()));
+        if let Some(name) = &resolver {
+            url = Url::parse(&self.resolve_with_plugin(name, &request.url).await?)?;
         }
         if !matches!(url.scheme(), "http" | "https" | "ftp") {
             return Err(ManagerError::InvalidState(format!(
@@ -419,6 +427,7 @@ impl DownloadManager {
             digest_auth: request.digest_auth,
             use_ytdlp: request.use_ytdlp,
             use_cookie_jar: request.use_cookie_jar,
+            resolver: request.resolver.clone(),
             final_url: Some(final_url),
             destination,
             filename,
@@ -1029,20 +1038,34 @@ impl DownloadManager {
         }
     }
 
-    async fn resolve_with_ytdlp(&self, url: &str) -> Result<String> {
-        let Some(raw) = self.db.get_setting("ytdlp.command").map_err(|error| {
-            ManagerError::InvalidState(format!("cannot read yt-dlp command: {error}"))
-        })?
-        else {
-            return Err(ManagerError::InvalidState(
-                "yt-dlp resolution requested but ytdlp.command is not configured".into(),
-            ));
+    async fn resolve_with_plugin(&self, name: &str, url: &str) -> Result<String> {
+        let mut parts = self
+            .db
+            .get_setting("plugins.resolvers")
+            .map_err(|error| {
+                ManagerError::InvalidState(format!("cannot read plugin registry: {error}"))
+            })?
+            .and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok())
+            .and_then(|value| value.get(name).cloned())
+            .and_then(|value| serde_json::from_value::<Vec<String>>(value).ok());
+        if parts.is_none() && name == "yt-dlp" {
+            parts = self
+                .db
+                .get_setting("ytdlp.command")
+                .map_err(|error| {
+                    ManagerError::InvalidState(format!("cannot read ytdlp.command: {error}"))
+                })?
+                .and_then(|raw| serde_json::from_str::<Vec<String>>(&raw).ok());
+        }
+        let Some(mut parts) = parts else {
+            return Err(ManagerError::InvalidState(format!(
+                "resolver plugin {name} is not configured"
+            )));
         };
-        let mut parts: Vec<String> = serde_json::from_str(&raw).map_err(|error| {
-            ManagerError::InvalidState(format!("invalid ytdlp.command JSON: {error}"))
-        })?;
         if parts.is_empty() {
-            return Err(ManagerError::InvalidState("ytdlp.command is empty".into()));
+            return Err(ManagerError::InvalidState(format!(
+                "resolver plugin {name} is empty"
+            )));
         }
         let program = parts.remove(0);
         let output = tokio::time::timeout(
@@ -1055,15 +1078,17 @@ impl DownloadManager {
                 .output(),
         )
         .await
-        .map_err(|_| ManagerError::InvalidState("yt-dlp resolution timed out".into()))?
-        .map_err(|error| ManagerError::InvalidState(format!("cannot run {program}: {error}")))?;
+        .map_err(|_| ManagerError::InvalidState(format!("resolver {name} timed out")))?
+        .map_err(|error| {
+            ManagerError::InvalidState(format!("cannot run resolver {name} ({program}): {error}"))
+        })?;
         if !output.status.success() {
             let stderr: String = String::from_utf8_lossy(&output.stderr)
                 .chars()
                 .take(500)
                 .collect();
             return Err(ManagerError::InvalidState(format!(
-                "yt-dlp failed ({}): {stderr}",
+                "resolver {name} failed ({}): {stderr}",
                 output.status
             )));
         }
@@ -1072,7 +1097,9 @@ impl DownloadManager {
             .map(str::trim)
             .find(|line| line.starts_with("http://") || line.starts_with("https://"))
             .map(str::to_string)
-            .ok_or_else(|| ManagerError::InvalidState("yt-dlp returned no direct URL".into()))
+            .ok_or_else(|| {
+                ManagerError::InvalidState(format!("resolver {name} returned no direct URL"))
+            })
     }
 
     async fn scan_file(&self, path: &std::path::Path) -> Result<(), String> {
@@ -1463,6 +1490,7 @@ mod tests {
             digest_auth: None,
             use_ytdlp: false,
             use_cookie_jar: false,
+            resolver: None,
             final_url: None,
             destination: PathBuf::new(),
             filename: String::new(),

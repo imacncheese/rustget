@@ -110,6 +110,8 @@ implemented, will be opt-in.
   future redesign will store sensitive headers in the OS keyring or redact them
   after the transfer.
 - Basic auth fields are not persisted today (and not exposed in the UI).
+- Resolver plugins are operator-configured argv entries, run without a shell,
+  with a 60 s timeout and a capped stderr excerpt.
 - The optional cookie jar stores cookie values in plaintext SQLite and sends
   them only to matching domains/paths (and HTTPS-only when `Secure`).
 - Cross-host redirects are covered by a fixture that proves `Authorization` is

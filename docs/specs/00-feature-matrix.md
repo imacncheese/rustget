@@ -90,7 +90,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | B13 | Numeric/wildcard batch pattern | SHOULD | P1 | M4 | ✅ | `[001-100]`, multiple ranges; tests; 10k cap |
 | B14 | Site grabber/spider | SHOULD | P2 | M6 | ◐ | Same-origin BFS crawler, depth/page caps, robots toggle, extension filters; CLI `grab`; no UI or saved projects |
 | B15 | Video grabber HLS/DASH + FFmpeg mux | SHOULD | P2 | M5 | ◐ | Parsers and sidecar boundary; not connected to downloader |
-| B16 | yt-dlp plugin | COULD | P3 | M7 | ◐ | yt-dlp resolver adapter implemented; no generic plugin API |
+| B16 | yt-dlp plugin | COULD | P3 | M7 | ✅ | yt-dlp is a named entry in the command-based resolver plugin registry |
 | B17 | Categories and auto-routing | MUST | P1 | M3 | ✅ | DB categories, extension mapping, directory routing |
 | B18 | Duplicate detection by URL | SHOULD | P1 | M3 | ✅ | Completed URL returns 409; queued/paused duplicate resumes the existing row; `allow_duplicate` overrides |
 | B19 | Filename sanitization and collisions | MUST | P0 | M1 | ✅ | Traversal, reserved names, truncation, `(1)` suffix; tests |
@@ -194,7 +194,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | G03 | DASH MPD parser | SHOULD | P1 | M5 | ✅ | Representations, templates, ISO duration; tests |
 | G04 | HLS/DASH segment scheduler | SHOULD | P1 | M5 | ◐ | Sequential VOD segment download with retry/rate limit; no parallel segment workers or resume |
 | G05 | FFmpeg mux sidecar | SHOULD | P2 | M5 | ◐ | `-c copy` plan; not invoked by the media path yet |
-| G06 | Plugin API for extractors | COULD | P2 | M7 | — | Planned |
+| G06 | Plugin API for extractors | COULD | P2 | M7 | ✅ | `plugins.resolvers` NAME→argv registry, `--plugin`, `--resolver`, 60 s timeout, success/unknown tests |
 | G07 | yt-dlp adapter | COULD | P3 | M7 | ✅ | `ytdlp.command`, `use_ytdlp`, CLI/UI, 60 s timeout, stub resolver success/failure tests |
 | G08 | Site grabber | SHOULD | P2 | M6 | ◐ | Link discovery implemented; no mirroring, JS rendering or project persistence |
 | G09 | Cookie jar persistence | SHOULD | P1 | M6 | ✅ | SQLite cookie jar, Set-Cookie capture, `use_cookie_jar`/CLI/UI, session reuse test |
@@ -206,10 +206,10 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 86 |
-| ◐ partial | 47 |
+| ✅ implemented + verified | 88 |
+| ◐ partial | 46 |
 | ○ specified, not implemented | 1 |
-| — not started | 13 |
+| — not started | 12 |
 | **Total tracked** | **147** |
 
 By area:
@@ -217,12 +217,12 @@ By area:
 | Area | Rows | ✅ | ◐ | ○ | — |
 |---|---:|---:|---:|---:|---:|
 | A. Download engine | 46 | 24 | 19 | 0 | 3 |
-| B. Capture/integration | 22 | 12 | 9 | 0 | 1 |
+| B. Capture/integration | 22 | 13 | 8 | 0 | 1 |
 | C. Management | 30 | 23 | 7 | 0 | 0 |
 | D. UI/UX | 12 | 10 | 2 | 0 | 0 |
 | E. Quality/security | 15 | 10 | 3 | 1 | 1 |
 | F. Platform/packaging | 10 | 2 | 3 | 0 | 5 |
-| G. Protocols/extensibility | 12 | 5 | 4 | 0 | 3 |
+| G. Protocols/extensibility | 12 | 6 | 4 | 0 | 2 |
 
 The count is maintained manually alongside the table; the parity scorecard gives
 the higher-level roll-up and accepted gaps.

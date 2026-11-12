@@ -102,6 +102,7 @@ Request:
   "digest_auth": ["user", "pass"],
   "use_ytdlp": false,
   "use_cookie_jar": false,
+  "resolver": "yt-dlp",
   "destination": null,
   "directory": "D:\\Downloads",
   "category": "Archives",

@@ -254,6 +254,9 @@ struct AddArgs {
     /// Persist and reuse cookies in the local jar.
     #[arg(long)]
     cookie_jar: bool,
+    /// Named resolver plugin (see `--plugin` on serve).
+    #[arg(long)]
+    resolver: Option<String>,
     /// Exact output path or directory.
     #[arg(short, long)]
     output: Option<PathBuf>,
@@ -321,6 +324,9 @@ struct ServeArgs {
     /// Extra argument for `--post-action`; repeatable.
     #[arg(long = "post-action-arg")]
     post_action_args: Vec<String>,
+    /// Resolver plugin as NAME=PROGRAM; repeatable. The URL is appended.
+    #[arg(long = "plugin")]
+    plugins: Vec<String>,
 }
 
 struct PlatformPower;
@@ -530,6 +536,20 @@ async fn serve(
         manager.set_setting("post_action.command", &serde_json::to_string(&command)?)?;
         println!("post-action: {}", action.display());
     }
+    if !args.plugins.is_empty() {
+        let mut plugins = serde_json::Map::new();
+        for entry in &args.plugins {
+            let Some((name, program)) = entry.split_once('=') else {
+                bail!("--plugin must be NAME=PROGRAM, got {entry}");
+            };
+            plugins.insert(name.to_string(), serde_json::json!([program]));
+            println!("plugin:     {name} -> {program}");
+        }
+        manager.set_setting(
+            "plugins.resolvers",
+            &serde_json::to_string(&serde_json::Value::Object(plugins))?,
+        )?;
+    }
     if args.allow_power_actions {
         manager.set_power_hook(std::sync::Arc::new(PlatformPower));
         println!("power actions: ENABLED (shutdown/sleep/hibernate/exit)");
@@ -588,6 +608,7 @@ async fn add(cli: &Cli, paths: &Paths, args: &AddArgs) -> Result<()> {
         },
         use_ytdlp: args.yt_dlp,
         use_cookie_jar: args.cookie_jar,
+        resolver: args.resolver.clone(),
         allow_duplicate: args.allow_duplicate,
         destination: args.output.clone(),
         directory: Some(paths.download_dir.clone()),
@@ -1094,6 +1115,7 @@ async fn grab(
                     digest_password: None,
                     yt_dlp: false,
                     cookie_jar: false,
+                    resolver: None,
                     allow_duplicate: false,
                     output: None,
                     connections,
@@ -1277,6 +1299,7 @@ async fn batch(
             digest_password: None,
             yt_dlp: false,
             cookie_jar: false,
+            resolver: None,
             allow_duplicate: false,
             output: None,
             connections,

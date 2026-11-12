@@ -72,6 +72,8 @@ pub struct DownloadRecord {
     pub use_ytdlp: bool,
     #[serde(default)]
     pub use_cookie_jar: bool,
+    #[serde(default)]
+    pub resolver: Option<String>,
     pub final_url: Option<String>,
     pub destination: PathBuf,
     pub filename: String,

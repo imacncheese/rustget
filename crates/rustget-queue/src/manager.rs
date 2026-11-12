@@ -70,6 +70,7 @@ pub struct NewDownload {
     pub media_variant: Option<usize>,
     pub proxy: Option<String>,
     pub client_cert: Option<PathBuf>,
+    pub digest_auth: Option<(String, String)>,
     pub destination: Option<PathBuf>,
     pub directory: Option<PathBuf>,
     #[serde(default)]
@@ -102,6 +103,7 @@ impl NewDownload {
             media_variant: record.media_variant,
             proxy: record.proxy.clone(),
             client_cert: record.client_cert.clone(),
+            digest_auth: record.digest_auth.clone(),
             destination: Some(record.destination.clone()),
             directory: record
                 .destination
@@ -129,6 +131,7 @@ impl Default for NewDownload {
             media_variant: None,
             proxy: None,
             client_cert: None,
+            digest_auth: None,
             destination: None,
             directory: None,
             allow_duplicate: false,
@@ -385,6 +388,7 @@ impl DownloadManager {
             media_variant: request.media_variant,
             proxy: request.proxy,
             client_cert: request.client_cert,
+            digest_auth: request.digest_auth,
             final_url: Some(final_url),
             destination,
             filename,
@@ -751,6 +755,7 @@ impl DownloadManager {
         let options = RequestOptions {
             headers: record.headers.clone(),
             proxy: record.proxy.clone(),
+            digest_auth: record.digest_auth.clone(),
             client_identity_pem,
             ..RequestOptions::default()
         };
@@ -1274,6 +1279,7 @@ mod tests {
             media_variant: None,
             proxy: None,
             client_cert: None,
+            digest_auth: None,
             final_url: None,
             destination: PathBuf::new(),
             filename: String::new(),

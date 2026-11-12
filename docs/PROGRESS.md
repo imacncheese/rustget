@@ -59,6 +59,7 @@
 - [~] Windows tray shell (`rustget-tray`); startup verified, menu not automated.
 - [x] Opt-in antivirus scan hook with success/failure tests.
 - [x] Mutual-TLS client certificates with local handshake tests.
+- [~] HTTP Digest auth (MD5/SHA-256); NTLM/Negotiate/Kerberos missing.
 - [x] Explicit per-download HTTP proxy with a live proxy fixture.
 - [~] Autostart CLI/platform entries; Windows registry writes blocked here.
 - [x] Scheduler weekly timeline and add/delete form in the web UI.
@@ -102,7 +103,7 @@
 rustget-core     14 unit + 3 proptest   PASS
 rustget-storage  15                      PASS
 rustget-testkit   5                      PASS
-rustget-net       7 unit + 8 HTTP + 2 work/adaptive + 2 mirrors + 2 HLS + 2 AES-HLS + 3 DASH + 1 host cap + 1 FTP + 1 proxy + 2 client-cert  PASS
+rustget-net       7 unit + 8 HTTP + 2 work/adaptive + 2 mirrors + 2 HLS + 2 AES-HLS + 3 DASH + 1 host cap + 1 FTP + 1 proxy + 2 client-cert + 2 digest  PASS
 rustget-queue     16                     PASS
 rustget-ipc       6                      PASS
 rustget-cli       4 + 1 crash + 2 scan   PASS
@@ -112,7 +113,7 @@ rustget-native-host 2                    PASS
 rustget-platform  3                     PASS
 clippy -D warnings                       PASS
 cargo fmt --check                        PASS
-total                                  110 tests
+total                                  112 tests
 ```
 
 Commands:

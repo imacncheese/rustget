@@ -938,8 +938,7 @@ impl Downloader {
             _ = cancel.cancelled() => return Err(NetError::Cancelled),
             response = self
                 .client
-                .apply_common(self.client.client().get(url.clone()))?
-                .send() => response?,
+                .send(self.client.apply_common(self.client.client().get(url.clone()))?, url, "GET") => response?,
         };
         let status = response.status();
         if !status.is_success() {
@@ -976,8 +975,7 @@ impl Downloader {
                     _ = cancel.cancelled() => return Err(NetError::Cancelled),
                     response = self
                         .client
-                        .apply_common(self.client.client().get(parsed.clone()))?
-                        .send() => response?,
+                        .send(self.client.apply_common(self.client.client().get(parsed.clone()))?, &parsed, "GET") => response?,
                 };
                 let status = response.status();
                 if !status.is_success() {
@@ -1477,7 +1475,11 @@ impl Downloader {
     ) -> Result<u64> {
         let response = tokio::select! {
             _ = cancel.cancelled() => return Err(NetError::Cancelled),
-            response = self.client.apply_common(self.client.client().get(request.url.clone()))?.send() => response?,
+            response = self.client.send(
+                self.client.apply_common(self.client.client().get(request.url.clone()))?,
+                &request.url,
+                "GET",
+            ) => response?,
         };
         let status = response.status();
         if !status.is_success() {
@@ -1759,7 +1761,7 @@ async fn transfer_range(
     }
     let response = tokio::select! {
         _ = cancel.cancelled() => return Err(NetError::Cancelled),
-        response = request.send() => response?,
+        response = client.send(request, url, "GET") => response?,
     };
     let status = response.status();
     if status == reqwest::StatusCode::PARTIAL_CONTENT {

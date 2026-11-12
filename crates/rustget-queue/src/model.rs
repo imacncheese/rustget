@@ -67,6 +67,7 @@ pub struct DownloadRecord {
     pub media_variant: Option<usize>,
     pub proxy: Option<String>,
     pub client_cert: Option<std::path::PathBuf>,
+    pub digest_auth: Option<(String, String)>,
     pub final_url: Option<String>,
     pub destination: PathBuf,
     pub filename: String,

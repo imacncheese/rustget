@@ -230,6 +230,12 @@ struct AddArgs {
     /// PEM client certificate + private key for mutual TLS.
     #[arg(long)]
     client_cert: Option<PathBuf>,
+    /// HTTP Digest username.
+    #[arg(long)]
+    digest_user: Option<String>,
+    /// HTTP Digest password.
+    #[arg(long)]
+    digest_password: Option<String>,
     /// Exact output path or directory.
     #[arg(short, long)]
     output: Option<PathBuf>,
@@ -521,6 +527,10 @@ async fn add(cli: &Cli, paths: &Paths, args: &AddArgs) -> Result<()> {
         tags: args.tags.clone(),
         proxy: args.proxy.clone(),
         client_cert: args.client_cert.clone(),
+        digest_auth: match (&args.digest_user, &args.digest_password) {
+            (Some(user), Some(password)) => Some((user.clone(), password.clone())),
+            _ => None,
+        },
         allow_duplicate: args.allow_duplicate,
         destination: args.output.clone(),
         directory: Some(paths.download_dir.clone()),
@@ -1023,6 +1033,8 @@ async fn grab(
                     tags: Vec::new(),
                     proxy: None,
                     client_cert: None,
+                    digest_user: None,
+                    digest_password: None,
                     allow_duplicate: false,
                     output: None,
                     connections,
@@ -1202,6 +1214,8 @@ async fn batch(
             tags: Vec::new(),
             proxy: None,
             client_cert: None,
+            digest_user: None,
+            digest_password: None,
             allow_duplicate: false,
             output: None,
             connections,

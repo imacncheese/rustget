@@ -208,9 +208,9 @@ commands and output summary):
   gap/overlap invariants.
 - `rustget-storage`: 15 tests, including torn-journal recovery and out-of-order
   positional writes.
-- `rustget-net`: 7 unit + 24 integration tests (engine, work stealing, adaptive
+- `rustget-net`: 7 unit + 26 integration tests (engine, work stealing, adaptive
   growth, mirrors, host caps, HLS quality/AES, DASH timeline, FTP, HTTP proxy,
-  mutual TLS).
+  mutual TLS, Digest).
 - `rustget-queue`: 16 DB migration/manager/duplicate/tags/scheduler/power-hook/HLS/FTP/mirror tests.
 - `rustget-ipc`: 6 API tests (auth, origin/Host rejection, add/list/delete, probe/config bundles, logs).
 - `rustget-cli`: 4 pattern tests + 1 kill-process/resume + 2 scanner-hook tests.

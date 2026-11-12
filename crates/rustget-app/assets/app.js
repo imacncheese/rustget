@@ -919,6 +919,9 @@
     if (proxy) body.proxy = proxy;
     const clientCert = $("#addClientCert").value.trim();
     if (clientCert) body.client_cert = clientCert;
+    const digestUser = $("#addDigestUser").value.trim();
+    const digestPass = $("#addDigestPass").value;
+    if (digestUser && digestPass) body.digest_auth = [digestUser, digestPass];
     const submit = $("#addSubmit");
     submit.disabled = true;
     submit.textContent = "Adding…";

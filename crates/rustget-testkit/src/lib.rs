@@ -43,6 +43,7 @@ pub struct TestFile {
     pub fail_after: u64,
     pub throttle_bps: Option<u64>,
     pub basic_auth: Option<(String, String)>,
+    pub digest_auth: Option<(String, String, String)>,
     pub content_disposition: Option<String>,
     /// Increment ETag on every request, simulating a file changed in place.
     pub changing_etag: bool,
@@ -72,6 +73,7 @@ impl TestFile {
             fail_after: 0,
             throttle_bps: None,
             basic_auth: None,
+            digest_auth: None,
             content_disposition: None,
             changing_etag: false,
             omit_length: false,
@@ -120,6 +122,12 @@ impl TestFile {
     #[must_use]
     pub fn throttled(mut self, bytes_per_sec: u64) -> Self {
         self.throttle_bps = Some(bytes_per_sec);
+        self
+    }
+
+    #[must_use]
+    pub fn digest(mut self, user: &str, password: &str, realm: &str) -> Self {
+        self.digest_auth = Some((user.into(), password.into(), realm.into()));
         self
     }
 
@@ -362,6 +370,20 @@ async fn serve_file(
     let Some(file) = state.0.files.get(&name).cloned() else {
         return StatusCode::NOT_FOUND.into_response();
     };
+    if let Some((user, pass, realm)) = &file.spec.digest_auth {
+        let path = format!("/files/{name}");
+        if !digest_authorized(&headers, method.as_str(), &path, user, pass, realm) {
+            let mut response = StatusCode::UNAUTHORIZED.into_response();
+            response.headers_mut().insert(
+                header::WWW_AUTHENTICATE,
+                HeaderValue::from_str(&format!(
+                    "Digest realm=\"{realm}\", nonce=\"test-nonce\", qop=\"auth\", algorithm=MD5, opaque=\"test-opaque\""
+                ))
+                .expect("static digest challenge"),
+            );
+            return response;
+        }
+    }
     if let Some((user, pass)) = &file.spec.basic_auth {
         let expected = format!(
             "Basic {}",
@@ -566,6 +588,55 @@ async fn serve_file(
         peer: connect.0.to_string(),
     });
     response
+}
+
+fn digest_authorized(
+    headers: &HeaderMap,
+    method: &str,
+    path: &str,
+    user: &str,
+    pass: &str,
+    realm: &str,
+) -> bool {
+    use md5::{Digest, Md5};
+    let Some(value) = headers
+        .get(header::AUTHORIZATION)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.strip_prefix("Digest "))
+    else {
+        return false;
+    };
+    let mut fields = std::collections::HashMap::new();
+    for part in value.split(',') {
+        if let Some((key, value)) = part.trim().split_once('=') {
+            fields.insert(
+                key.trim().to_ascii_lowercase(),
+                value.trim().trim_matches('"').to_string(),
+            );
+        }
+    }
+    if fields.get("username").is_none_or(|value| value != user)
+        || fields.get("realm").is_none_or(|value| value != realm)
+    {
+        return false;
+    }
+    let uri = fields.get("uri").cloned().unwrap_or_default();
+    if uri != path {
+        return false;
+    }
+    let ha1 = hex::encode(Md5::digest(format!("{user}:{realm}:{pass}").as_bytes()));
+    let ha2 = hex::encode(Md5::digest(format!("{method}:{uri}").as_bytes()));
+    let expected = if let Some(nc) = fields.get("nc") {
+        let cnonce = fields.get("cnonce").cloned().unwrap_or_default();
+        hex::encode(Md5::digest(
+            format!("{ha1}:test-nonce:{nc}:{cnonce}:auth:{ha2}").as_bytes(),
+        ))
+    } else {
+        hex::encode(Md5::digest(format!("{ha1}:test-nonce:{ha2}").as_bytes()))
+    };
+    fields
+        .get("response")
+        .is_some_and(|value| value == &expected)
 }
 
 fn header_value_or_star(value: &str) -> HeaderValue {

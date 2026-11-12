@@ -54,7 +54,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | A28 | Probe: HEAD then GET `Range: bytes=0-0` | MUST | P0 | M1 | ✅ | Implemented; Content-Range/length parsing |
 | A29 | Content-Encoding pitfalls | MUST | P0 | M1 | ✅ | Forces `Accept-Encoding: identity`; rejects non-identity |
 | A30 | Basic authentication | MUST | P1 | M1 | ◐ | `RequestOptions.basic_auth` exists; not persisted or exposed in UI/CLI |
-| A31 | Digest / NTLM / Negotiate / Kerberos | SHOULD | P2 | M6 | — | Planned |
+| A31 | Digest / NTLM / Negotiate / Kerberos | SHOULD | P2 | M6 | ◐ | HTTP Digest MD5/SHA-256 + qop=auth implemented/tested; NTLM/Negotiate/Kerberos missing |
 | A32 | Cookies | MUST | P1 | M1 | ◐ | Native host passes cookie header; no cookie jar/refresh |
 | A33 | Custom headers, Referer, User-Agent | MUST | P1 | M1 | ✅ | CLI `-H`, manager persists headers; UA config |
 | A34 | Client certificates | COULD | P2 | M6 | ✅ | PEM client cert+key (`client_cert`/`--client-cert`), mutual-TLS success and rejection tests |
@@ -207,16 +207,16 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | State | Count |
 |---|---:|
 | ✅ implemented + verified | 83 |
-| ◐ partial | 45 |
+| ◐ partial | 46 |
 | ○ specified, not implemented | 1 |
-| — not started | 18 |
+| — not started | 17 |
 | **Total tracked** | **147** |
 
 By area:
 
 | Area | Rows | ✅ | ◐ | ○ | — |
 |---|---:|---:|---:|---:|---:|
-| A. Download engine | 46 | 24 | 18 | 0 | 4 |
+| A. Download engine | 46 | 24 | 19 | 0 | 3 |
 | B. Capture/integration | 22 | 12 | 8 | 0 | 2 |
 | C. Management | 30 | 23 | 7 | 0 | 0 |
 | D. UI/UX | 12 | 10 | 2 | 0 | 0 |

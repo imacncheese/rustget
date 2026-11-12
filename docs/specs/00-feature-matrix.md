@@ -107,7 +107,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | C03 | Concurrency limits | MUST | P0 | M3 | ✅ | `max_concurrent`, manager test |
 | C04 | Scheduler time windows | MUST | P0 | M3 | ✅ | Weekly day mask, start/stop, overnight; pure tests |
 | C05 | Start/stop/pause-all | MUST | P0 | M3 | ✅ | Per-item + `pause-all`/`resume-all` API and CLI; scheduler closes windows |
-| C06 | Auto shutdown/sleep/hibernate/exit | SHOULD | P1 | M6 | ◐ | Action persisted and surfaced; execution intentionally disabled |
+| C06 | Auto shutdown/sleep/hibernate/exit | SHOULD | P1 | M6 | ✅ | Actions persisted and executed on window close only with daemon `--allow-power-actions`; dry command tests |
 | C07 | Queue UI | MUST | P1 | M4 | ◐ | Status filters + priority Move up/down in details; no drag reorder or per-queue lanes |
 | C08 | Per-download properties | MUST | P1 | M4 | ✅ | Details pane: path, URL, size, speeds, error |
 | C09 | Per-connection view | MUST | P1 | M4 | ✅ | Live segment list over WebSocket |
@@ -206,10 +206,10 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 71 |
+| ✅ implemented + verified | 72 |
 | ◐ partial | 41 |
 | ○ specified, not implemented | 1 |
-| — not started | 34 |
+| — not started | 33 |
 | **Total tracked** | **147** |
 
 By area:
@@ -218,7 +218,7 @@ By area:
 |---|---:|---:|---:|---:|---:|
 | A. Download engine | 46 | 22 | 18 | 0 | 6 |
 | B. Capture/integration | 22 | 9 | 9 | 0 | 4 |
-| C. Management | 30 | 19 | 4 | 0 | 7 |
+| C. Management | 30 | 20 | 4 | 0 | 6 |
 | D. UI/UX | 12 | 7 | 2 | 0 | 3 |
 | E. Quality/security | 15 | 9 | 3 | 1 | 2 |
 | F. Platform/packaging | 10 | 2 | 2 | 0 | 6 |

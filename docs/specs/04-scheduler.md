@@ -1,7 +1,6 @@
 # Scheduler semantics
 
-**Status:** window enforcement implemented; power actions recorded but not
-executed
+**Status:** window enforcement and opt-in power actions implemented
 **Code:** `crates/rustget-queue/src/scheduler.rs`,
 `crates/rustget-queue/src/manager.rs`
 **Related:** [ADR-0011](../adr/0011-scheduler-semantics.md)
@@ -140,17 +139,24 @@ rustget schedule remove <uuid>
 
 ## 6. Power actions
 
-`PowerAction` is persisted and returned by the API. Execution is intentionally
-**disabled** in the shipping binary because an untested shutdown path is a data
-loss risk. The planned contract:
+`PowerAction` is persisted and returned by the API. Execution is **opt-in**:
+`rustget serve` must be started with `--allow-power-actions`. The default daemon
+records the action but never invokes the OS.
 
-- execute only after the queue is empty;
-- require explicit `allow_power_actions = true`;
-- re-check that no active tasks exist immediately before invoking the OS;
-- log the exact command;
-- never run in tests or CI.
+Contract:
 
-This is a documented gap, not an accidental omission.
+- the action is latched when the last enabled window closes;
+- it runs only when the active task map is empty;
+- the daemon re-checks idleness immediately before invoking the hook;
+- the exact platform command is constructed by `rustget-platform` and logged;
+- tests use a recording hook and command construction only; no test executes a
+  real shutdown/suspend;
+- `exit` terminates the daemon; shutdown/sleep/hibernate call the OS;
+- lock/logoff are represented in the platform layer but not in the scheduler UI
+  enum yet.
+
+This remains a data-loss-sensitive feature; keep the flag off unless the host is
+disposable or the action matches your intent.
 
 ## 7. Per-queue concurrency
 

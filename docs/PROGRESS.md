@@ -48,6 +48,7 @@
 - [x] Web UI: virtualized list, details, segments, add/settings, themes.
 - [x] Queue priority Move up/down via PATCH API.
 - [x] Live speed sparkline and daemon single-instance lock.
+- [x] Opt-in scheduler power actions with platform command planning.
 - [x] Versioned JSON export/import for the download list.
 - [x] Scheduler weekly timeline and add/delete form in the web UI.
 - [x] Chromium/Firefox extension + native-messaging host (live tested).
@@ -91,16 +92,16 @@ rustget-core     14 unit + 3 proptest   PASS
 rustget-storage  15                      PASS
 rustget-testkit   5                      PASS
 rustget-net       7 unit + 8 HTTP + 2 work/adaptive + 2 mirrors + 2 HLS + 2 AES-HLS + 3 DASH + 1 host cap + 1 FTP  PASS
-rustget-queue     13                     PASS
+rustget-queue     14                     PASS
 rustget-ipc       4                      PASS
 rustget-cli       4 + 1 crash safety     PASS
 rustget-media     5                      PASS
 rustget-crawler   2                      PASS
 rustget-native-host 2                    PASS
-rustget-platform  1                     PASS
+rustget-platform  2                     PASS
 clippy -D warnings                       PASS
 cargo fmt --check                        PASS
-total                                  97 tests
+total                                  99 tests
 ```
 
 Commands:

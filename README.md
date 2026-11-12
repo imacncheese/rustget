@@ -204,14 +204,14 @@ commands and output summary):
   positional writes.
 - `rustget-net`: 7 unit + 20 integration tests (engine, work stealing, adaptive
   growth, mirrors, host caps, HLS/AES, DASH timeline, FTP).
-- `rustget-queue`: 13 DB migration/manager/scheduler/HLS/FTP/mirror tests.
+- `rustget-queue`: 14 DB migration/manager/scheduler/power-hook/HLS/FTP/mirror tests.
 - `rustget-ipc`: 4 API tests (auth, origin/Host rejection, add/list/delete).
 - `rustget-cli`: 4 pattern tests + 1 kill-process/resume test.
 - `rustget-testkit`: 5 protocol tests.
 - `rustget-media`: 6 parser/discovery tests.
 - `rustget-crawler`: 2 discovery/robots tests.
 - `rustget-native-host`: 2 framing tests.
-- `rustget-platform`: 1 single-instance lock test.
+- `rustget-platform`: 2 single-instance lock/power-command tests.
 
 Local benchmark (128 MiB loopback, 16 connections): RustGet 159.1 MiB/s latest
 median (152.5 MiB/s over 9 runs) vs aria2 119.9 MiB/s earlier; both byte-exact. See

@@ -237,7 +237,7 @@
             <label><input type="checkbox" value="5">Sat</label>
             <label><input type="checkbox" value="6">Sun</label>
           </div>
-          <p class="hint">Power actions are recorded but not executed in 0.1 until the platform safety gate is enabled.</p>
+          <p class="hint">Power actions run only when the daemon was started with <code>--allow-power-actions</code>. The default is off.</p>
           <button class="primary" id="schedAdd" type="submit">Add schedule</button>
         </form>
       </div>

@@ -188,6 +188,31 @@ struct ServeArgs {
     open: bool,
     #[arg(long, default_value_t = 4)]
     concurrency: usize,
+    /// Allow scheduler actions to shut down, sleep, hibernate or exit the host.
+    #[arg(long)]
+    allow_power_actions: bool,
+}
+
+struct PlatformPower;
+
+impl rustget_queue::manager::PowerHook for PlatformPower {
+    fn execute(&self, action: rustget_queue::PowerAction) {
+        use rustget_platform::PowerAction as PlatformAction;
+        if action == rustget_queue::PowerAction::Exit {
+            tracing::warn!("scheduler requested daemon exit");
+            std::process::exit(0);
+        }
+        let mapped = match action {
+            rustget_queue::PowerAction::Shutdown => PlatformAction::Shutdown,
+            rustget_queue::PowerAction::Sleep => PlatformAction::Sleep,
+            rustget_queue::PowerAction::Hibernate => PlatformAction::Hibernate,
+            rustget_queue::PowerAction::Exit | rustget_queue::PowerAction::None => return,
+        };
+        match rustget_platform::execute_power(mapped) {
+            Ok(command) => tracing::warn!(?command, "scheduler power command completed"),
+            Err(error) => tracing::error!(%error, "scheduler power action failed"),
+        }
+    }
 }
 
 #[tokio::main]
@@ -324,6 +349,10 @@ async fn serve(cli: &Cli, paths: &Paths, args: &ServeArgs) -> Result<()> {
     let mut config = paths.manager_config();
     config.max_concurrent = args.concurrency.max(1);
     let manager = DownloadManager::new(config)?;
+    if args.allow_power_actions {
+        manager.set_power_hook(std::sync::Arc::new(PlatformPower));
+        println!("power actions: ENABLED (shutdown/sleep/hibernate/exit)");
+    }
     manager.start_scheduler();
     println!("RustGet {}", env!("CARGO_PKG_VERSION"));
     println!("data:       {}", paths.data_dir.display());

@@ -20,6 +20,8 @@ Keep a Changelog and the project uses Semantic Versioning.
 - MD5/SHA-1/SHA-256/BLAKE3 checksum verification.
 - SQLite WAL catalogue, queues, priorities and concurrency limits.
 - Live speed sparkline in the details pane.
+- Opt-in scheduler power actions (`--allow-power-actions`) with tested command
+  planning and a fake-hook test.
 - Cross-process single-instance lock for `rustget serve`.
 - Priority editing via API and the details pane (Move up/down).
 - Portable JSON download-list export/import through the API and CLI.

@@ -147,6 +147,10 @@ struct TaskEntry {
     _join: JoinHandle<()>,
 }
 
+pub trait PowerHook: Send + Sync {
+    fn execute(&self, action: crate::scheduler::PowerAction);
+}
+
 pub struct DownloadManager {
     config: ManagerConfig,
     db: Arc<Database>,
@@ -155,6 +159,8 @@ pub struct DownloadManager {
     live: Mutex<HashMap<Uuid, DownloadProgress>>,
     scheduler_active: Mutex<bool>,
     scheduler_started: Mutex<bool>,
+    pending_power: Mutex<Option<crate::scheduler::PowerAction>>,
+    power_hook: Mutex<Option<Arc<dyn PowerHook>>>,
     host_limiter: Arc<HostLimiter>,
 }
 
@@ -174,6 +180,8 @@ impl DownloadManager {
             live: Mutex::new(HashMap::new()),
             scheduler_active: Mutex::new(false),
             scheduler_started: Mutex::new(false),
+            pending_power: Mutex::new(None),
+            power_hook: Mutex::new(None),
             host_limiter: Arc::new(HostLimiter::new(per_host)),
         }))
     }
@@ -476,6 +484,10 @@ impl DownloadManager {
 
     /// Start the weekly window enforcement loop. Called by the daemon; one-off
     /// CLI downloads intentionally do not run a scheduler.
+    pub fn set_power_hook(&self, hook: Arc<dyn PowerHook>) {
+        *self.power_hook.lock() = Some(hook);
+    }
+
     pub fn start_scheduler(self: &Arc<Self>) {
         {
             let mut started = self.scheduler_started.lock();
@@ -533,6 +545,15 @@ impl DownloadManager {
             self.schedule();
         } else if !active && previous {
             tracing::info!("scheduler window closed");
+            if let Some(action) = schedules
+                .iter()
+                .find(|schedule| {
+                    schedule.enabled && schedule.action != crate::scheduler::PowerAction::None
+                })
+                .map(|schedule| schedule.action)
+            {
+                *self.pending_power.lock() = Some(action);
+            }
             let items = self
                 .db
                 .list(Some(DownloadStatus::Downloading))
@@ -546,6 +567,22 @@ impl DownloadManager {
                     let _ = self.events.send(ManagerEvent::Updated(record));
                 }
             }
+        }
+        self.run_pending_power();
+    }
+
+    fn run_pending_power(&self) {
+        if !self.tasks.lock().is_empty() {
+            return;
+        }
+        let hook = self.power_hook.lock().clone();
+        let Some(hook) = hook else {
+            return;
+        };
+        let action = self.pending_power.lock().take();
+        if let Some(action) = action {
+            tracing::warn!(?action, "executing scheduler power action");
+            hook.execute(action);
         }
     }
 
@@ -742,6 +779,36 @@ fn apply_progress(record: &mut DownloadRecord, snapshot: &DownloadProgress) {
 mod tests {
     use super::*;
     use rustget_testkit::{TestServer, TestkitConfig, expected_content};
+    use std::sync::Mutex as StdMutex;
+
+    struct RecordingHook(Arc<StdMutex<Vec<crate::scheduler::PowerAction>>>);
+
+    impl PowerHook for RecordingHook {
+        fn execute(&self, action: crate::scheduler::PowerAction) {
+            self.0.lock().unwrap().push(action);
+        }
+    }
+
+    #[test]
+    fn power_hook_runs_pending_action_only_when_idle() {
+        let directory = tempfile::tempdir().unwrap();
+        let manager = DownloadManager::new(ManagerConfig {
+            data_dir: directory.path().join("data"),
+            download_dir: directory.path().join("downloads"),
+            engine: EngineConfig::default(),
+            max_concurrent: 1,
+        })
+        .unwrap();
+        let seen = Arc::new(StdMutex::new(Vec::new()));
+        manager.set_power_hook(Arc::new(RecordingHook(Arc::clone(&seen))));
+        *manager.pending_power.lock() = Some(crate::scheduler::PowerAction::Sleep);
+        manager.run_pending_power();
+        assert_eq!(
+            seen.lock().unwrap().as_slice(),
+            [crate::scheduler::PowerAction::Sleep]
+        );
+        assert!(manager.pending_power.lock().is_none());
+    }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
     async fn manager_persists_and_completes_download() {

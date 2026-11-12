@@ -6,7 +6,96 @@ use std::io::{Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 
 use fs2::FileExt;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PowerAction {
+    Shutdown,
+    Sleep,
+    Hibernate,
+    Lock,
+    Logoff,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PowerCommand {
+    pub program: String,
+    pub args: Vec<String>,
+}
+
+impl PowerCommand {
+    fn new(program: &str, args: &[&str]) -> Self {
+        Self {
+            program: program.into(),
+            args: args.iter().map(|arg| (*arg).into()).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum PowerError {
+    #[error("power action is not supported on this platform")]
+    Unsupported,
+    #[error("power command failed with status {0}")]
+    Failed(i32),
+    #[error("cannot run power command: {0}")]
+    Io(#[from] std::io::Error),
+}
+
+/// Build the OS command without executing it. This is what tests and dry runs
+/// use, so CI never suspends or shuts down the host.
+pub fn power_command(action: PowerAction) -> Result<PowerCommand, PowerError> {
+    let command = if cfg!(windows) {
+        match action {
+            PowerAction::Shutdown => PowerCommand::new("shutdown.exe", &["/s", "/t", "5"]),
+            PowerAction::Sleep => {
+                PowerCommand::new("rundll32.exe", &["powrprof.dll,SetSuspendState", "0,1,0"])
+            }
+            PowerAction::Hibernate => PowerCommand::new("shutdown.exe", &["/h"]),
+            PowerAction::Lock => PowerCommand::new("rundll32.exe", &["user32.dll,LockWorkStation"]),
+            PowerAction::Logoff => PowerCommand::new("shutdown.exe", &["/l"]),
+        }
+    } else if cfg!(target_os = "macos") {
+        match action {
+            PowerAction::Shutdown => PowerCommand::new(
+                "osascript",
+                &["-e", "tell application \"System Events\" to shut down"],
+            ),
+            PowerAction::Sleep => PowerCommand::new("pmset", &["sleepnow"]),
+            PowerAction::Hibernate => return Err(PowerError::Unsupported),
+            PowerAction::Lock => PowerCommand::new("pmset", &["displaysleepnow"]),
+            PowerAction::Logoff => PowerCommand::new(
+                "osascript",
+                &["-e", "tell application \"System Events\" to log out"],
+            ),
+        }
+    } else {
+        match action {
+            PowerAction::Shutdown => PowerCommand::new("systemctl", &["poweroff"]),
+            PowerAction::Sleep => PowerCommand::new("systemctl", &["suspend"]),
+            PowerAction::Hibernate => PowerCommand::new("systemctl", &["hibernate"]),
+            PowerAction::Lock => PowerCommand::new("loginctl", &["lock-session"]),
+            PowerAction::Logoff => return Err(PowerError::Unsupported),
+        }
+    };
+    Ok(command)
+}
+
+/// Execute a power action. Call only from a daemon that was explicitly started
+/// with power actions enabled; the default deployment never calls this.
+pub fn execute_power(action: PowerAction) -> Result<PowerCommand, PowerError> {
+    let command = power_command(action)?;
+    let status = std::process::Command::new(&command.program)
+        .args(&command.args)
+        .status()?;
+    if status.success() {
+        Ok(command)
+    } else {
+        Err(PowerError::Failed(status.code().unwrap_or(-1)))
+    }
+}
 
 #[derive(Debug, Error)]
 pub enum LockError {
@@ -58,6 +147,17 @@ impl Drop for InstanceLock {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn power_commands_are_constructed_without_execution() {
+        for action in [PowerAction::Shutdown, PowerAction::Sleep, PowerAction::Lock] {
+            let command = power_command(action).unwrap();
+            assert!(!command.program.is_empty());
+        }
+        if cfg!(windows) {
+            assert_eq!(power_command(PowerAction::Hibernate).unwrap().args, ["/h"]);
+        }
+    }
 
     #[test]
     fn second_lock_is_rejected_until_first_is_dropped() {

@@ -111,12 +111,15 @@ See [the browser bridge spec](docs/specs/05-browser-bridge.md).
 ## Windows portable package
 
 ```powershell
+.\scripts\build-msi.ps1
+# dist\RustGet-0.1.0-x64.msi
+
 .\scripts\package-windows.ps1
 .\scripts\install-windows.ps1 -SourceZip .\dist\rustget-0.1.0-windows-x64.zip -AddToPath -StartMenuShortcut
 ```
 
-See [docs/specs/18-packaging.md](docs/specs/18-packaging.md). MSI/NSIS and code
-signing are not implemented yet.
+See [docs/specs/18-packaging.md](docs/specs/18-packaging.md). The MSI is
+x86-64; code signing is not implemented yet.
 
 ## What works
 

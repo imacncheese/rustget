@@ -1,6 +1,20 @@
 # Windows packaging
 
-RustGet ships a portable, per-user Windows package:
+RustGet ships a WiX MSI (x86-64) and a portable per-user Windows package.
+
+```powershell
+.\scripts\build-msi.ps1
+# dist\RustGet-0.1.0-x64.msi
+```
+
+The MSI installs to `Program Files\RustGet`, creates a Start Menu shortcut and
+is per-machine. It requires an x86-64 Windows host. The MSI payload was verified
+by decompiling it with WiX `dark.exe`.
+
+`scripts\build-msi.ps1` expects WiX 3 candle/light in `D:\dsh\.tools\wix\bin`;
+override with `-WixDirectory`.
+
+## Portable package
 
 ```powershell
 .\scripts\package-windows.ps1

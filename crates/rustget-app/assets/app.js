@@ -820,6 +820,12 @@
     $("#tokenInput").value = state.token;
     $("#themeSelect").value = localStorage.getItem("rustget.theme") || "system";
     $("#languageSelect").value = language;
+    $("#settingsSearch").value = "";
+    for (const node of document.querySelectorAll(
+      "#settingsForm .field, #settingsForm details, #settingsForm .two",
+    )) {
+      node.hidden = false;
+    }
     $("#notifySelect").value = state.notify ? "on" : "off";
     $("#settingsDialog").showModal();
     if (message) toast(message, true);
@@ -986,6 +992,14 @@
     $("#schedulesClose").addEventListener("click", () => $("#schedulesDialog").close());
     $("#scheduleForm").addEventListener("submit", submitSchedule);
     $("#themeBtn").addEventListener("click", cycleTheme);
+    $("#settingsSearch").addEventListener("input", (event) => {
+      const query = event.target.value.trim().toLowerCase();
+      for (const node of document.querySelectorAll(
+        "#settingsForm .field, #settingsForm details, #settingsForm .two",
+      )) {
+        node.hidden = Boolean(query) && !node.textContent.toLowerCase().includes(query);
+      }
+    });
     $("#languageSelect").addEventListener("change", (event) => {
       applyLanguage(event.target.value);
       renderCategories();

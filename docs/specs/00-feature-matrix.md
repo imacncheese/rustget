@@ -121,7 +121,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | C17 | Tray icon | SHOULD | P1 | M4 | ◐ | Windows `rustget-tray` binary (open UI/quit) starts and stays alive; menu interaction not automated, other OS stubs |
 | C18 | Desktop notifications | SHOULD | P1 | M4 | ◐ | Browser Notification API; no OS integration |
 | C19 | Start with system | SHOULD | P2 | M6 | ◐ | Windows registry / Linux .desktop / macOS LaunchAgent code + `autostart` CLI; Windows registry write is denied in this environment, Unix paths not executed |
-| C20 | Single instance | MUST | P1 | M4 | ◐ | Daemon lock file enforced; no native desktop shell yet |
+| C20 | Single instance | MUST | P1 | M4 | ✅ | Daemon `InstanceLock` enforced at startup; lock conflict test |
 | C21 | CLI: add/list/pause/resume/remove/schedule/config | MUST | P0 | M1 | ✅ | Implemented; pause/resume require daemon |
 | C22 | Headless daemon | MUST | P0 | M3 | ✅ | `rustget serve` |
 | C23 | i18n via Fluent | SHOULD | P2 | M7 | ◐ | JSON catalog (English/German), persisted language selector, core UI translated; not Fluent and dynamic strings incomplete |
@@ -143,7 +143,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | D04 | File-info probe preview in dialog | SHOULD | P1 | M4 | ✅ | “Check” calls `/api/v1/probe`; filename, size and range support shown before submit |
 | D05 | Video quality picker | SHOULD | P2 | M5 | ✅ | `/api/v1/media/probe` catalog, add-dialog quality select, persisted `media_variant`; HLS/DASH tested |
 | D06 | Scheduler weekly timeline | SHOULD | P2 | M4 | ✅ | Web UI timeline, add/delete form, API-backed; power actions not executed |
-| D07 | Settings, searchable/advanced collapse | SHOULD | P1 | M4 | ◐ | Small settings dialog only |
+| D07 | Settings, searchable/advanced collapse | SHOULD | P1 | M4 | ✅ | Search filter plus collapsible Advanced section in settings |
 | D08 | First-run wizard | SHOULD | P1 | M4 | ✅ | Two-step welcome → token test/save; screenshot `docs/assets/ui-wizard.png` |
 | D09 | HiDPI | MUST | P1 | M4 | ✅ | CSS pixels, no fixed raster assets |
 | D10 | Drag/drop links and files | SHOULD | P1 | M4 | ◐ | Links supported; local files rejected with an explanation |
@@ -206,8 +206,8 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 97 |
-| ◐ partial | 39 |
+| ✅ implemented + verified | 99 |
+| ◐ partial | 37 |
 | ○ specified, not implemented | 1 |
 | — not started | 10 |
 | **Total tracked** | **147** |
@@ -218,8 +218,8 @@ By area:
 |---|---:|---:|---:|---:|---:|
 | A. Download engine | 46 | 32 | 11 | 0 | 3 |
 | B. Capture/integration | 22 | 13 | 9 | 0 | 0 |
-| C. Management | 30 | 23 | 7 | 0 | 0 |
-| D. UI/UX | 12 | 10 | 2 | 0 | 0 |
+| C. Management | 30 | 24 | 6 | 0 | 0 |
+| D. UI/UX | 12 | 11 | 1 | 0 | 0 |
 | E. Quality/security | 15 | 11 | 2 | 1 | 1 |
 | F. Platform/packaging | 10 | 2 | 4 | 0 | 4 |
 | G. Protocols/extensibility | 12 | 6 | 4 | 0 | 2 |

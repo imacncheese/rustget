@@ -204,7 +204,8 @@ On Windows, `rustget-tray` provides a native tray icon with **Open RustGet**
 (opens `http://127.0.0.1:8765`, or `RUSTGET_UI_URL`) and **Quit**. It is a
 separate optional binary; menu interaction is not automated yet.
 
-The language selector in Settings switches the core UI between English and
+Settings includes a live search filter and a collapsible **Advanced** section;
+the language selector switches the core UI between English and
 German using `assets/i18n.js` and `data-i18n` attributes; the choice is persisted
 in `localStorage` and `?lang=de` is supported for testing. Dynamic strings and
 Fluent message formatting are not complete yet.

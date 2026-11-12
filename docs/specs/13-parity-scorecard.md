@@ -26,13 +26,13 @@ Internet Download Manager feature parity, and it does not claim to be.
 
 | State | Count | Share |
 |---|---:|---:|
-| ✅ implemented + verified | 81 | 55.1% |
+| ✅ implemented + verified | 82 | 55.8% |
 | ◐ partial | 45 | 30.6% |
 | ○ specified only | 1 | 0.7% |
-| — not started | 20 | 13.6% |
+| — not started | 19 | 12.9% |
 | **Total** | **147** | 100% |
 
-“Implemented or partial” = 126/147 = **85.7%** of the tracked surface. That
+“Implemented or partial” = 127/147 = **86.4%** of the tracked surface. That
 number is deliberately broad: a parser counts as partial even when it is not
 wired to the UI.
 
@@ -40,7 +40,7 @@ wired to the UI.
 
 | Area | Complete | Partial | Not started |
 |---|---:|---:|---:|
-| Download engine (46) | 22 | 18 | 6 |
+| Download engine (46) | 23 | 18 | 5 |
 | Capture/integration (22) | 12 | 8 | 2 |
 | Management (30) | 23 | 7 | 0 |
 | UI/UX (12) | 10 | 2 | 0 |

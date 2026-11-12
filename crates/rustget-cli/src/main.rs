@@ -153,6 +153,8 @@ enum Command {
     Import { path: PathBuf },
     /// Replace the tags on a download.
     Tag { id: String, tags: Vec<String> },
+    /// Verify that a completed file exists and is readable (scanner hook helper).
+    Scan { path: PathBuf },
     /// Install, remove or inspect the per-user autostart entry.
     Autostart {
         #[command(subcommand)]
@@ -274,6 +276,12 @@ struct ServeArgs {
     /// Allow scheduler actions to shut down, sleep, hibernate or exit the host.
     #[arg(long)]
     allow_power_actions: bool,
+    /// Antivirus scanner program; the completed file is appended as its last argument.
+    #[arg(long)]
+    scanner: Option<PathBuf>,
+    /// Extra argument for `--scanner`; repeatable.
+    #[arg(long = "scanner-arg")]
+    scanner_args: Vec<String>,
 }
 
 struct PlatformPower;
@@ -317,6 +325,9 @@ async fn main() -> Result<()> {
         )
         .init();
     let cli = Cli::parse();
+    if let Command::Scan { path } = &cli.command {
+        return scan_file(path);
+    }
     let paths = Paths::resolve(&cli)?;
     match &cli.command {
         Command::Serve(args) => serve(&cli, &paths, args, logs).await,
@@ -366,6 +377,7 @@ async fn main() -> Result<()> {
         Command::Import { path } => import_downloads(&cli, &paths, path).await,
         Command::Tag { id, tags } => tag_download(&cli, &paths, id, tags).await,
         Command::Autostart { action, dry_run } => autostart(&paths, action, *dry_run),
+        Command::Scan { .. } => unreachable!("scan handled before path resolution"),
         Command::Schedule { action } => schedule_command(&cli, &paths, action).await,
         Command::Grab {
             url,
@@ -448,6 +460,12 @@ async fn serve(
     let mut config = paths.manager_config();
     config.max_concurrent = args.concurrency.max(1);
     let manager = DownloadManager::new(config)?;
+    if let Some(scanner) = &args.scanner {
+        let mut command = vec![scanner.to_string_lossy().to_string()];
+        command.extend(args.scanner_args.iter().cloned());
+        manager.set_setting("antivirus.scan_command", &serde_json::to_string(&command)?)?;
+        println!("scanner:    {}", scanner.display());
+    }
     if args.allow_power_actions {
         manager.set_power_hook(std::sync::Arc::new(PlatformPower));
         println!("power actions: ENABLED (shutdown/sleep/hibernate/exit)");
@@ -846,6 +864,20 @@ async fn import_downloads(cli: &Cli, paths: &Paths, path: &std::path::Path) -> R
     for failure in failures {
         eprintln!("failed: {failure}");
     }
+    Ok(())
+}
+
+fn scan_file(path: &std::path::Path) -> Result<()> {
+    let metadata =
+        std::fs::metadata(path).with_context(|| format!("cannot stat {}", path.display()))?;
+    if !metadata.is_file() {
+        bail!("not a regular file: {}", path.display());
+    }
+    let mut file =
+        std::fs::File::open(path).with_context(|| format!("cannot read {}", path.display()))?;
+    let mut probe = [0_u8; 1];
+    let _ = std::io::Read::read(&mut file, &mut probe)?;
+    println!("ok {} ({} bytes)", path.display(), metadata.len());
     Ok(())
 }
 

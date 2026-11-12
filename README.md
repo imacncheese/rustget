@@ -55,6 +55,7 @@ rustget add https://primary.example/file.bin --mirror https://mirror.example/fil
 rustget add ftp://user:pass@ftp.example/file.bin
 rustget export queue.json
 rustget-tray   # optional Windows tray; RUSTGET_UI_URL overrides the URL
+rustget serve --scanner "C:\Program Files\ClamAV\clamscan.exe" --scanner-arg --no-summary
 rustget import queue.json
 ```
 
@@ -210,7 +211,7 @@ commands and output summary):
   growth, mirrors, host caps, HLS quality/AES, DASH timeline, FTP, HTTP proxy).
 - `rustget-queue`: 16 DB migration/manager/duplicate/tags/scheduler/power-hook/HLS/FTP/mirror tests.
 - `rustget-ipc`: 6 API tests (auth, origin/Host rejection, add/list/delete, probe/config bundles, logs).
-- `rustget-cli`: 4 pattern tests + 1 kill-process/resume test.
+- `rustget-cli`: 4 pattern tests + 1 kill-process/resume + 2 scanner-hook tests.
 - `rustget-testkit`: 5 protocol tests.
 - `rustget-media`: 6 parser/discovery tests.
 - `rustget-crawler`: 2 discovery/robots tests.

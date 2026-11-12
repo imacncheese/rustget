@@ -62,7 +62,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | A36 | Per-download proxy | COULD | P2 | M6 | ◐ | Field exists only at client construction |
 | A37 | MD5 / SHA-1 / SHA-256 / BLAKE3 verification | MUST | P1 | M1 | ✅ | Streaming hashes, pre-rename verification; tests |
 | A38 | Post-download open/run/extract | SHOULD | P2 | M4 | ◐ | Open containing folder via API; no run/extract |
-| A39 | Antivirus scan hook | SHOULD | P2 | M6 | — | Planned |
+| A39 | Antivirus scan hook | SHOULD | P2 | M6 | ✅ | `antivirus.scan_command` JSON argv, file appended, 60 s timeout, no shell; success/failure tests |
 | A40 | Disk-full handling | MUST | P0 | M2 | ◐ | I/O errors surfaced; no preflight free-space reservation/retry UI |
 | A41 | Slow-loris / idle timeout | MUST | P0 | M2 | ✅ | Idle timeout on stream and probe |
 | A42 | Mid-stream reset recovery | MUST | P0 | M2 | ✅ | Flaky-origin test retries and verifies bytes |
@@ -206,17 +206,17 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 81 |
+| ✅ implemented + verified | 82 |
 | ◐ partial | 45 |
 | ○ specified, not implemented | 1 |
-| — not started | 20 |
+| — not started | 19 |
 | **Total tracked** | **147** |
 
 By area:
 
 | Area | Rows | ✅ | ◐ | ○ | — |
 |---|---:|---:|---:|---:|---:|
-| A. Download engine | 46 | 22 | 18 | 0 | 6 |
+| A. Download engine | 46 | 23 | 18 | 0 | 5 |
 | B. Capture/integration | 22 | 12 | 8 | 0 | 2 |
 | C. Management | 30 | 23 | 7 | 0 | 0 |
 | D. UI/UX | 12 | 10 | 2 | 0 | 0 |

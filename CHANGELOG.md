@@ -26,6 +26,7 @@ Keep a Changelog and the project uses Semantic Versioning.
 - Opt-in scheduler power actions (`--allow-power-actions`) with tested command
   planning and a fake-hook test.
 - Cross-process single-instance lock for `rustget serve`.
+- Optional antivirus scan hook with timeout and failure marking.
 - Optional Windows tray shell (`rustget-tray`) with Open/Quit.
 - English/German UI catalog with persisted language selector and `?lang=`.
 - Two-step first-run wizard that tests the API token before saving it.

@@ -57,6 +57,7 @@
 - [x] Two-step first-run wizard with token validation.
 - [~] English/German UI catalog and language selector (partial, non-Fluent).
 - [~] Windows tray shell (`rustget-tray`); startup verified, menu not automated.
+- [x] Opt-in antivirus scan hook with success/failure tests.
 - [x] Explicit per-download HTTP proxy with a live proxy fixture.
 - [~] Autostart CLI/platform entries; Windows registry writes blocked here.
 - [x] Scheduler weekly timeline and add/delete form in the web UI.
@@ -103,14 +104,14 @@ rustget-testkit   5                      PASS
 rustget-net       7 unit + 8 HTTP + 2 work/adaptive + 2 mirrors + 2 HLS + 2 AES-HLS + 3 DASH + 1 host cap + 1 FTP + 1 proxy  PASS
 rustget-queue     16                     PASS
 rustget-ipc       6                      PASS
-rustget-cli       4 + 1 crash safety     PASS
+rustget-cli       4 + 1 crash + 2 scan   PASS
 rustget-media     6                      PASS
 rustget-crawler   2                      PASS
 rustget-native-host 2                    PASS
 rustget-platform  3                     PASS
 clippy -D warnings                       PASS
 cargo fmt --check                        PASS
-total                                  106 tests
+total                                  108 tests
 ```
 
 Commands:

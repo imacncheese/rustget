@@ -821,10 +821,20 @@ impl DownloadManager {
                     record.total_size = Some(summary.total_size);
                     record.downloaded = summary.total_size;
                     record.speed_bps = 0.0;
-                    record.status = DownloadStatus::Completed;
-                    record.error = None;
-                    record.completed_at_ms = Some(chrono::Utc::now().timestamp_millis());
-                    DownloadStatus::Completed
+                    match this.scan_file(&record.destination).await {
+                        Ok(()) => {
+                            record.status = DownloadStatus::Completed;
+                            record.error = None;
+                            record.completed_at_ms = Some(chrono::Utc::now().timestamp_millis());
+                            DownloadStatus::Completed
+                        }
+                        Err(error) => {
+                            record.status = DownloadStatus::Failed;
+                            record.speed_bps = 0.0;
+                            record.error = Some(error);
+                            DownloadStatus::Failed
+                        }
+                    }
                 }
                 Err(NetError::Cancelled) => {
                     record.status = DownloadStatus::Paused;
@@ -856,6 +866,44 @@ impl DownloadManager {
                 _join: task,
             },
         );
+    }
+
+    async fn scan_file(&self, path: &std::path::Path) -> Result<(), String> {
+        let Some(raw) = self
+            .db
+            .get_setting("antivirus.scan_command")
+            .map_err(|error| format!("cannot read scanner command: {error}"))?
+        else {
+            return Ok(());
+        };
+        let mut parts: Vec<String> = serde_json::from_str(&raw)
+            .map_err(|error| format!("invalid antivirus.scan_command JSON: {error}"))?;
+        if parts.is_empty() {
+            return Ok(());
+        }
+        let program = parts.remove(0);
+        let mut command = tokio::process::Command::new(&program);
+        command
+            .args(&parts)
+            .arg(path)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::piped());
+        let output = tokio::time::timeout(Duration::from_secs(60), command.output())
+            .await
+            .map_err(|_| format!("antivirus scan timed out for {}", path.display()))?
+            .map_err(|error| format!("cannot run {program}: {error}"))?;
+        if output.status.success() {
+            Ok(())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let stderr: String = stderr.chars().take(500).collect();
+            Err(format!(
+                "antivirus scan rejected {} (status {}): {stderr}",
+                path.display(),
+                output.status
+            ))
+        }
     }
 
     fn engine_for(&self, connections: Option<u8>, speed_limit: Option<u64>) -> EngineConfig {

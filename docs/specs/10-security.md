@@ -110,6 +110,9 @@ implemented, will be opt-in.
   future redesign will store sensitive headers in the OS keyring or redact them
   after the transfer.
 - Basic auth fields are not persisted today (and not exposed in the UI).
+- The antivirus scan hook executes an operator-configured argv with the completed
+  file appended, no shell, stdout suppressed, stderr capped, and a 60 s timeout.
+  A non-zero exit marks the download failed but does not delete the file.
 - FTP URLs may contain plaintext credentials. They are persisted in the SQLite
   `url` column. Prefer `RequestOptions.basic_auth` or an external credential
   manager; plain FTP transports credentials in clear text and should only be used

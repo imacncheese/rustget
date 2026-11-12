@@ -98,7 +98,7 @@ rustget-net       7 unit + 8 HTTP + 2 work/adaptive + 2 mirrors + 2 HLS + 2 AES-
 rustget-queue     15                     PASS
 rustget-ipc       5                      PASS
 rustget-cli       4 + 1 crash safety     PASS
-rustget-media     5                      PASS
+rustget-media     6                      PASS
 rustget-crawler   2                      PASS
 rustget-native-host 2                    PASS
 rustget-platform  3                     PASS

@@ -22,18 +22,16 @@
                   Source="target\release\rustget.exe"
                   KeyPath="yes" />
           </Component>
-          <Component Id="DesktopShell" Guid="9F3C2A7B-4E1D-4B8A-8C6F-5A2D7E9B1C40" Win64="yes">
-            <File Id="DesktopExe"
-                  Source="target\release\rustget-desktop.exe"
-                  KeyPath="yes">
-              <Shortcut Id="StartMenuShortcut"
-                        Directory="ProgramMenuDir"
-                        Name="RustGet"
-                        WorkingDirectory="INSTALLDIR"
-                        Advertise="no" />
-            </File>
-            <File Id="WebView2Loader" Source="packaging\windows\WebView2Loader.dll" />
+          <Component Id="NativeShortcut" Guid="4A7D1E9C-3B62-4F0A-9E51-7C8D2A6B4F73" Win64="yes">
+            <Shortcut Id="StartMenuShortcut"
+                      Directory="ProgramMenuDir"
+                      Name="RustGet"
+                      Target="[INSTALLDIR]RustGet.Native.exe"
+                      WorkingDirectory="INSTALLDIR"
+                      Advertise="no" />
             <RemoveFolder Id="RemoveProgramMenuDir" Directory="ProgramMenuDir" On="uninstall" />
+            <RegistryValue Root="HKMU" Key="Software\RustGet" Name="NativeShortcut"
+                           Type="integer" Value="1" KeyPath="yes" />
           </Component>
           <Component Id="NativeHost" Guid="E2A7B9C4-6D1F-4A8E-B305-9C7D1E4F2A63" Win64="yes">
             <File Id="NativeHostExe"
@@ -54,9 +52,10 @@
 
     <Feature Id="MainFeature" Title="RustGet" Level="1">
       <ComponentRef Id="MainExecutable" />
-      <ComponentRef Id="DesktopShell" />
+      <ComponentRef Id="NativeShortcut" />
       <ComponentRef Id="NativeHost" />
       <ComponentRef Id="TrayShell" />
+      <ComponentGroupRef Id="NativeFiles" />
     </Feature>
   </Product>
 </Wix>

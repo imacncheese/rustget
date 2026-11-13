@@ -26,12 +26,15 @@ New-Item -ItemType Directory -Force -Path $tempDirectory | Out-Null
 $env:TEMP = $tempDirectory
 $env:TMP = $tempDirectory
 $wixobj = Join-Path $objectDirectory "RustGet.wixobj"
+$nativeobj = Join-Path $objectDirectory "NativeFiles.wixobj"
 $msi = Join-Path $OutputDirectory "RustGet-0.1.0-x64.msi"
 if (Test-Path $msi) { Remove-Item -Force $msi }
 
-& $candle -arch x64 -out $wixobj "packaging\windows\RustGet.wxs"
+& $candle -arch x64 -dNativeDir="dist\native-win" -out $wixobj "packaging\windows\RustGet.wxs"
 if ($LASTEXITCODE -ne 0) { throw "candle failed" }
-& $light -sval -out $msi $wixobj
+& $candle -arch x64 -dNativeDir="dist\native-win" -out $nativeobj "packaging\windows\NativeFiles.wxs"
+if ($LASTEXITCODE -ne 0) { throw "candle native files failed" }
+& $light -sval -out $msi $wixobj $nativeobj
 if ($LASTEXITCODE -ne 0) { throw "light failed" }
 $hash = (Get-FileHash -Algorithm SHA256 $msi).Hash.ToLowerInvariant()
 Write-Output "msi:    $msi"

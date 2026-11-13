@@ -122,7 +122,7 @@ mod windows {
             .with_inner_size(tao::dpi::LogicalSize::new(1440.0, 900.0))
             .with_min_inner_size(tao::dpi::LogicalSize::new(900.0, 600.0))
             .build(&event_loop)?;
-        let _webview = WebViewBuilder::new()
+        let webview = WebViewBuilder::new()
             .with_url(url)
             .with_devtools(cfg!(debug_assertions))
             .build(&window)?;
@@ -136,14 +136,35 @@ mod windows {
             .with_menu(Box::new(menu))
             .with_icon(Icon::from_rgba(crate::tray_icon_rgba(), 16, 16)?)
             .build()?;
+        let mut clipboard = arboard::Clipboard::new().ok();
+        let mut last_clipboard = String::new();
+        let mut next_clipboard = std::time::Instant::now();
         event_loop.run(move |event, _, control_flow| {
-            *control_flow = ControlFlow::Wait;
+            *control_flow = ControlFlow::WaitUntil(next_clipboard);
             if let Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
                 ..
             } = event
             {
                 window.set_visible(false);
+            }
+            if std::time::Instant::now() >= next_clipboard {
+                next_clipboard = std::time::Instant::now() + std::time::Duration::from_secs(1);
+                if let Some(clipboard) = &mut clipboard {
+                    if let Ok(text) = clipboard.get_text() {
+                        let text = text.trim().to_string();
+                        if (text.starts_with("https://") || text.starts_with("http://"))
+                            && text != last_clipboard
+                        {
+                            last_clipboard = text.clone();
+                            if let Ok(url) = serde_json::to_string(&text) {
+                                let _ = webview.evaluate_script(&format!(
+                                    "window.rustgetExternalUrl && window.rustgetExternalUrl({url});"
+                                ));
+                            }
+                        }
+                    }
+                }
             }
             while let Ok(menu_event) = MenuEvent::receiver().try_recv() {
                 if menu_event.id == open_item.id() {

@@ -1185,6 +1185,12 @@
     state.token = localStorage.getItem("rustget.token") || "";
   }
 
+  window.rustgetExternalUrl = (url) => {
+    openAdd();
+    $("#addUrl").value = url;
+    $("#probeHint").textContent = "Clipboard link detected — press Check or Add.";
+  };
+
   function boot() {
     readToken();
     const requested = new URLSearchParams(location.search).get("lang");

@@ -83,7 +83,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | B06 | Floating “download this video” affordance | SHOULD | P1 | M5 | ✅ | Injected panel lists detected media, max 5 visible |
 | B07 | Native Messaging host (Rust) | MUST | P1 | M5 | ✅ | Standard framing, ping/add/list/pause/resume; live daemon test |
 | B08 | Local authenticated REST/WebSocket API | MUST | P0 | M3 | ✅ | API tests; token, origin, body limit |
-| B09 | Clipboard URL monitoring | SHOULD | P1 | M4 | ◐ | UI paste button; no background clipboard watcher |
+| B09 | Clipboard URL monitoring | SHOULD | P1 | M4 | ✅ | Desktop polls the clipboard, suppresses duplicates and opens the Add dialog prefilled |
 | B10 | Drag and drop links | SHOULD | P1 | M4 | ✅ | Drop an http(s) URI list onto the window; add dialog prefilled |
 | B11 | Add URL dialog with probe preview | MUST | P0 | M4 | ✅ | Check button calls `/api/v1/probe` and shows filename/size/range support |
 | B12 | Batch URL import | MUST | P1 | M4 | ✅ | `batch` command |
@@ -206,8 +206,8 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 110 |
-| ◐ partial | 28 |
+| ✅ implemented + verified | 111 |
+| ◐ partial | 27 |
 | ○ specified, not implemented | 1 |
 | — not started | 7 |
 | ⏭ skipped by request | 1 |
@@ -218,7 +218,7 @@ By area:
 | Area | Rows | ✅ | ◐ | ○ | — |
 |---|---:|---:|---:|---:|---:|
 | A. Download engine | 46 | 35 | 8 | 0 | 2 | 1 |
-| B. Capture/integration | 22 | 13 | 9 | 0 | 0 |
+| B. Capture/integration | 22 | 14 | 8 | 0 | 0 |
 | C. Management | 30 | 27 | 3 | 0 | 0 |
 | D. UI/UX | 12 | 12 | 0 | 0 | 0 |
 | E. Quality/security | 15 | 11 | 2 | 1 | 1 |

@@ -129,15 +129,20 @@ pub fn autostart_preview(executable: &Path, data_dir: &Path) -> String {
         )
     } else if cfg!(target_os = "macos") {
         format!(
-            "{} (ProgramArguments)",
+            "{} (ProgramArguments: {})",
             macos_autostart_path()
                 .map(|path| path.display().to_string())
-                .unwrap_or_else(|| "~/Library/LaunchAgents/com.rustget.daemon.plist".into())
+                .unwrap_or_else(|| "~/Library/LaunchAgents/com.rustget.daemon.plist".into()),
+            autostart_command_line(executable, data_dir)
         )
     } else {
-        linux_autostart_path()
-            .map(|path| path.display().to_string())
-            .unwrap_or_else(|| "~/.config/autostart/rustget.desktop".into())
+        format!(
+            "{}: {}",
+            linux_autostart_path()
+                .map(|path| path.display().to_string())
+                .unwrap_or_else(|| "~/.config/autostart/rustget.desktop".into()),
+            autostart_command_line(executable, data_dir)
+        )
     }
 }
 

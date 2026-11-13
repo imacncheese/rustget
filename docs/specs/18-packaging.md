@@ -16,6 +16,18 @@ by decompiling it with WiX `dark.exe`.
 `scripts\build-msi.ps1` expects WiX 3 candle/light in `D:\dsh\.tools\wix\bin`;
 override with `-WixDirectory`.
 
+## Linux
+
+```bash
+./scripts/package-linux.sh
+# dist/linux/rustget_0.1.0_amd64.deb
+# dist/linux/rustget-0.1.0-linux-x64.tar.gz
+```
+
+The `.deb` installs `rustget` and `rustget-native-host` under `/usr/bin` plus
+docs under `/usr/share/doc/rustget`. It was built and its packaged binary
+verified in Ubuntu 26.04 (amd64). AppImage and RPM are not built yet.
+
 ## Portable package
 
 ```powershell

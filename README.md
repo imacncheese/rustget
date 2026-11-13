@@ -122,6 +122,15 @@ rustget batch urls.txt --connections 4
 
 See [the browser bridge spec](docs/specs/05-browser-bridge.md).
 
+## Linux package
+
+```bash
+./scripts/package-linux.sh
+sudo dpkg -i dist/linux/rustget_0.1.0_amd64.deb
+```
+
+Verified on Ubuntu 26.04 amd64. AppImage/RPM are not built yet.
+
 ## Windows portable package
 
 ```powershell

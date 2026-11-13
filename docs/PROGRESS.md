@@ -83,6 +83,7 @@
 - [x] Native Windows toast notifications on completion.
 - [x] axe-core accessibility audit with zero violations.
 - [x] Desktop clipboard URL monitoring.
+- [x] Linux amd64 build/tests and `.deb` package.
 - [~] Portable ZIP, WiX MSI and per-user install script; MSI unsigned.
 - [x] Adaptive concurrency growth test.
 - [x] Same-origin crawler with robots.txt and CLI `grab`.

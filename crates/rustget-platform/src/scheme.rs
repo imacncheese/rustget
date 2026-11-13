@@ -54,7 +54,7 @@ pub fn parse_scheme_request(raw: &str) -> Result<SchemeRequest, String> {
     })
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 fn run(program: &str, args: &[String]) -> Result<(), String> {
     let output = Command::new(program)
         .args(args)

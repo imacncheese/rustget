@@ -29,8 +29,11 @@ docs under `/usr/share/doc/rustget`. It was built and its packaged binary
 verified in Ubuntu 26.04 (amd64).
 
 `scripts/package-appimage.sh` produces the AppImage (requires a local
-`appimagetool` extracted at `/tmp/squashfs-root`). RPM packaging exists in
-`scripts/package-rpm.sh` but is not verified in this environment.
+`appimagetool` extracted at `/tmp/squashfs-root`).
+
+`scripts/package-rpm.sh` produces the RPM. WSL can recreate a temporary
+`rpmbuild` with `scripts/setup-rpmbuild-wsl.sh`; the built package lists
+`/usr/bin/rustget`, `/usr/bin/rustget-native-host` and the docs.
 
 ## Portable package
 

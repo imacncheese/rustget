@@ -26,7 +26,7 @@ Keep a Changelog and the project uses Semantic Versioning.
 - Opt-in scheduler power actions (`--allow-power-actions`) with tested command
   planning and a fake-hook test.
 - Cross-process single-instance lock for `rustget serve`.
-- Linux amd64 build, `.deb` and tarball.
+- Linux amd64 build, AppImage, `.deb`, RPM and tarball.
 - Desktop clipboard URL monitoring.
 - axe-core accessibility audit with zero violations.
 - `rustget mux` FFmpeg sidecar wiring.

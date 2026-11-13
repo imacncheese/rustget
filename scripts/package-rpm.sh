@@ -6,7 +6,7 @@ version="0.1.0"
 repo="$PWD"
 top="/tmp/rustget-rpm"
 rm -rf "$top"
-mkdir -p "$top"/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
+mkdir -p "$top"/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS,db}
 cat > "$top/SPECS/rustget.spec" <<EOF
 Name:           rustget
 Version:        ${version}
@@ -38,5 +38,5 @@ install -m 644 ${repo}/LICENSE-APACHE %{buildroot}/usr/share/doc/rustget/LICENSE
 /usr/share/doc/rustget/LICENSE-MIT
 /usr/share/doc/rustget/LICENSE-APACHE
 EOF
-"${RPMBUILD:-rpmbuild}" -bb --define "_topdir $top" "$top/SPECS/rustget.spec"
+"${RPMBUILD:-rpmbuild}" -bb --define "_topdir $top" --define "_dbpath $top/db" "$top/SPECS/rustget.spec"
 cp "$top/RPMS/x86_64/rustget-${version}-1.x86_64.rpm" "dist/linux/rustget-${version}-1.x86_64.rpm"

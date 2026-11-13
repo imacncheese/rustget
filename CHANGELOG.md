@@ -26,6 +26,7 @@ Keep a Changelog and the project uses Semantic Versioning.
 - Opt-in scheduler power actions (`--allow-power-actions`) with tested command
   planning and a fake-hook test.
 - Cross-process single-instance lock for `rustget serve`.
+- Native Windows toast notifications on completion.
 - Desktop tray with close-to-tray, Open and Quit.
 - HTTP/2 TLS ALPN verified with a dedicated h2 fixture.
 - GitHub release auto-update check/install with SHA-256 verification.

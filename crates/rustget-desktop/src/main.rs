@@ -11,7 +11,7 @@ mod windows {
     use anyhow::Context;
     use rustget_core::EngineConfig;
     use rustget_ipc::{ApiConfig, load_or_create_token, router};
-    use rustget_queue::{DownloadManager, ManagerConfig};
+    use rustget_queue::{DownloadManager, DownloadStatus, ManagerConfig, ManagerEvent};
     use tao::event::{Event, WindowEvent};
     use tao::event_loop::{ControlFlow, EventLoop};
     use tao::window::WindowBuilder;
@@ -82,6 +82,23 @@ mod windows {
                         return;
                     }
                 };
+                let mut events = manager.subscribe();
+                let notification_manager = std::sync::Arc::clone(&manager);
+                tokio::spawn(async move {
+                    while let Ok(ManagerEvent::Finished { id, status }) = events.recv().await {
+                        if status != DownloadStatus::Completed {
+                            continue;
+                        }
+                        let name = notification_manager
+                            .get(id)
+                            .map(|record| record.filename)
+                            .unwrap_or_else(|_| "download".into());
+                        let _ = notify_rust::Notification::new()
+                            .summary("RustGet")
+                            .body(&format!("{name} downloaded"))
+                            .show();
+                    }
+                });
                 let mut config = ApiConfig::loopback(token.clone());
                 config.logs = None;
                 let app = router(manager, &config);

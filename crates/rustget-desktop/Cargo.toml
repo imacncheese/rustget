@@ -20,6 +20,7 @@ axum.workspace = true
 tokio.workspace = true
 
 [target.'cfg(windows)'.dependencies]
+notify-rust.workspace = true
 tao = "0.37.2"
 tray-icon.workspace = true
 wry = "0.57.2"

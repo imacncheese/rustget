@@ -200,7 +200,9 @@ the download to the running local API. `rustget scheme install|status|remove`
 and `rustget associate install|status|remove <ext>` register the scheme or a
 file extension; registration writes are unverified in the sandbox.
 
-On Windows, `rustget-tray` provides a native tray icon with **Open RustGet**
+The standalone desktop app includes a tray icon: closing the window hides it,
+and the tray menu can reopen it or quit. On Windows, `rustget-tray` also provides
+a separate native tray icon with **Open RustGet**
 (opens `http://127.0.0.1:8765`, or `RUSTGET_UI_URL`) and **Quit**. It is a
 separate optional binary; menu interaction is not automated yet.
 

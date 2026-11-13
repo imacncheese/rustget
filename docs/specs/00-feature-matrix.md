@@ -118,7 +118,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | C14 | Filter | MUST | P1 | M4 | ✅ | Status filters |
 | C15 | Sort | MUST | P1 | M4 | ✅ | Name/size/progress/speed/status |
 | C16 | Tags | COULD | P2 | M6 | ✅ | Persisted/normalized tags, API PATCH, CLI `tag`/`--tag`, details chips, search includes tags |
-| C17 | Tray icon | SHOULD | P1 | M4 | ◐ | Windows `rustget-tray` binary (open UI/quit) starts and stays alive; menu interaction not automated, other OS stubs |
+| C17 | Tray icon | SHOULD | P1 | M4 | ✅ | Desktop app tray with Open/Quit and close-to-tray; standalone tray binary also present |
 | C18 | Desktop notifications | SHOULD | P1 | M4 | ◐ | Browser Notification API; no OS integration |
 | C19 | Start with system | SHOULD | P2 | M6 | ◐ | Windows registry / Linux .desktop / macOS LaunchAgent code + `autostart` CLI; Windows registry write is denied in this environment, Unix paths not executed |
 | C20 | Single instance | MUST | P1 | M4 | ✅ | Daemon `InstanceLock` enforced at startup; lock conflict test |
@@ -206,8 +206,8 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 106 |
-| ◐ partial | 32 |
+| ✅ implemented + verified | 107 |
+| ◐ partial | 31 |
 | ○ specified, not implemented | 1 |
 | — not started | 7 |
 | ⏭ skipped by request | 1 |
@@ -219,7 +219,7 @@ By area:
 |---|---:|---:|---:|---:|---:|
 | A. Download engine | 46 | 35 | 8 | 0 | 2 | 1 |
 | B. Capture/integration | 22 | 13 | 9 | 0 | 0 |
-| C. Management | 30 | 24 | 6 | 0 | 0 |
+| C. Management | 30 | 25 | 5 | 0 | 0 |
 | D. UI/UX | 12 | 12 | 0 | 0 | 0 |
 | E. Quality/security | 15 | 11 | 2 | 1 | 1 |
 | F. Platform/packaging | 10 | 5 | 2 | 0 | 3 |

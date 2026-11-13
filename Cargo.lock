@@ -3939,6 +3939,7 @@ dependencies = [
  "rustget-queue",
  "tao",
  "tokio",
+ "tray-icon",
  "wry",
 ]
 

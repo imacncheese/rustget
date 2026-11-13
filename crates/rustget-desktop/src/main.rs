@@ -15,6 +15,8 @@ mod windows {
     use tao::event::{Event, WindowEvent};
     use tao::event_loop::{ControlFlow, EventLoop};
     use tao::window::WindowBuilder;
+    use tray_icon::menu::{Menu, MenuEvent, MenuItem};
+    use tray_icon::{Icon, TrayIconBuilder};
     use wry::WebViewBuilder;
 
     pub fn run() -> anyhow::Result<()> {
@@ -107,6 +109,16 @@ mod windows {
             .with_url(url)
             .with_devtools(cfg!(debug_assertions))
             .build(&window)?;
+        let menu = Menu::new();
+        let open_item = MenuItem::new("Open RustGet", true, None);
+        let quit_item = MenuItem::new("Quit", true, None);
+        let _ = menu.append(&open_item);
+        let _ = menu.append(&quit_item);
+        let _tray = TrayIconBuilder::new()
+            .with_tooltip("RustGet")
+            .with_menu(Box::new(menu))
+            .with_icon(Icon::from_rgba(crate::tray_icon_rgba(), 16, 16)?)
+            .build()?;
         event_loop.run(move |event, _, control_flow| {
             *control_flow = ControlFlow::Wait;
             if let Event::WindowEvent {
@@ -114,10 +126,35 @@ mod windows {
                 ..
             } = event
             {
-                *control_flow = ControlFlow::Exit;
+                window.set_visible(false);
+            }
+            while let Ok(menu_event) = MenuEvent::receiver().try_recv() {
+                if menu_event.id == open_item.id() {
+                    window.set_visible(true);
+                    window.set_focus();
+                } else if menu_event.id == quit_item.id() {
+                    *control_flow = ControlFlow::Exit;
+                }
             }
         });
     }
+}
+
+#[cfg(windows)]
+fn tray_icon_rgba() -> Vec<u8> {
+    let mut pixels = Vec::with_capacity(16 * 16 * 4);
+    for y in 0..16 {
+        for x in 0..16 {
+            let border = x < 1 || y < 1 || x >= 15 || y >= 15;
+            let letter = (4..12).contains(&x) && (3..13).contains(&y) && (x + y) % 5 < 3;
+            if border || letter {
+                pixels.extend_from_slice(&[255, 122, 69, 255]);
+            } else {
+                pixels.extend_from_slice(&[20, 18, 16, 255]);
+            }
+        }
+    }
+    pixels
 }
 
 fn main() {

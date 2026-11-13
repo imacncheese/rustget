@@ -15,6 +15,9 @@ public partial class MainWindow : Window
 {
     private readonly RustGetApi _api = new();
     private readonly ObservableCollection<DownloadRow> _rows = new();
+    private List<DownloadRow> _all = [];
+    private string _filter = "all";
+    private string _search = "";
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(1.5) };
 
     public MainWindow()
@@ -26,15 +29,13 @@ public partial class MainWindow : Window
             try
             {
                 await _api.StartAsync();
-                StatusText.Text = "connected";
                 await RefreshAsync();
                 _timer.Tick += async (_, _) => await RefreshAsync();
                 _timer.Start();
             }
             catch (Exception error)
             {
-                StatusText.Text = "offline";
-                FooterText.Text = error.Message;
+                DetailStatus.Text = error.Message;
             }
         };
         Closed += (_, _) => _api.Dispose();
@@ -44,24 +45,80 @@ public partial class MainWindow : Window
     {
         try
         {
-            var downloads = await _api.ListAsync();
-            var selected = (DownloadsList.SelectedItem as DownloadRow)?.Id;
-            _rows.Clear();
-            foreach (var item in downloads)
-            {
-                _rows.Add(item);
-            }
-            if (selected is not null)
-            {
-                DownloadsList.SelectedItem = _rows.FirstOrDefault(row => row.Id == selected);
-            }
-            StatusText.Text = $"{_rows.Count} download{(_rows.Count == 1 ? "" : "s")}";
+            _all = (await _api.ListAsync()).ToList();
+            ApplyFilter();
         }
         catch (Exception error)
         {
-            StatusText.Text = "reconnecting";
-            FooterText.Text = error.Message;
+            DetailStatus.Text = error.Message;
         }
+    }
+
+    private void ApplyFilter()
+    {
+        var selected = (DownloadsList.SelectedItem as DownloadRow)?.Id;
+        var rows = _all.Where(row =>
+            (_filter == "all" || row.Status.Equals(_filter, StringComparison.OrdinalIgnoreCase)
+                || row.Category.Equals(_filter, StringComparison.OrdinalIgnoreCase))
+            && (_search.Length == 0
+                || row.FileName.Contains(_search, StringComparison.OrdinalIgnoreCase)
+                || row.Url.Contains(_search, StringComparison.OrdinalIgnoreCase)));
+        _rows.Clear();
+        foreach (var row in rows)
+        {
+            _rows.Add(row);
+        }
+        ActiveStat.Text = _all.Count(row => row.Status.Equals("downloading", StringComparison.OrdinalIgnoreCase)).ToString();
+        CompletedStat.Text = _all.Count(row => row.Status.Equals("completed", StringComparison.OrdinalIgnoreCase)).ToString();
+        SpeedStat.Text = FormatBytes((ulong)_all.Sum(row => (double)row.SpeedBps));
+        DataStat.Text = FormatBytes((ulong)_all.Sum(row => (double)row.Downloaded));
+        if (selected is not null)
+        {
+            DownloadsList.SelectedItem = _rows.FirstOrDefault(row => row.Id == selected);
+        }
+    }
+
+    private void Filter_Changed(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (FilterList.SelectedItem is System.Windows.Controls.ListBoxItem item && item.Tag is string tag)
+        {
+            _filter = tag;
+            ApplyFilter();
+        }
+    }
+
+    private void Search_Changed(object sender, System.Windows.Controls.TextChangedEventArgs e)
+    {
+        _search = SearchBox.Text.Trim();
+        ApplyFilter();
+    }
+
+    private void Selection_Changed(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (DownloadsList.SelectedItem is not DownloadRow row)
+        {
+            return;
+        }
+        DetailName.Text = row.FileName;
+        DetailStatus.Text = $"{row.Status} · {row.Category}";
+        DetailProgress.Value = row.Progress;
+        DetailDownloaded.Text = row.SizeText;
+        DetailSpeed.Text = row.SpeedText;
+        DetailPath.Text = row.Path;
+        DetailUrl.Text = row.Url;
+    }
+
+    public static string FormatBytes(ulong bytes)
+    {
+        string[] units = ["B", "KiB", "MiB", "GiB", "TiB"];
+        double value = bytes;
+        var unit = 0;
+        while (value >= 1024 && unit < units.Length - 1)
+        {
+            value /= 1024;
+            unit++;
+        }
+        return unit == 0 ? $"{bytes} B" : $"{value:F1} {units[unit]}";
     }
 
     private async void Add_Click(object sender, RoutedEventArgs e)
@@ -114,8 +171,14 @@ public sealed class DownloadRow
     public string Url { get; init; } = "";
     public string FileName { get; init; } = "";
     public string Status { get; init; } = "";
+    public string Category { get; init; } = "General";
+    public string Path { get; init; } = "";
     public string SizeText { get; init; } = "";
+    public string SpeedText { get; init; } = "";
     public string ProgressText { get; init; } = "";
+    public string Subtitle { get; init; } = "";
+    public ulong Downloaded { get; init; }
+    public double SpeedBps { get; init; }
     public double Progress { get; init; }
 }
 
@@ -205,7 +268,13 @@ public sealed class RustGetApi : IDisposable
                 Url = item.Url,
                 FileName = item.FileName,
                 Status = item.Status,
-                SizeText = total > 0 ? $"{item.Downloaded / 1048576.0:F1} / {total / 1048576.0:F1} MiB" : "",
+                Category = item.Category,
+                Path = item.Destination,
+                SizeText = total > 0 ? MainWindow.FormatBytes(total) : "—",
+                SpeedText = item.SpeedBps > 0 ? $"{MainWindow.FormatBytes((ulong)item.SpeedBps)}/s" : "—",
+                Subtitle = $"{item.Category} · {item.Status}",
+                Downloaded = item.Downloaded,
+                SpeedBps = item.SpeedBps,
                 Progress = progress,
                 ProgressText = total > 0 ? $"{progress:F0}%" : "",
             };
@@ -250,6 +319,9 @@ public sealed class RustGetApi : IDisposable
         public string Url { get; set; } = "";
         public string FileName { get; set; } = "";
         public string Status { get; set; } = "";
+        public string Category { get; set; } = "General";
+        public string Destination { get; set; } = "";
+        public double SpeedBps { get; set; }
         public ulong Downloaded { get; set; }
         public ulong? TotalSize { get; set; }
     }

@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>RustGet.Native</AssemblyName>
+    <ApplicationIcon>..\..\packaging\windows\rustget.ico</ApplicationIcon>
     <RootNamespace>RustGet.Native</RootNamespace>
     <Platforms>x64</Platforms>
   </PropertyGroup>

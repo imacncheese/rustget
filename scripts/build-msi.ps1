@@ -34,7 +34,7 @@ if (Test-Path $msi) { Remove-Item -Force $msi }
 if ($LASTEXITCODE -ne 0) { throw "candle failed" }
 & $candle -arch x64 -dNativeDir="dist\native-win" -out $nativeobj "packaging\windows\NativeFiles.wxs"
 if ($LASTEXITCODE -ne 0) { throw "candle native files failed" }
-& $light -sval -out $msi $wixobj $nativeobj
+& $light -sval -ext WixUIExtension -out $msi $wixobj $nativeobj
 if ($LASTEXITCODE -ne 0) { throw "light failed" }
 $hash = (Get-FileHash -Algorithm SHA256 $msi).Hash.ToLowerInvariant()
 Write-Output "msi:    $msi"

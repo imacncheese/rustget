@@ -7,8 +7,10 @@ RustGet ships a WiX MSI (x86-64) and a portable per-user Windows package.
 # dist\RustGet-0.1.0-x64.msi
 ```
 
-The MSI installs to `Program Files\RustGet`, creates a Start Menu shortcut to
-`rustget-desktop.exe` and is per-machine. It requires an x86-64 Windows host and
+The MSI uses `WixUI_FeatureTree`: it lets the user choose the install directory,
+creates a Start Menu shortcut and offers an optional desktop shortcut. The
+shortcut launches the native WPF `RustGet.Native.exe`; the installer also sets
+the RustGet icon for Add/Remove Programs. It requires an x86-64 Windows host and
 bundles `WebView2Loader.dll`; the WebView2 runtime must be present (current
 Windows 10/11 images include it). The MSI payload was verified
 by decompiling it with WiX `dark.exe`.

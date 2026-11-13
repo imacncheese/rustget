@@ -63,12 +63,13 @@ certificate.
 ### Desktop app
 
 ```powershell
-rustget-desktop
+RustGet.Native.exe
 ```
 
-`rustget-desktop.exe` starts the daemon and API in-process and opens the UI in a
-native WebView2 window. The Start Menu shortcut and MSI use this binary. No
-external browser is involved.
+The MSI installs the native WPF XAML client and its self-contained .NET runtime.
+It starts `rustget.exe` as the engine and talks to the authenticated loopback
+API. No WebView is used. The installer lets you choose the install directory and
+offers Start Menu and optional desktop shortcuts.
 
 ### One-shot download
 

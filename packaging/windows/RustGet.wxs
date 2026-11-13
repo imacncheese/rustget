@@ -13,6 +13,10 @@
              Description="RustGet download manager" />
     <MajorUpgrade DowngradeErrorMessage="A newer version of RustGet is already installed." />
     <MediaTemplate EmbedCab="yes" />
+    <Icon Id="RustGetIcon" SourceFile="packaging\windows\rustget.ico" />
+    <Property Id="ARPPRODUCTICON" Value="RustGetIcon" />
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
+    <UIRef Id="WixUI_FeatureTree" />
 
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFiles64Folder">
@@ -28,6 +32,7 @@
                       Name="RustGet"
                       Target="[INSTALLDIR]RustGet.Native.exe"
                       WorkingDirectory="INSTALLDIR"
+                      Icon="RustGetIcon"
                       Advertise="no" />
             <RemoveFolder Id="RemoveProgramMenuDir" Directory="ProgramMenuDir" On="uninstall" />
             <RegistryValue Root="HKMU" Key="Software\RustGet" Name="NativeShortcut"
@@ -48,7 +53,19 @@
       <Directory Id="ProgramMenuFolder">
         <Directory Id="ProgramMenuDir" Name="RustGet" />
       </Directory>
+      <Directory Id="DesktopFolder" />
     </Directory>
+
+    <Component Id="DesktopShortcut" Guid="D2E6A1B4-7C39-4F58-A0D1-6B8E3C5A9F21" Win64="yes" Directory="DesktopFolder">
+      <Shortcut Id="DesktopIcon"
+                Directory="DesktopFolder"
+                Name="RustGet"
+                Target="[INSTALLDIR]RustGet.Native.exe"
+                WorkingDirectory="INSTALLDIR"
+                Icon="RustGetIcon" />
+      <RegistryValue Root="HKMU" Key="Software\RustGet" Name="DesktopShortcut"
+                     Type="integer" Value="1" KeyPath="yes" />
+    </Component>
 
     <Feature Id="MainFeature" Title="RustGet" Level="1">
       <ComponentRef Id="MainExecutable" />
@@ -56,6 +73,9 @@
       <ComponentRef Id="NativeHost" />
       <ComponentRef Id="TrayShell" />
       <ComponentGroupRef Id="NativeFiles" />
+    </Feature>
+    <Feature Id="DesktopIconFeature" Title="Desktop shortcut" Description="Create a RustGet icon on the desktop." Level="1">
+      <ComponentRef Id="DesktopShortcut" />
     </Feature>
   </Product>
 </Wix>

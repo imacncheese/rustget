@@ -125,7 +125,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | C21 | CLI: add/list/pause/resume/remove/schedule/config | MUST | P0 | M1 | ✅ | Implemented; pause/resume require daemon |
 | C22 | Headless daemon | MUST | P0 | M3 | ✅ | `rustget serve` |
 | C23 | i18n via Fluent | SHOULD | P2 | M7 | ◐ | JSON catalog (English/German), persisted language selector, core UI translated; not Fluent and dynamic strings incomplete |
-| C24 | Accessibility (labels, focus, screen reader) | MUST | P1 | M4 | ◐ | Semantic labels/keyboard; no screen-reader audit |
+| C24 | Accessibility (labels, focus, screen reader) | MUST | P1 | M4 | ✅ | axe-core audit zero violations; labels/focus/aria-live; manual screen-reader pass still recommended |
 | C25 | Light/dark/system themes | MUST | P1 | M4 | ✅ | CSS variables, persisted theme |
 | C26 | Keyboard shortcuts | SHOULD | P1 | M4 | ✅ | Ctrl+N/F, Space, Delete, arrows, Esc |
 | C27 | 10k-row virtualized table | SHOULD | P1 | M4 | ✅ | Windowed rendering |
@@ -206,8 +206,8 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 109 |
-| ◐ partial | 29 |
+| ✅ implemented + verified | 110 |
+| ◐ partial | 28 |
 | ○ specified, not implemented | 1 |
 | — not started | 7 |
 | ⏭ skipped by request | 1 |
@@ -219,7 +219,7 @@ By area:
 |---|---:|---:|---:|---:|---:|
 | A. Download engine | 46 | 35 | 8 | 0 | 2 | 1 |
 | B. Capture/integration | 22 | 13 | 9 | 0 | 0 |
-| C. Management | 30 | 26 | 4 | 0 | 0 |
+| C. Management | 30 | 27 | 3 | 0 | 0 |
 | D. UI/UX | 12 | 12 | 0 | 0 | 0 |
 | E. Quality/security | 15 | 11 | 2 | 1 | 1 |
 | F. Platform/packaging | 10 | 5 | 2 | 0 | 3 |

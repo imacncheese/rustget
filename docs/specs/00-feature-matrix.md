@@ -43,7 +43,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | A17 | Global and per-download speed limit (token bucket) | MUST | P0 | M2 | ✅ | Process-wide shared bucket for global limit; per-download overrides use their own bucket; aggregate-throttle test |
 | A18 | Per-host connection caps / learned server limits | SHOULD | P1 | M2 | ◐ | Process-wide per-host semaphore (`max_connections_per_host`), tested across two downloads; no learned 429 limit cache |
 | A19 | HTTP/1.1 | MUST | P0 | M1 | ✅ | `reqwest`/hyper, range tests |
-| A20 | HTTP/2 | MUST | P1 | M2 | ◐ | Enabled by `reqwest` (`http2` feature), no dedicated h2 test |
+| A20 | HTTP/2 | MUST | P1 | M2 | ✅ | h2-only TLS ALPN fixture downloads successfully through the engine |
 | A21 | HTTP/3 / QUIC | COULD | P2 | M7 | — | `quinn`/`h3` not wired |
 | A22 | HTTPS with rustls | MUST | P0 | M1 | ✅ | `rustls-tls`, no OpenSSL system dependency |
 | A23 | FTP / FTPS | SHOULD | P2 | M6 | ◐ | Plain FTP download + `REST` resume with local fixture; FTPS/TLS and segmented FTP missing |
@@ -206,10 +206,10 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 105 |
+| ✅ implemented + verified | 106 |
 | ◐ partial | 32 |
 | ○ specified, not implemented | 1 |
-| — not started | 8 |
+| — not started | 7 |
 | ⏭ skipped by request | 1 |
 | **Total tracked** | **147** |
 
@@ -217,7 +217,7 @@ By area:
 
 | Area | Rows | ✅ | ◐ | ○ | — |
 |---|---:|---:|---:|---:|---:|
-| A. Download engine | 46 | 34 | 9 | 0 | 2 | 1 |
+| A. Download engine | 46 | 35 | 8 | 0 | 2 | 1 |
 | B. Capture/integration | 22 | 13 | 9 | 0 | 0 |
 | C. Management | 30 | 24 | 6 | 0 | 0 |
 | D. UI/UX | 12 | 12 | 0 | 0 | 0 |

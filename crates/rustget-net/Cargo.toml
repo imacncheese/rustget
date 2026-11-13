@@ -37,6 +37,7 @@ url.workspace = true
 uuid.workspace = true
 
 [dev-dependencies]
+h2.workspace = true
 rcgen.workspace = true
 rustls.workspace = true
 tokio-rustls.workspace = true

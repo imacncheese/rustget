@@ -3,7 +3,7 @@ using System.Windows;
 
 namespace RustGet.Native;
 
-public partial class App : Application
+public partial class App : System.Windows.Application
 {
     [DllImport("kernel32.dll")]
     private static extern IntPtr GetConsoleWindow();
@@ -29,7 +29,7 @@ public partial class App : Application
             catch
             {
             }
-            MessageBox.Show(args.Exception.Message, "RustGet", MessageBoxButton.OK, MessageBoxImage.Error);
+            System.Windows.MessageBox.Show(args.Exception.Message, "RustGet", MessageBoxButton.OK, MessageBoxImage.Error);
             args.Handled = true;
         };
         var console = GetConsoleWindow();

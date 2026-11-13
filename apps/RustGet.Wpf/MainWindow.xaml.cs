@@ -19,6 +19,7 @@ public partial class MainWindow : Window
     private string _filter = "all";
     private string _search = "";
     private bool _ready;
+    private System.Windows.Forms.NotifyIcon? _tray;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(1.5) };
 
     public MainWindow()
@@ -28,6 +29,7 @@ public partial class MainWindow : Window
         Loaded += async (_, _) =>
         {
             _ready = true;
+            InitializeTray();
             try
             {
                 await _api.StartAsync();
@@ -40,7 +42,54 @@ public partial class MainWindow : Window
                 DetailStatus.Text = error.Message;
             }
         };
-        Closed += (_, _) => _api.Dispose();
+        StateChanged += (_, _) =>
+        {
+            if (WindowState == WindowState.Minimized)
+            {
+                Hide();
+                _tray?.ShowBalloonTip(1500, "RustGet", "Still running in the notification area.", System.Windows.Forms.ToolTipIcon.Info);
+            }
+        };
+        Closed += (_, _) =>
+        {
+            if (_tray is not null)
+            {
+                _tray.Visible = false;
+                _tray.Dispose();
+            }
+            _api.Dispose();
+        };
+    }
+
+    private void InitializeTray()
+    {
+        if (_tray is not null)
+        {
+            return;
+        }
+        var icon = System.Drawing.Icon.ExtractAssociatedIcon(Environment.ProcessPath ?? "");
+        _tray = new System.Windows.Forms.NotifyIcon
+        {
+            Text = "RustGet",
+            Icon = icon,
+            Visible = true,
+            ContextMenuStrip = new System.Windows.Forms.ContextMenuStrip(),
+        };
+        _tray.ContextMenuStrip.Items.Add("Open RustGet", null, (_, _) => RestoreFromTray());
+        _tray.ContextMenuStrip.Items.Add("Exit", null, (_, _) =>
+        {
+            _tray.Visible = false;
+            Close();
+        });
+        _tray.DoubleClick += (_, _) => RestoreFromTray();
+    }
+
+    private void RestoreFromTray()
+    {
+        Show();
+        ShowInTaskbar = true;
+        WindowState = WindowState.Normal;
+        Activate();
     }
 
     private async Task RefreshAsync()
@@ -147,7 +196,7 @@ public partial class MainWindow : Window
             }
             catch (Exception error)
             {
-                MessageBox.Show(this, error.Message, "RustGet");
+                System.Windows.MessageBox.Show(this, error.Message, "RustGet");
             }
         }
     }
@@ -213,7 +262,7 @@ public sealed class AddDialog : Window
         var buttons = new System.Windows.Controls.StackPanel
         {
             Orientation = System.Windows.Controls.Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Right,
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
         };
         var add = new System.Windows.Controls.Button { Content = "Add", IsDefault = true, MinWidth = 80 };
         add.Click += (_, _) => { DialogResult = true; };

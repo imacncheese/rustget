@@ -1,0 +1,56 @@
+<Window x:Class="RustGet.Native.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="RustGet" Height="720" Width="1100"
+        Background="#141210" Foreground="#F5F1EA">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16">
+            <TextBlock Text="RustGet" FontSize="28" FontWeight="Bold" Foreground="#FF7A45" />
+            <TextBlock x:Name="StatusText" Margin="16,10,0,0" Foreground="#B9B2A8" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
+            <Button Content="Add URL" Click="Add_Click" />
+            <Button Content="Pause" Click="Pause_Click" />
+            <Button Content="Resume" Click="Resume_Click" />
+            <Button Content="Open folder" Click="OpenFolder_Click" />
+        </StackPanel>
+
+        <ListView Grid.Row="2" x:Name="DownloadsList" SelectionMode="Single"
+                  Background="#1D1A17" BorderBrush="#2E2924" BorderThickness="1">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Grid Margin="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="140" />
+                            <ColumnDefinition Width="180" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" FontSize="14" />
+                            <TextBlock Text="{Binding Url}" Foreground="#9C948A" FontSize="11" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="{Binding Status}" Foreground="#FFB38A" />
+                            <TextBlock Text="{Binding SizeText}" Foreground="#9C948A" FontSize="11" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <ProgressBar Value="{Binding Progress}" Maximum="100" Height="8" />
+                            <TextBlock Text="{Binding ProgressText}" Foreground="#9C948A" FontSize="11" HorizontalAlignment="Right" />
+                        </StackPanel>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <TextBlock Grid.Row="3" x:Name="FooterText" Margin="0,12,0,0" Foreground="#9C948A"
+                   Text="Native XAML client · Rust engine over the local authenticated API" />
+    </Grid>
+</Window>

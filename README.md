@@ -49,6 +49,17 @@ cargo build --release
 Rust 1.85+ is required. On Linux, install a C toolchain and OpenSSL-free
 `rustls` is used for TLS. No system libcurl is needed.
 
+### Native XAML app (WPF)
+
+`apps/RustGet.Wpf` is a native XAML client with no WebView. It starts
+`rustget.exe` as its local engine and talks to the authenticated loopback API.
+It builds with the portable .NET 8 SDK and has been launched successfully on
+Windows (`title=RustGet`). It is not yet included in the MSI.
+
+A UWP/WinUI 3 build was attempted but this host lacks Visual Studio's Appx
+MSBuild tasks; UWP also needs the Windows SDK, MSVC and an appx signing
+certificate.
+
 ### Desktop app
 
 ```powershell

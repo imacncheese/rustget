@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>RustGet.Native</AssemblyName>
+    <RootNamespace>RustGet.Native</RootNamespace>
+    <Platforms>x64</Platforms>
+  </PropertyGroup>
+  <Target Name="CopyRustDaemon" BeforeTargets="Build" Condition="Exists('..\..\target\release\rustget.exe')">
+    <Copy SourceFiles="..\..\target\release\rustget.exe" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

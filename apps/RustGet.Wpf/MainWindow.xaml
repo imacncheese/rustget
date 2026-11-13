@@ -1,57 +1,100 @@
 <Window x:Class="RustGet.Native.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="RustGet" Height="840" Width="1280" MinHeight="640" MinWidth="1000"
-        Background="#0E0F12" Foreground="#F4F1EC" FontFamily="Segoe UI">
+        Title="RustGet" Height="740" Width="1100" MinHeight="600" MinWidth="900"
+        WindowStartupLocation="Manual" Left="24" Top="24"
+        Background="#0B0D10" Foreground="#F4F1EC" FontFamily="Segoe UI">
     <Window.Resources>
-        <SolidColorBrush x:Key="Panel" Color="#17191E" />
-        <SolidColorBrush x:Key="Panel2" Color="#1E2128" />
-        <SolidColorBrush x:Key="Line" Color="#2A2E36" />
-        <SolidColorBrush x:Key="Muted" Color="#8D939D" />
-        <SolidColorBrush x:Key="Orange" Color="#FF8A4C" />
+        <SolidColorBrush x:Key="Panel" Color="#181C23" />
+        <SolidColorBrush x:Key="Panel2" Color="#252B35" />
+        <SolidColorBrush x:Key="Line" Color="#38404C" />
+        <SolidColorBrush x:Key="Muted" Color="#AEB5C0" />
+        <SolidColorBrush x:Key="Orange" Color="#FF9A5E" />
         <Style TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#F4F1EC" />
+            <Setter Property="Foreground" Value="#FAF8F5" />
+            <Setter Property="FontSize" Value="13" />
         </Style>
         <Style x:Key="Card" TargetType="Border">
             <Setter Property="Background" Value="{StaticResource Panel}" />
             <Setter Property="BorderBrush" Value="{StaticResource Line}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="10" />
-            <Setter Property="Padding" Value="14" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="16" />
         </Style>
         <Style x:Key="Action" TargetType="Button">
             <Setter Property="Background" Value="{StaticResource Panel2}" />
-            <Setter Property="Foreground" Value="#F4F1EC" />
+            <Setter Property="Foreground" Value="#FAF8F5" />
             <Setter Property="BorderBrush" Value="{StaticResource Line}" />
-            <Setter Property="Padding" Value="14,8" />
+            <Setter Property="Padding" Value="16,9" />
             <Setter Property="Margin" Value="0,0,8,0" />
             <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Surface" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                                CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="#333B47" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="#1C2129" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style x:Key="Primary" TargetType="Button" BasedOn="{StaticResource Action}">
             <Setter Property="Background" Value="{StaticResource Orange}" />
-            <Setter Property="Foreground" Value="#1A0D06" />
-            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#241006" />
+            <Setter Property="FontWeight" Value="Bold" />
             <Setter Property="BorderBrush" Value="{StaticResource Orange}" />
         </Style>
         <Style TargetType="ListBox">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Foreground" Value="#D8D4CE" />
+            <Setter Property="Foreground" Value="#E8E4DD" />
         </Style>
         <Style TargetType="ListBoxItem">
-            <Setter Property="Padding" Value="10,8" />
-            <Setter Property="Margin" Value="0,1" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,2" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Foreground" Value="#E8E4DD" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Surface" Background="Transparent" CornerRadius="8" Padding="10,9">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="#202630" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="#38271C" />
+                                <Setter Property="Foreground" Value="#FFC09A" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style TargetType="TextBox">
-            <Setter Property="Background" Value="{StaticResource Panel}" />
-            <Setter Property="Foreground" Value="#F4F1EC" />
+            <Setter Property="Background" Value="#1D222A" />
+            <Setter Property="Foreground" Value="#FAF8F5" />
             <Setter Property="BorderBrush" Value="{StaticResource Line}" />
-            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="Padding" Value="12,9" />
+            <Setter Property="FontSize" Value="14" />
         </Style>
     </Window.Resources>
 
-    <Grid>
+    <Viewbox Stretch="Uniform" StretchDirection="DownOnly">
+    <Grid x:Name="RootGrid" Width="1680" Height="1000">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="230" />
             <ColumnDefinition Width="*" />
@@ -111,10 +154,14 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <TextBox x:Name="SearchBox" Grid.Column="0" Height="38" VerticalContentAlignment="Center"
-                         TextChanged="Search_Changed" ToolTip="Search downloads" />
-                <Button Grid.Column="1" Style="{StaticResource Primary}" Content="+  Add download"
-                        Click="Add_Click" Height="38" Margin="10,0,0,0" />
+                <Grid Grid.Column="0">
+                    <TextBox x:Name="SearchBox" Height="40" VerticalContentAlignment="Center"
+                             TextChanged="Search_Changed" ToolTip="Search downloads by name or URL" />
+                    <TextBlock x:Name="SearchHint" Text="Search downloads" Foreground="{StaticResource Muted}"
+                               Margin="14,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" />
+                </Grid>
+                <Button x:Name="AddButton" Grid.Column="1" Style="{StaticResource Primary}" Content="+  Add download"
+                        Click="Add_Click" Height="40" Margin="10,0,0,0" ToolTip="Add a download URL" />
             </Grid>
 
             <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,0,16">
@@ -154,7 +201,8 @@
                         <TextBlock Grid.Column="3" Text="SPEED" FontSize="10" Foreground="{StaticResource Muted}" />
                         <TextBlock Grid.Column="4" Text="STATUS" FontSize="10" Foreground="{StaticResource Muted}" />
                     </Grid>
-                    <ListView x:Name="DownloadsList" Grid.Row="1" Background="Transparent" BorderThickness="0"
+                    <Grid Grid.Row="1">
+                    <ListView x:Name="DownloadsList" Background="Transparent" BorderThickness="0"
                               SelectionMode="Single" SelectionChanged="Selection_Changed">
                         <ListView.ItemTemplate>
                             <DataTemplate>
@@ -178,6 +226,13 @@
                             </DataTemplate>
                         </ListView.ItemTemplate>
                     </ListView>
+                    <StackPanel x:Name="EmptyState" VerticalAlignment="Center" HorizontalAlignment="Center"
+                                IsHitTestVisible="False">
+                        <TextBlock Text="No downloads yet" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                        <TextBlock Text="Click “Add download” and paste a URL to begin."
+                                   Foreground="{StaticResource Muted}" Margin="0,6,0,0" HorizontalAlignment="Center" />
+                    </StackPanel>
+                    </Grid>
                 </Grid>
             </Border>
         </Grid>
@@ -205,12 +260,14 @@
                     <TextBlock Text="SOURCE" FontSize="9" Foreground="{StaticResource Muted}" Margin="0,10,0,4" />
                     <TextBox x:Name="DetailUrl" IsReadOnly="True" TextWrapping="Wrap" FontSize="10" />
                     <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
-                        <Button Style="{StaticResource Action}" Content="Pause" Click="Pause_Click" />
-                        <Button Style="{StaticResource Action}" Content="Resume" Click="Resume_Click" />
+                        <Button Style="{StaticResource Action}" Content="Pause" Click="Pause_Click" ToolTip="Pause selected download" />
+                        <Button Style="{StaticResource Action}" Content="Resume" Click="Resume_Click" ToolTip="Resume selected download" />
                     </StackPanel>
-                    <Button Style="{StaticResource Action}" Content="Open folder" Click="OpenFolder_Click" Margin="0,8,0,0" HorizontalAlignment="Stretch" />
+                    <Button Style="{StaticResource Action}" Content="Open folder" Click="OpenFolder_Click"
+                            Margin="0,8,0,0" HorizontalAlignment="Stretch" ToolTip="Show the downloaded file in Explorer" />
                 </StackPanel>
             </ScrollViewer>
         </Border>
     </Grid>
+    </Viewbox>
 </Window>

@@ -125,6 +125,7 @@ public partial class MainWindow : Window
         {
             _rows.Add(row);
         }
+        EmptyState.Visibility = _rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         ActiveStat.Text = _all.Count(row => row.Status.Equals("downloading", StringComparison.OrdinalIgnoreCase)).ToString();
         CompletedStat.Text = _all.Count(row => row.Status.Equals("completed", StringComparison.OrdinalIgnoreCase)).ToString();
         SpeedStat.Text = FormatBytes((ulong)_all.Sum(row => (double)row.SpeedBps));
@@ -163,6 +164,7 @@ public partial class MainWindow : Window
             return;
         }
         _search = SearchBox.Text.Trim();
+        SearchHint.Visibility = SearchBox.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
         ApplyFilter();
     }
 
@@ -326,6 +328,22 @@ public sealed class RustGetApi : IDisposable
         if (token.Length == 0) throw new InvalidOperationException("daemon did not create an API token");
         _http.BaseAddress = new Uri($"http://127.0.0.1:{port}/");
         _http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        for (var attempt = 0; attempt < 60; attempt++)
+        {
+            try
+            {
+                using var probe = await _http.GetAsync("api/v1/downloads");
+                if (probe.IsSuccessStatusCode)
+                {
+                    return;
+                }
+            }
+            catch (HttpRequestException)
+            {
+            }
+            await Task.Delay(100);
+        }
+        throw new InvalidOperationException("RustGet engine did not become ready. Close other RustGet instances and try again.");
     }
 
     public async Task<IReadOnlyList<DownloadRow>> ListAsync()

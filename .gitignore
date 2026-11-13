@@ -14,3 +14,7 @@ coverage/
 /benchmarks/results
 
 /.tmp/
+
+apps/**/bin/
+apps/**/obj/
+

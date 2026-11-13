@@ -179,7 +179,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | F03 | macOS | MUST | P0 | M1 | ◐ | Unix path, no notarized build |
 | F04 | MSI/NSIS installer | SHOULD | P1 | M7 | ✅ | WiX MSI (x86-64) built and payload-verified; portable ZIP retained |
 | F05 | AppImage/deb/rpm | SHOULD | P1 | M7 | ✅ | AppImage, `.deb`, RPM and tarball built; package contents verified |
-| F06 | DMG | SHOULD | P1 | M7 | — | Planned |
+| F06 | DMG | SHOULD | P1 | M7 | ◐ | `.app` bundle + ad-hoc sign + DMG script; unverified on this Windows host |
 | F07 | File association | COULD | P2 | M7 | ◐ | Windows HKCU/Linux xdg-mime association helpers and CLI; live write unverified in sandbox |
 | F08 | Auto-update | SHOULD | P3 | M7 | ✅ | `rustget update check/install` from GitHub release, version compare, SHA-256 and MSI launch |
 | F09 | Native tray/shell | SHOULD | P1 | M4 | ✅ | Windows standalone WebView2 desktop window (in-process daemon) plus tray shell |
@@ -207,9 +207,9 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | State | Count |
 |---|---:|
 | ✅ implemented + verified | 113 |
-| ◐ partial | 26 |
+| ◐ partial | 27 |
 | ○ specified, not implemented | 1 |
-| — not started | 6 |
+| — not started | 5 |
 | ⏭ skipped by request | 1 |
 | **Total tracked** | **147** |
 
@@ -222,7 +222,7 @@ By area:
 | C. Management | 30 | 27 | 3 | 0 | 0 |
 | D. UI/UX | 12 | 12 | 0 | 0 | 0 |
 | E. Quality/security | 15 | 11 | 2 | 1 | 1 |
-| F. Platform/packaging | 10 | 7 | 2 | 0 | 1 |
+| F. Platform/packaging | 10 | 7 | 3 | 0 | 0 |
 | G. Protocols/extensibility | 12 | 7 | 3 | 0 | 2 |
 
 The count is maintained manually alongside the table; the parity scorecard gives

@@ -27,13 +27,13 @@ Internet Download Manager feature parity, and it does not claim to be.
 | State | Count | Share |
 |---|---:|---:|
 | ✅ implemented + verified | 113 | 77.4% |
-| ◐ partial | 26 | 17.8% |
+| ◐ partial | 27 | 18.5% |
 | ○ specified only | 1 | 0.7% |
-| — not started | 6 | 4.1% |
+| — not started | 5 | 3.4% |
 | ⏭ skipped by request | 1 | — |
 | **Total** | **147** | 100% |
 
-“Implemented or partial” = 139/146 = **95.2%** of the active surface
+“Implemented or partial” = 140/146 = **95.9%** of the active surface
 (147 tracked rows; BitTorrent is skipped by request). That
 number is deliberately broad: a parser counts as partial even when it is not
 wired to the UI.

@@ -35,6 +35,13 @@ verified in Ubuntu 26.04 (amd64).
 `rpmbuild` with `scripts/setup-rpmbuild-wsl.sh`; the built package lists
 `/usr/bin/rustget`, `/usr/bin/rustget-native-host` and the docs.
 
+## macOS
+
+`scripts/package-macos.sh` builds `RustGet.app`, ad-hoc signs it when
+`codesign` is available, and creates a compressed DMG with `hdiutil`. The
+desktop WebView2 shell is Windows-only, so the macOS bundle runs the daemon and
+browser UI. This path is unverified because the build host is Windows.
+
 ## Portable package
 
 ```powershell

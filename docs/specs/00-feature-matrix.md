@@ -176,10 +176,10 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 |---|---|---|---|---|---|---|
 | F01 | Windows 10/11 | MUST | P0 | M1 | ✅ | Built/tested on Windows 11 (GNU toolchain) |
 | F02 | Linux | MUST | P0 | M1 | ✅ | Full Linux test suite passes; CLI/native-host build and .deb verified | Unix positional writes compile path; not run in this environment |
-| F03 | macOS | MUST | P0 | M1 | ◐ | Unix path, no notarized build |
+| F03 | macOS | MUST | P0 | M1 | ⏭ | Skipped by user request |
 | F04 | MSI/NSIS installer | SHOULD | P1 | M7 | ✅ | WiX MSI (x86-64) built and payload-verified; portable ZIP retained |
 | F05 | AppImage/deb/rpm | SHOULD | P1 | M7 | ✅ | AppImage, `.deb`, RPM and tarball built; package contents verified |
-| F06 | DMG | SHOULD | P1 | M7 | ◐ | `.app` bundle + ad-hoc sign + DMG script; unverified on this Windows host |
+| F06 | DMG | SHOULD | P1 | M7 | ⏭ | Skipped with macOS by user request |
 | F07 | File association | COULD | P2 | M7 | ◐ | Windows HKCU/Linux xdg-mime association helpers and CLI; live write unverified in sandbox |
 | F08 | Auto-update | SHOULD | P3 | M7 | ✅ | `rustget update check/install` from GitHub release, version compare, SHA-256 and MSI launch |
 | F09 | Native tray/shell | SHOULD | P1 | M4 | ✅ | Windows standalone WebView2 desktop window (in-process daemon) plus tray shell |
@@ -207,10 +207,10 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | State | Count |
 |---|---:|
 | ✅ implemented + verified | 113 |
-| ◐ partial | 27 |
+| ◐ partial | 25 |
 | ○ specified, not implemented | 1 |
 | — not started | 5 |
-| ⏭ skipped by request | 1 |
+| ⏭ skipped by request | 3 |
 | **Total tracked** | **147** |
 
 By area:
@@ -222,7 +222,7 @@ By area:
 | C. Management | 30 | 27 | 3 | 0 | 0 |
 | D. UI/UX | 12 | 12 | 0 | 0 | 0 |
 | E. Quality/security | 15 | 11 | 2 | 1 | 1 |
-| F. Platform/packaging | 10 | 7 | 3 | 0 | 0 |
+| F. Platform/packaging | 10 | 7 | 1 | 0 | 0 | 2 |
 | G. Protocols/extensibility | 12 | 7 | 3 | 0 | 2 |
 
 The count is maintained manually alongside the table; the parity scorecard gives

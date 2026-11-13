@@ -27,13 +27,14 @@ Internet Download Manager feature parity, and it does not claim to be.
 | State | Count | Share |
 |---|---:|---:|
 | ✅ implemented + verified | 113 | 77.4% |
-| ◐ partial | 27 | 18.5% |
+| ◐ partial | 25 | 17.4% |
 | ○ specified only | 1 | 0.7% |
-| — not started | 5 | 3.4% |
+| — not started | 5 | 3.5% |
+| ⏭ skipped | 3 | 2.1% |
 | ⏭ skipped by request | 1 | — |
 | **Total** | **147** | 100% |
 
-“Implemented or partial” = 140/146 = **95.9%** of the active surface
+“Implemented or partial” = 138/144 = **95.8%** of the active surface (macOS skipped)
 (147 tracked rows; BitTorrent is skipped by request). That
 number is deliberately broad: a parser counts as partial even when it is not
 wired to the UI.
@@ -47,7 +48,7 @@ wired to the UI.
 | Management (30) | 27 | 3 | 0 |
 | UI/UX (12) | 12 | 0 | 0 |
 | Quality/security (15) | 11 | 2 | 1 |
-| Platform/packaging (10) | 7 | 2 | 1 |
+| Platform/packaging (10) | 7 | 1 | 0 |
 | Protocols/extensibility (12) | 7 | 3 | 2 |
 
 ## 3. What matches or beats IDM today

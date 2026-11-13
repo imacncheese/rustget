@@ -18,6 +18,7 @@ public partial class MainWindow : Window
     private List<DownloadRow> _all = [];
     private string _filter = "all";
     private string _search = "";
+    private bool _ready;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(1.5) };
 
     public MainWindow()
@@ -26,6 +27,7 @@ public partial class MainWindow : Window
         DownloadsList.ItemsSource = _rows;
         Loaded += async (_, _) =>
         {
+            _ready = true;
             try
             {
                 await _api.StartAsync();
@@ -56,6 +58,10 @@ public partial class MainWindow : Window
 
     private void ApplyFilter()
     {
+        if (!_ready)
+        {
+            return;
+        }
         var selected = (DownloadsList.SelectedItem as DownloadRow)?.Id;
         var rows = _all.Where(row =>
             (_filter == "all" || row.Status.Equals(_filter, StringComparison.OrdinalIgnoreCase)
@@ -80,6 +86,10 @@ public partial class MainWindow : Window
 
     private void Filter_Changed(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
+        if (!_ready)
+        {
+            return;
+        }
         if (FilterList.SelectedItem is System.Windows.Controls.ListBoxItem item && item.Tag is string tag)
         {
             _filter = tag;
@@ -89,6 +99,10 @@ public partial class MainWindow : Window
 
     private void Search_Changed(object sender, System.Windows.Controls.TextChangedEventArgs e)
     {
+        if (!_ready)
+        {
+            return;
+        }
         _search = SearchBox.Text.Trim();
         ApplyFilter();
     }

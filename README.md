@@ -32,7 +32,9 @@ modern UI. It is not affiliated with or endorsed by Tonec FZE.
 | Scheduler windows | Working | pure tests, daemon loop, web timeline |
 | FTPS, HTTP/3, BitTorrent, tray | Not implemented | see the parity scorecard |
 
-The authoritative, test-backed status is
+The final gap analysis is
+[`docs/specs/20-final-gap-report.md`](docs/specs/20-final-gap-report.md). The
+authoritative, test-backed status is
 [`docs/specs/13-parity-scorecard.md`](docs/specs/13-parity-scorecard.md). The
 running log is [`docs/PROGRESS.md`](docs/PROGRESS.md).
 

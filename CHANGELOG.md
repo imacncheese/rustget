@@ -26,6 +26,7 @@ Keep a Changelog and the project uses Semantic Versioning.
 - Opt-in scheduler power actions (`--allow-power-actions`) with tested command
   planning and a fake-hook test.
 - Cross-process single-instance lock for `rustget serve`.
+- Windows system-proxy discovery for downloads.
 - Native WPF shell with minimize-to-tray.
 - macOS `.app`/DMG packaging script.
 - Linux amd64 build, AppImage, `.deb`, RPM and tarball.

@@ -1,7 +1,10 @@
 //! Tray, autostart, clipboard and power integration
 #![forbid(unsafe_code)]
 
+pub mod proxy;
 pub mod scheme;
+
+pub use proxy::{SystemProxy, parse_proxy_server, system_proxy};
 
 use std::fs::{File, OpenOptions};
 use std::io::{Seek, SeekFrom, Write};

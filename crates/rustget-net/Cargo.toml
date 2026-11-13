@@ -8,6 +8,7 @@ description = "HTTP probing, ranged transfer, retry and resume engine for RustGe
 
 [dependencies]
 rustget-core.workspace = true
+rustget-platform.workspace = true
 rustget-media.workspace = true
 rustget-storage.workspace = true
 aes.workspace = true

@@ -61,7 +61,13 @@ impl NetClient {
             .gzip(false)
             .brotli(false)
             .danger_accept_invalid_certs(options.accept_invalid_certs);
-        if let Some(proxy) = &options.proxy {
+        let proxy = options.proxy.clone().or_else(|| {
+            if std::env::var_os("RUSTGET_NO_SYSTEM_PROXY").is_some() {
+                return None;
+            }
+            rustget_platform::system_proxy().and_then(|proxy| proxy.preferred().map(str::to_string))
+        });
+        if let Some(proxy) = &proxy {
             builder = builder.proxy(
                 reqwest::Proxy::all(proxy)
                     .map_err(|error| NetError::Config(format!("invalid proxy: {error}")))?,

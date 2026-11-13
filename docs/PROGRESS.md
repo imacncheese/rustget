@@ -125,7 +125,7 @@ rustget-native-host 2                    PASS
 rustget-platform  3                     PASS
 clippy -D warnings                       PASS
 cargo fmt --check                        PASS
-total                                  136 tests
+total                                  139 tests
 final audit                            113 ok / 27 partial / 1 specified / 5 not started
 score                                  140/146 = 95.9%
 ```

@@ -12,5 +12,8 @@ serde.workspace = true
 thiserror.workspace = true
 url.workspace = true
 
+[target.'cfg(windows)'.dependencies]
+winreg = "0.56.0"
+
 [lints]
 workspace = true

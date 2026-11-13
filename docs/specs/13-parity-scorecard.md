@@ -26,8 +26,8 @@ Internet Download Manager feature parity, and it does not claim to be.
 
 | State | Count | Share |
 |---|---:|---:|
-| ✅ implemented + verified | 108 | 74.0% |
-| ◐ partial | 30 | 20.5% |
+| ✅ implemented + verified | 109 | 74.7% |
+| ◐ partial | 29 | 19.9% |
 | ○ specified only | 1 | 0.7% |
 | — not started | 7 | 4.8% |
 | ⏭ skipped by request | 1 | — |
@@ -48,7 +48,7 @@ wired to the UI.
 | UI/UX (12) | 12 | 0 | 0 |
 | Quality/security (15) | 11 | 2 | 1 |
 | Platform/packaging (10) | 5 | 3 | 2 |
-| Protocols/extensibility (12) | 6 | 4 | 2 |
+| Protocols/extensibility (12) | 7 | 3 | 2 |
 
 ## 3. What matches or beats IDM today
 

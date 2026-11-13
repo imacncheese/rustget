@@ -3958,6 +3958,7 @@ dependencies = [
  "rustget-core",
  "rustget-crawler",
  "rustget-ipc",
+ "rustget-media",
  "rustget-net",
  "rustget-platform",
  "rustget-queue",

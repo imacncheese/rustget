@@ -131,6 +131,17 @@ enum Command {
     },
     /// Run the local API, event stream and web UI.
     Serve(ServeArgs),
+    /// Mux separate video and audio files with FFmpeg `-c copy`.
+    Mux {
+        video: PathBuf,
+        #[arg(long)]
+        audio: Option<PathBuf>,
+        #[arg(short, long)]
+        output: PathBuf,
+        /// FFmpeg binary; defaults to RUSTGET_FFMPEG or PATH.
+        #[arg(long)]
+        ffmpeg: Option<PathBuf>,
+    },
     /// Check for or install a newer GitHub release.
     Update {
         /// `check` or `install`.
@@ -413,6 +424,15 @@ async fn main() -> Result<()> {
     {
         return update(action, repo, *force).await;
     }
+    if let Command::Mux {
+        video,
+        audio,
+        output,
+        ffmpeg,
+    } = &cli.command
+    {
+        return mux_files(video, audio.as_deref(), output, ffmpeg.as_deref());
+    }
     if let Command::Scheme { action, scheme } = &cli.command {
         let executable = std::env::current_exe()?;
         match action.as_str() {
@@ -549,6 +569,7 @@ async fn main() -> Result<()> {
             unreachable!("scheme/association handled before path resolution")
         }
         Command::Update { .. } => unreachable!("update handled before path resolution"),
+        Command::Mux { .. } => unreachable!("mux handled before path resolution"),
         Command::Scan { .. } | Command::YtdlpStub { .. } | Command::PostStub { .. } => {
             unreachable!("local helper handled before path resolution")
         }
@@ -1220,6 +1241,25 @@ async fn update(action: &str, repo: &str, force: bool) -> Result<()> {
     {
         bail!("automatic installation is not implemented on this platform");
     }
+}
+
+fn mux_files(
+    video: &std::path::Path,
+    audio: Option<&std::path::Path>,
+    output: &std::path::Path,
+    ffmpeg: Option<&std::path::Path>,
+) -> Result<()> {
+    let ffmpeg = ffmpeg.map_or_else(rustget_media::find_ffmpeg, |path| {
+        Some(rustget_media::Ffmpeg {
+            path: path.to_path_buf(),
+        })
+    });
+    let ffmpeg = ffmpeg.context("FFmpeg not found; install it or pass --ffmpeg")?;
+    ffmpeg
+        .mux_copy(video, audio, output)
+        .map_err(|error| anyhow::anyhow!(error))?;
+    println!("muxed: {}", output.display());
+    Ok(())
 }
 
 fn scan_file(path: &std::path::Path) -> Result<()> {

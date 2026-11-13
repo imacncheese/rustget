@@ -28,12 +28,12 @@ the public internet.
 | `rustget-net` | 7 unit + 8 HTTP + 2 work/adaptive + 2 mirrors + 3 HLS + 2 encrypted HLS + 3 DASH + 1 host cap + 1 FTP + 1 HTTP proxy + 1 SOCKS5 + 2 client cert + 2 digest + 1 redirect-auth + 1 keep-alive + 1 disk-space + 1 h2 | probe/checksum, host semaphore, download, fallback, redirects, retries, validator, resume, work stealing, adaptive growth, mirror failover, host caps, HLS quality/AES-128/parallel segments, DASH timeline, FTP, HTTP/SOCKS5 proxies, mutual TLS, Digest auth, cross-host header stripping, pooled connection reuse, free-space preflight, HTTP/2 ALPN |
 | `rustget-queue` | 17 | DB migration/persistence, 10k load, queue order, interruption, duplicate URL, tags, manager completion, scheduler, power hook, category/HLS/FTP routing, mirror probe |
 | `rustget-ipc` | 7 | bearer auth, UI serving, add/list/delete, probe/config bundles, logs, origin/Host rejection, local-file upload |
-| `rustget-cli` | 4 + 14 | pattern expansion, kill/resume, scanner, yt-dlp, post-action, cookie jar, plugin, basic auth, ZIP extraction, rate limit, update versioning |
+| `rustget-cli` | 4 + 15 | pattern expansion, kill/resume, scanner, yt-dlp, post-action, cookie jar, plugin, basic auth, ZIP extraction, rate limit, update, mux |
 | `rustget-media` | 6 | HLS master/media/encryption, DASH duration/timeline, FFmpeg discovery |
 | `rustget-crawler` | 2 | robots parsing, origin/extension filters |
 | `rustget-native-host` | 2 | framing, oversize rejection |
 | `rustget-platform` | 5 | single-instance lock, power/autostart, scheme URL parsing, extension normalization |
-| **Total** | **135** | |
+| **Total** | **136** | |
 
 ## 3. Commands
 

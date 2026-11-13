@@ -193,7 +193,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | G02 | HLS master/media playlist parser | SHOULD | P1 | M5 | ✅ | Variants, segments, encryption/init map; tests |
 | G03 | DASH MPD parser | SHOULD | P1 | M5 | ✅ | Representations, templates, ISO duration; tests |
 | G04 | HLS/DASH segment scheduler | SHOULD | P1 | M5 | ◐ | Parallel 4-segment fetch with ordered writes, retry/rate limit; no media resume |
-| G05 | FFmpeg mux sidecar | SHOULD | P2 | M5 | ◐ | `-c copy` plan; not invoked by the media path yet |
+| G05 | FFmpeg mux sidecar | SHOULD | P2 | M5 | ✅ | `rustget mux` invokes verified FFmpeg `-c copy` plan; stub-executable test |
 | G06 | Plugin API for extractors | COULD | P2 | M7 | ✅ | `plugins.resolvers` NAME→argv registry, `--plugin`, `--resolver`, 60 s timeout, success/unknown tests |
 | G07 | yt-dlp adapter | COULD | P3 | M7 | ✅ | `ytdlp.command`, `use_ytdlp`, CLI/UI, 60 s timeout, stub resolver success/failure tests |
 | G08 | Site grabber | SHOULD | P2 | M6 | ◐ | Link discovery implemented; no mirroring, JS rendering or project persistence |
@@ -206,8 +206,8 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 108 |
-| ◐ partial | 30 |
+| ✅ implemented + verified | 109 |
+| ◐ partial | 29 |
 | ○ specified, not implemented | 1 |
 | — not started | 7 |
 | ⏭ skipped by request | 1 |
@@ -223,7 +223,7 @@ By area:
 | D. UI/UX | 12 | 12 | 0 | 0 | 0 |
 | E. Quality/security | 15 | 11 | 2 | 1 | 1 |
 | F. Platform/packaging | 10 | 5 | 2 | 0 | 3 |
-| G. Protocols/extensibility | 12 | 6 | 4 | 0 | 2 |
+| G. Protocols/extensibility | 12 | 7 | 3 | 0 | 2 |
 
 The count is maintained manually alongside the table; the parity scorecard gives
 the higher-level roll-up and accepted gaps.

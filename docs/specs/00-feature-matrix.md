@@ -119,7 +119,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | C15 | Sort | MUST | P1 | M4 | ✅ | Name/size/progress/speed/status |
 | C16 | Tags | COULD | P2 | M6 | ✅ | Persisted/normalized tags, API PATCH, CLI `tag`/`--tag`, details chips, search includes tags |
 | C17 | Tray icon | SHOULD | P1 | M4 | ✅ | WPF minimize-to-tray with Open/Exit menu; standalone tray binary also present |
-| C18 | Desktop notifications | SHOULD | P1 | M4 | ◐ | Implemented in the WebView shell; not yet ported to the WPF shell |
+| C18 | Desktop notifications | SHOULD | P1 | M4 | ✅ | WPF tray balloon on completion plus browser Notification API |
 | C19 | Start with system | SHOULD | P2 | M6 | ◐ | Windows registry / Linux .desktop / macOS LaunchAgent code + `autostart` CLI; Windows registry write is denied in this environment, Unix paths not executed |
 | C20 | Single instance | MUST | P1 | M4 | ✅ | Daemon `InstanceLock` enforced at startup; lock conflict test |
 | C21 | CLI: add/list/pause/resume/remove/schedule/config | MUST | P0 | M1 | ✅ | Implemented; pause/resume require daemon |
@@ -206,8 +206,8 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 
 | State | Count |
 |---|---:|
-| ✅ implemented + verified | 112 |
-| ◐ partial | 28 |
+| ✅ implemented + verified | 113 |
+| ◐ partial | 27 |
 | ○ specified, not implemented | 1 |
 | — not started | 5 |
 | ⏭ skipped by request | 1 |

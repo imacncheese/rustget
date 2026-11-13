@@ -20,6 +20,8 @@ public partial class MainWindow : Window
     private string _search = "";
     private bool _ready;
     private System.Windows.Forms.NotifyIcon? _tray;
+    private readonly HashSet<string> _notifiedCompleted = [];
+    private bool _firstRefresh = true;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(1.5) };
 
     public MainWindow()
@@ -127,6 +129,14 @@ public partial class MainWindow : Window
         CompletedStat.Text = _all.Count(row => row.Status.Equals("completed", StringComparison.OrdinalIgnoreCase)).ToString();
         SpeedStat.Text = FormatBytes((ulong)_all.Sum(row => (double)row.SpeedBps));
         DataStat.Text = FormatBytes((ulong)_all.Sum(row => (double)row.Downloaded));
+        foreach (var row in _all.Where(row => row.Status.Equals("completed", StringComparison.OrdinalIgnoreCase)))
+        {
+            if (_notifiedCompleted.Add(row.Id) && !_firstRefresh && _tray is not null)
+            {
+                _tray.ShowBalloonTip(3000, "RustGet", $"{row.FileName} downloaded", System.Windows.Forms.ToolTipIcon.Info);
+            }
+        }
+        _firstRefresh = false;
         if (selected is not null)
         {
             DownloadsList.SelectedItem = _rows.FirstOrDefault(row => row.Id == selected);

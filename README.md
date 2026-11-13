@@ -65,6 +65,8 @@ rustget add https://example.com/archive.zip --output ./archive.zip --limit 8
 rustget add https://primary.example/file.bin --mirror https://mirror.example/file.bin
 rustget add https://mtls.example/file.bin --client-cert ./client.pem
 rustget add ftp://user:pass@ftp.example/file.bin
+rustget update check
+rustget update install
 rustget export queue.json
 rustget-tray   # optional Windows tray; RUSTGET_UI_URL overrides the URL
 rustget serve --scanner "C:\Program Files\ClamAV\clamscan.exe" --scanner-arg --no-summary

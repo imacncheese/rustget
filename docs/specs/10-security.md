@@ -125,6 +125,9 @@ implemented, will be opt-in.
   plaintext password, over the wire.
 - Client certificates are read from a local PEM path supplied per download; the
   private key is not copied into the database, only the path is persisted.
+- Auto-update fetches only the GitHub release API/asset over HTTPS, compares
+  versions, verifies the release asset SHA-256 when provided, and launches the
+  MSI through `msiexec` with the normal Windows elevation prompt.
 - Local-file uploads are limited to 128 MiB, sanitized like remote filenames,
   copied into the download directory and never write to an arbitrary path.
 - ZIP extraction uses `enclosed_name` to reject traversal/absolute entries and

@@ -3877,6 +3877,7 @@ dependencies = [
  "anyhow",
  "clap",
  "dirs",
+ "hex",
  "open",
  "reqwest",
  "rustget-core",

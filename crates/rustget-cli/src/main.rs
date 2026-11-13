@@ -131,6 +131,16 @@ enum Command {
     },
     /// Run the local API, event stream and web UI.
     Serve(ServeArgs),
+    /// Check for or install a newer GitHub release.
+    Update {
+        /// `check` or `install`.
+        action: String,
+        #[arg(long, default_value = "imacncheese/rustget")]
+        repo: String,
+        /// Install even when the remote version is not newer.
+        #[arg(long)]
+        force: bool,
+    },
     /// Inspect effective paths and defaults.
     Config,
     /// Add every URL (or numeric range pattern) listed in a file.
@@ -395,6 +405,14 @@ async fn main() -> Result<()> {
     if let Command::Scan { path } = &cli.command {
         return scan_file(path);
     }
+    if let Command::Update {
+        action,
+        repo,
+        force,
+    } = &cli.command
+    {
+        return update(action, repo, *force).await;
+    }
     if let Command::Scheme { action, scheme } = &cli.command {
         let executable = std::env::current_exe()?;
         match action.as_str() {
@@ -530,6 +548,7 @@ async fn main() -> Result<()> {
         Command::Scheme { .. } | Command::Associate { .. } => {
             unreachable!("scheme/association handled before path resolution")
         }
+        Command::Update { .. } => unreachable!("update handled before path resolution"),
         Command::Scan { .. } | Command::YtdlpStub { .. } | Command::PostStub { .. } => {
             unreachable!("local helper handled before path resolution")
         }
@@ -1071,6 +1090,136 @@ async fn import_downloads(cli: &Cli, paths: &Paths, path: &std::path::Path) -> R
         eprintln!("failed: {failure}");
     }
     Ok(())
+}
+
+#[derive(serde::Deserialize)]
+struct ReleaseInfo {
+    tag_name: String,
+    html_url: String,
+    #[serde(default)]
+    body: String,
+    #[serde(default)]
+    assets: Vec<ReleaseAsset>,
+}
+
+#[derive(serde::Deserialize)]
+struct ReleaseAsset {
+    name: String,
+    browser_download_url: String,
+    #[serde(default)]
+    size: u64,
+    #[serde(default)]
+    digest: Option<String>,
+}
+
+fn version_parts(value: &str) -> Vec<u64> {
+    value
+        .trim_start_matches(['v', 'V'])
+        .split(['.', '-', '+'])
+        .map(|part| part.parse::<u64>().unwrap_or(0))
+        .collect()
+}
+
+fn is_newer(latest: &str, current: &str) -> bool {
+    let latest = version_parts(latest);
+    let current = version_parts(current);
+    for index in 0..latest.len().max(current.len()) {
+        let left = latest.get(index).copied().unwrap_or(0);
+        let right = current.get(index).copied().unwrap_or(0);
+        if left != right {
+            return left > right;
+        }
+    }
+    false
+}
+
+async fn update(action: &str, repo: &str, force: bool) -> Result<()> {
+    use sha2::Digest;
+    let client = reqwest::Client::builder()
+        .user_agent(format!("RustGet/{}", env!("CARGO_PKG_VERSION")))
+        .build()?;
+    let release: ReleaseInfo = client
+        .get(format!(
+            "https://api.github.com/repos/{repo}/releases/latest"
+        ))
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?;
+    let current = env!("CARGO_PKG_VERSION");
+    let newer = is_newer(&release.tag_name, current);
+    println!("current: {current}");
+    println!("latest:  {} ({})", release.tag_name, release.html_url);
+    if !release.body.trim().is_empty() {
+        println!("\n{}", release.body.trim());
+    }
+    let asset = release
+        .assets
+        .iter()
+        .find(|asset| asset.name.to_ascii_lowercase().ends_with(".msi"))
+        .or_else(|| {
+            release
+                .assets
+                .iter()
+                .find(|asset| asset.name.to_ascii_lowercase().ends_with(".exe"))
+        })
+        .context("release has no .msi or .exe asset")?;
+    println!(
+        "asset:   {} ({} bytes)\n{}",
+        asset.name, asset.size, asset.browser_download_url
+    );
+    if action == "check" {
+        if newer {
+            println!("\nupdate available");
+        } else {
+            println!("\nalready up to date");
+        }
+        return Ok(());
+    }
+    if action != "install" {
+        bail!("unknown update action: {action}");
+    }
+    if !newer && !force {
+        println!("\nalready up to date; use --force to reinstall");
+        return Ok(());
+    }
+    let bytes = client
+        .get(&asset.browser_download_url)
+        .send()
+        .await?
+        .error_for_status()?
+        .bytes()
+        .await?;
+    if asset.size > 0 && bytes.len() as u64 != asset.size {
+        bail!("downloaded {} bytes, expected {}", bytes.len(), asset.size);
+    }
+    if let Some(digest) = &asset.digest {
+        let expected = digest.strip_prefix("sha256:").unwrap_or(digest);
+        let actual = hex::encode(sha2::Sha256::digest(&bytes));
+        if !actual.eq_ignore_ascii_case(expected) {
+            bail!("SHA-256 mismatch: expected {expected}, got {actual}");
+        }
+        println!("sha256 verified");
+    }
+    let path = std::env::temp_dir().join(&asset.name);
+    std::fs::write(&path, &bytes)?;
+    println!("downloaded: {}", path.display());
+    #[cfg(windows)]
+    {
+        std::process::Command::new("msiexec")
+            .arg("/i")
+            .arg(&path)
+            .arg("/passive")
+            .spawn()
+            .context("cannot start msiexec")?;
+        println!("installer started; approve the Windows prompt if shown");
+        Ok(())
+    }
+    #[cfg(not(windows))]
+    {
+        bail!("automatic installation is not implemented on this platform");
+    }
 }
 
 fn scan_file(path: &std::path::Path) -> Result<()> {
@@ -1663,5 +1812,14 @@ mod tests {
     #[test]
     fn rejects_reversed_range() {
         assert!(expand_pattern("[10-1].txt").is_err());
+    }
+
+    #[test]
+    fn compares_release_versions() {
+        assert!(is_newer("v0.2.0", "0.1.0"));
+        assert!(is_newer("v0.1.1", "0.1.0"));
+        assert!(is_newer("1.0.0", "0.9.9"));
+        assert!(!is_newer("v0.1.0", "0.1.0"));
+        assert!(!is_newer("v0.1.0", "0.2.0"));
     }
 }

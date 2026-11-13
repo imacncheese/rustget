@@ -126,8 +126,16 @@ public partial class MainWindow : Window
             _rows.Add(row);
         }
         EmptyState.Visibility = _rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        ActiveStat.Text = _all.Count(row => row.Status.Equals("downloading", StringComparison.OrdinalIgnoreCase)).ToString();
-        CompletedStat.Text = _all.Count(row => row.Status.Equals("completed", StringComparison.OrdinalIgnoreCase)).ToString();
+        AllCount.Text = _all.Count.ToString();
+        DownloadingCount.Text = _all.Count(row => row.Status.Equals("downloading", StringComparison.OrdinalIgnoreCase)).ToString();
+        QueuedCount.Text = _all.Count(row => row.Status.Equals("queued", StringComparison.OrdinalIgnoreCase)).ToString();
+        PausedCount.Text = _all.Count(row => row.Status.Equals("paused", StringComparison.OrdinalIgnoreCase)).ToString();
+        CompletedCount.Text = _all.Count(row => row.Status.Equals("completed", StringComparison.OrdinalIgnoreCase)).ToString();
+        FailedCount.Text = _all.Count(row => row.Status.Equals("failed", StringComparison.OrdinalIgnoreCase)).ToString();
+        SectionTitle.Text = _filter == "all" ? "All downloads" : _filter;
+        SectionSubtitle.Text = $"{_rows.Count} item{(_rows.Count == 1 ? "" : "s")}";
+        ActiveStat.Text = DownloadingCount.Text;
+        CompletedStat.Text = CompletedCount.Text;
         SpeedStat.Text = FormatBytes((ulong)_all.Sum(row => (double)row.SpeedBps));
         DataStat.Text = FormatBytes((ulong)_all.Sum(row => (double)row.Downloaded));
         foreach (var row in _all.Where(row => row.Status.Equals("completed", StringComparison.OrdinalIgnoreCase)))
@@ -142,6 +150,13 @@ public partial class MainWindow : Window
         {
             DownloadsList.SelectedItem = _rows.FirstOrDefault(row => row.Id == selected);
         }
+        if (DownloadsList.SelectedItem is null)
+        {
+            DetailBody.Visibility = Visibility.Collapsed;
+            DetailName.Text = "Select a download";
+            DetailStatus.Text = "Choose an item from the list";
+            DetailProgress.Value = 0;
+        }
     }
 
     private void Filter_Changed(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
@@ -150,10 +165,25 @@ public partial class MainWindow : Window
         {
             return;
         }
-        if (FilterList.SelectedItem is System.Windows.Controls.ListBoxItem item && item.Tag is string tag)
+        if (sender == FilterList)
         {
-            _filter = tag;
+            if (FilterList.SelectedItem is System.Windows.Controls.ListBoxItem item && item.Tag is string tag)
+            {
+                CategoryList.SelectedItem = null;
+                _filter = tag;
+                ApplyFilter();
+            }
+        }
+        else if (selectedCategory() is string category)
+        {
+            FilterList.SelectedItem = null;
+            _filter = category;
             ApplyFilter();
+        }
+
+        string? selectedCategory()
+        {
+            return (CategoryList.SelectedItem as System.Windows.Controls.ListBoxItem)?.Tag as string;
         }
     }
 
@@ -172,8 +202,13 @@ public partial class MainWindow : Window
     {
         if (DownloadsList.SelectedItem is not DownloadRow row)
         {
+            DetailBody.Visibility = Visibility.Collapsed;
+            DetailName.Text = "Select a download";
+            DetailStatus.Text = "Choose an item from the list";
+            DetailProgress.Value = 0;
             return;
         }
+        DetailBody.Visibility = Visibility.Visible;
         DetailName.Text = row.FileName;
         DetailStatus.Text = $"{row.Status} · {row.Category}";
         DetailProgress.Value = row.Progress;
@@ -195,6 +230,13 @@ public partial class MainWindow : Window
         }
         return unit == 0 ? $"{bytes} B" : $"{value:F1} {units[unit]}";
     }
+
+    private void Minimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+
+    private void Maximize_Click(object sender, RoutedEventArgs e) =>
+        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+
+    private void Close_Click(object sender, RoutedEventArgs e) => Close();
 
     private async void Add_Click(object sender, RoutedEventArgs e)
     {
@@ -265,24 +307,59 @@ public sealed class AddDialog : Window
     public AddDialog()
     {
         Title = "Add download";
-        Width = 520;
-        Height = 170;
+        Width = 540;
+        Height = 220;
+        WindowStyle = WindowStyle.None;
+        ResizeMode = ResizeMode.NoResize;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        var panel = new System.Windows.Controls.StackPanel { Margin = new Thickness(18) };
-        panel.Children.Add(new System.Windows.Controls.TextBlock { Text = "HTTP(S), FTP or media URL" });
+        Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x17, 0x1B, 0x22));
+        Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF7, 0xF5, 0xF2));
+        MouseLeftButtonDown += (_, _) => DragMove();
+        var panel = new System.Windows.Controls.StackPanel { Margin = new Thickness(22) };
+        panel.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = "Add download",
+            FontSize = 20,
+            FontWeight = System.Windows.FontWeights.Bold,
+        });
+        panel.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = "Paste an HTTP(S), FTP or media URL",
+            Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xA2, 0xAA, 0xB6)),
+            Margin = new Thickness(0, 4, 0, 14),
+        });
         panel.Children.Add(_url);
         var buttons = new System.Windows.Controls.StackPanel
         {
             Orientation = System.Windows.Controls.Orientation.Horizontal,
             HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
+            Margin = new Thickness(0, 14, 0, 0),
         };
-        var add = new System.Windows.Controls.Button { Content = "Add", IsDefault = true, MinWidth = 80 };
+        var cancel = new System.Windows.Controls.Button
+        {
+            Content = "Cancel",
+            IsCancel = true,
+            MinWidth = 90,
+            Margin = new Thickness(0, 0, 8, 0),
+            Style = (Style)System.Windows.Application.Current.MainWindow.FindResource("Action"),
+        };
+        var add = new System.Windows.Controls.Button
+        {
+            Content = "Add download",
+            IsDefault = true,
+            MinWidth = 120,
+            Style = (Style)System.Windows.Application.Current.MainWindow.FindResource("Primary"),
+        };
         add.Click += (_, _) => { DialogResult = true; };
-        var cancel = new System.Windows.Controls.Button { Content = "Cancel", IsCancel = true, MinWidth = 80 };
-        buttons.Children.Add(add);
         buttons.Children.Add(cancel);
+        buttons.Children.Add(add);
         panel.Children.Add(buttons);
-        Content = panel;
+        Content = new System.Windows.Controls.Border
+        {
+            BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x2C, 0x33, 0x3E)),
+            BorderThickness = new Thickness(1),
+            Child = panel,
+        };
         Loaded += (_, _) => _url.Focus();
     }
 }

@@ -178,7 +178,7 @@ clean-room boundary. Feature names are descriptive, not copied assets.
 | F02 | Linux | MUST | P0 | M1 | ✅ | Full Linux test suite passes; CLI/native-host build and .deb verified | Unix positional writes compile path; not run in this environment |
 | F03 | macOS | MUST | P0 | M1 | ◐ | Unix path, no notarized build |
 | F04 | MSI/NSIS installer | SHOULD | P1 | M7 | ✅ | WiX MSI (x86-64) built and payload-verified; portable ZIP retained |
-| F05 | AppImage/deb/rpm | SHOULD | P1 | M7 | ◐ | `.deb` and Linux tarball built/verified; AppImage and RPM missing |
+| F05 | AppImage/deb/rpm | SHOULD | P1 | M7 | ◐ | AppImage, `.deb` and tarball built/verified; RPM missing |
 | F06 | DMG | SHOULD | P1 | M7 | — | Planned |
 | F07 | File association | COULD | P2 | M7 | ◐ | Windows HKCU/Linux xdg-mime association helpers and CLI; live write unverified in sandbox |
 | F08 | Auto-update | SHOULD | P3 | M7 | ✅ | `rustget update check/install` from GitHub release, version compare, SHA-256 and MSI launch |

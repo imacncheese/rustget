@@ -129,7 +129,7 @@ See [the browser bridge spec](docs/specs/05-browser-bridge.md).
 sudo dpkg -i dist/linux/rustget_0.1.0_amd64.deb
 ```
 
-Verified on Ubuntu 26.04 amd64. AppImage/RPM are not built yet.
+Verified on Ubuntu 26.04 amd64. AppImage and `.deb` are built; RPM is not yet verified.
 
 ## Windows portable package
 

@@ -26,7 +26,11 @@ override with `-WixDirectory`.
 
 The `.deb` installs `rustget` and `rustget-native-host` under `/usr/bin` plus
 docs under `/usr/share/doc/rustget`. It was built and its packaged binary
-verified in Ubuntu 26.04 (amd64). AppImage and RPM are not built yet.
+verified in Ubuntu 26.04 (amd64).
+
+`scripts/package-appimage.sh` produces the AppImage (requires a local
+`appimagetool` extracted at `/tmp/squashfs-root`). RPM packaging exists in
+`scripts/package-rpm.sh` but is not verified in this environment.
 
 ## Portable package
 

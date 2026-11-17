@@ -305,10 +305,21 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <Grid Grid.Row="0" Margin="0,0,0,16">
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
+                        <Button Style="{StaticResource Action}" Content="Resume" Click="Resume_Click" />
+                        <Button Style="{StaticResource Action}" Content="Pause" Click="Pause_Click" />
+                        <Button Style="{StaticResource Action}" Content="Pause all" Click="PauseAll_Click" />
+                        <Button Style="{StaticResource Action}" Content="Delete" Click="Delete_Click" />
+                        <Button Style="{StaticResource Action}" Content="Delete completed" Click="DeleteCompleted_Click" />
+                        <Button Style="{StaticResource Action}" Content="Options" Click="Options_Click" />
+                        <Button Style="{StaticResource Action}" Content="Scheduler" Click="Scheduler_Click" />
+                    </StackPanel>
+
+                    <Grid Grid.Row="1" Margin="0,0,0,16">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="330" />
@@ -330,7 +341,7 @@
                                 VerticalAlignment="Center" ToolTip="Add a download URL" />
                     </Grid>
 
-                    <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,0,16">
+                    <UniformGrid Grid.Row="2" Columns="4" Margin="0,0,0,16">
                         <Border Style="{StaticResource Card}" Margin="0,0,10,0">
                             <StackPanel>
                                 <TextBlock Text="ACTIVE" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource Muted}" />
@@ -357,7 +368,7 @@
                         </Border>
                     </UniformGrid>
 
-                    <Border Grid.Row="2" Background="{StaticResource Panel}" BorderBrush="{StaticResource Line}"
+                    <Border Grid.Row="3" Background="{StaticResource Panel}" BorderBrush="{StaticResource Line}"
                             BorderThickness="1" CornerRadius="12">
                         <Grid>
                             <Grid.RowDefinitions>

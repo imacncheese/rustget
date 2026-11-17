@@ -1,3 +1,4 @@
+using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
@@ -23,6 +24,8 @@ public partial class MainWindow : Window
     private readonly HashSet<string> _notifiedCompleted = [];
     private bool _firstRefresh = true;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(1.5) };
+    private readonly DispatcherTimer _clipboardTimer = new() { Interval = TimeSpan.FromSeconds(1) };
+    private string _lastClipboard = "";
 
     public MainWindow()
     {
@@ -52,6 +55,8 @@ public partial class MainWindow : Window
                 _tray?.ShowBalloonTip(1500, "RustGet", "Still running in the notification area.", System.Windows.Forms.ToolTipIcon.Info);
             }
         };
+        _clipboardTimer.Tick += (_, _) => CheckClipboard();
+        _clipboardTimer.Start();
         Closed += (_, _) =>
         {
             if (_tray is not null)
@@ -61,6 +66,35 @@ public partial class MainWindow : Window
             }
             _api.Dispose();
         };
+    }
+
+    private void CheckClipboard()
+    {
+        if (!AppSettings.Current.MonitorClipboard)
+        {
+            return;
+        }
+        try
+        {
+            if (!System.Windows.Clipboard.ContainsText())
+            {
+                return;
+            }
+            var text = System.Windows.Clipboard.GetText().Trim();
+            if (!(text.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+                || text.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+                || text == _lastClipboard)
+            {
+                return;
+            }
+            _lastClipboard = text;
+            RestoreFromTray();
+            var dialog = new AddDialog(text) { Owner = this };
+            dialog.ShowDialog();
+        }
+        catch
+        {
+        }
     }
 
     private void InitializeTray()
@@ -140,7 +174,8 @@ public partial class MainWindow : Window
         DataStat.Text = FormatBytes((ulong)_all.Sum(row => (double)row.Downloaded));
         foreach (var row in _all.Where(row => row.Status.Equals("completed", StringComparison.OrdinalIgnoreCase)))
         {
-            if (_notifiedCompleted.Add(row.Id) && !_firstRefresh && _tray is not null)
+            if (_notifiedCompleted.Add(row.Id) && !_firstRefresh && _tray is not null
+                && AppSettings.Current.Notifications)
             {
                 _tray.ShowBalloonTip(3000, "RustGet", $"{row.FileName} downloaded", System.Windows.Forms.ToolTipIcon.Info);
             }
@@ -231,6 +266,50 @@ public partial class MainWindow : Window
         return unit == 0 ? $"{bytes} B" : $"{value:F1} {units[unit]}";
     }
 
+    private async void PauseAll_Click(object sender, RoutedEventArgs e)
+    {
+        await _api.PostAsync("api/v1/downloads/pause-all");
+        await RefreshAsync();
+    }
+
+    private async void Delete_Click(object sender, RoutedEventArgs e)
+    {
+        if (DownloadsList.SelectedItem is DownloadRow row)
+        {
+            await _api.DeleteAsync($"api/v1/downloads/{row.Id}");
+            await RefreshAsync();
+        }
+    }
+
+    private async void DeleteCompleted_Click(object sender, RoutedEventArgs e)
+    {
+        foreach (var row in _all.Where(row => row.Status.Equals("completed", StringComparison.OrdinalIgnoreCase)).ToList())
+        {
+            await _api.DeleteAsync($"api/v1/downloads/{row.Id}");
+        }
+        await RefreshAsync();
+    }
+
+    private void Options_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OptionsDialog { Owner = this };
+        dialog.ShowDialog();
+    }
+
+    private async void Scheduler_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new SchedulerDialog(_api) { Owner = this };
+        await dialog.LoadAsync();
+        dialog.ShowDialog();
+    }
+
+    private void Find_Click(object sender, RoutedEventArgs e) => SearchBox.Focus();
+
+    private void About_Click(object sender, RoutedEventArgs e) =>
+        System.Windows.MessageBox.Show(this,
+            "RustGet 0.1.0\nNative XAML download manager\nRust engine · clean-room implementation",
+            "About RustGet", MessageBoxButton.OK, MessageBoxImage.Information);
+
     private void Minimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
 
     private void Maximize_Click(object sender, RoutedEventArgs e) =>
@@ -304,8 +383,10 @@ public sealed class AddDialog : Window
     private readonly System.Windows.Controls.TextBox _url = new() { Margin = new Thickness(0, 10, 0, 14) };
     public string Url => _url.Text;
 
-    public AddDialog()
+    public AddDialog(string? initialUrl = null)
     {
+        _url.Text = initialUrl ?? "";
+        _url.Style = (Style)System.Windows.Application.Current.MainWindow.FindResource(typeof(System.Windows.Controls.TextBox));
         Title = "Add download";
         Width = 540;
         Height = 220;
@@ -361,6 +442,254 @@ public sealed class AddDialog : Window
             Child = panel,
         };
         Loaded += (_, _) => _url.Focus();
+    }
+}
+
+public sealed class AppSettings
+{
+    public bool StartWithWindows { get; set; }
+    public bool MonitorClipboard { get; set; } = true;
+    public bool Notifications { get; set; } = true;
+
+    private static readonly string FilePath = System.IO.Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "RustGet", "Native", "settings.json");
+
+    public static AppSettings Current { get; private set; } = Load();
+
+    private static AppSettings Load()
+    {
+        try
+        {
+            if (System.IO.File.Exists(FilePath))
+            {
+                return JsonSerializer.Deserialize<AppSettings>(System.IO.File.ReadAllText(FilePath)) ?? new();
+            }
+        }
+        catch
+        {
+        }
+        return new();
+    }
+
+    public void Save()
+    {
+        try
+        {
+            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(FilePath)!);
+            System.IO.File.WriteAllText(FilePath, JsonSerializer.Serialize(this));
+            Current = this;
+            ApplyStartup();
+        }
+        catch
+        {
+        }
+    }
+
+    public void ApplyStartup()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(
+                @"Software\Microsoft\Windows\CurrentVersion\Run", writable: true);
+            if (StartWithWindows)
+            {
+                key?.SetValue("RustGet", $"\"{Environment.ProcessPath}\"");
+            }
+            else
+            {
+                key?.DeleteValue("RustGet", throwOnMissingValue: false);
+            }
+        }
+        catch
+        {
+        }
+    }
+}
+
+public sealed class OptionsDialog : Window
+{
+    private readonly System.Windows.Controls.CheckBox _startup;
+    private readonly System.Windows.Controls.CheckBox _clipboard;
+    private readonly System.Windows.Controls.CheckBox _notifications;
+
+    public OptionsDialog()
+    {
+        Title = "RustGet Options";
+        Width = 620;
+        Height = 430;
+        WindowStyle = WindowStyle.None;
+        ResizeMode = ResizeMode.NoResize;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x17, 0x1B, 0x22));
+        Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF7, 0xF5, 0xF2));
+        MouseLeftButtonDown += (_, _) => DragMove();
+
+        _startup = Check("Launch RustGet with Windows", AppSettings.Current.StartWithWindows);
+        _clipboard = Check("Monitor the clipboard for download links", AppSettings.Current.MonitorClipboard);
+        _notifications = Check("Show a notification when a download completes", AppSettings.Current.Notifications);
+        var root = new System.Windows.Controls.StackPanel { Margin = new Thickness(24) };
+        root.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = "Options",
+            FontSize = 22,
+            FontWeight = System.Windows.FontWeights.Bold,
+        });
+        root.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = "General",
+            Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xA2, 0xAA, 0xB6)),
+            Margin = new Thickness(0, 4, 0, 18),
+        });
+        root.Children.Add(_startup);
+        root.Children.Add(_clipboard);
+        root.Children.Add(_notifications);
+        root.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = "Download folder",
+            Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xA2, 0xAA, 0xB6)),
+            Margin = new Thickness(0, 18, 0, 5),
+        });
+        root.Children.Add(new System.Windows.Controls.TextBox
+        {
+            Text = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "RustGet"),
+            IsReadOnly = true,
+            Style = (Style)System.Windows.Application.Current.MainWindow.FindResource(typeof(System.Windows.Controls.TextBox)),
+        });
+        root.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = "Proxy discovery follows Windows Internet Settings. PAC evaluation is not implemented.",
+            Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xA2, 0xAA, 0xB6)),
+            Margin = new Thickness(0, 12, 0, 0),
+            TextWrapping = TextWrapping.Wrap,
+        });
+        var buttons = new System.Windows.Controls.StackPanel
+        {
+            Orientation = System.Windows.Controls.Orientation.Horizontal,
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
+            Margin = new Thickness(0, 22, 0, 0),
+        };
+        var cancel = new System.Windows.Controls.Button
+        {
+            Content = "Cancel",
+            IsCancel = true,
+            MinWidth = 90,
+            Margin = new Thickness(0, 0, 8, 0),
+            Style = (Style)System.Windows.Application.Current.MainWindow.FindResource("Action"),
+        };
+        var save = new System.Windows.Controls.Button
+        {
+            Content = "Save",
+            IsDefault = true,
+            MinWidth = 100,
+            Style = (Style)System.Windows.Application.Current.MainWindow.FindResource("Primary"),
+        };
+        save.Click += (_, _) =>
+        {
+            new AppSettings
+            {
+                StartWithWindows = _startup.IsChecked == true,
+                MonitorClipboard = _clipboard.IsChecked == true,
+                Notifications = _notifications.IsChecked == true,
+            }.Save();
+            DialogResult = true;
+        };
+        buttons.Children.Add(cancel);
+        buttons.Children.Add(save);
+        root.Children.Add(buttons);
+        Content = new System.Windows.Controls.Border
+        {
+            BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x2C, 0x33, 0x3E)),
+            BorderThickness = new Thickness(1),
+            Child = root,
+        };
+    }
+
+    private static System.Windows.Controls.CheckBox Check(string text, bool value) =>
+        new()
+        {
+            Content = text,
+            IsChecked = value,
+            FontSize = 14,
+            Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF7, 0xF5, 0xF2)),
+            Margin = new Thickness(0, 7, 0, 7),
+        };
+}
+
+public sealed class SchedulerDialog : Window
+{
+    private readonly RustGetApi _api;
+    private readonly System.Windows.Controls.ListBox _list = new()
+    {
+        Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1A, 0x1F, 0x27)),
+        Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF7, 0xF5, 0xF2)),
+        BorderThickness = new Thickness(0),
+    };
+
+    public SchedulerDialog(RustGetApi api)
+    {
+        _api = api;
+        Title = "Scheduler";
+        Width = 640;
+        Height = 440;
+        WindowStyle = WindowStyle.None;
+        ResizeMode = ResizeMode.NoResize;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x17, 0x1B, 0x22));
+        Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF7, 0xF5, 0xF2));
+        MouseLeftButtonDown += (_, _) => DragMove();
+        var root = new System.Windows.Controls.StackPanel { Margin = new Thickness(24) };
+        root.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = "Scheduler",
+            FontSize = 22,
+            FontWeight = System.Windows.FontWeights.Bold,
+        });
+        root.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = "Download windows configured for this engine",
+            Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xA2, 0xAA, 0xB6)),
+            Margin = new Thickness(0, 4, 0, 14),
+        });
+        root.Children.Add(_list);
+        var close = new System.Windows.Controls.Button
+        {
+            Content = "Close",
+            IsCancel = true,
+            MinWidth = 100,
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
+            Margin = new Thickness(0, 16, 0, 0),
+            Style = (Style)System.Windows.Application.Current.MainWindow.FindResource("Action"),
+        };
+        root.Children.Add(close);
+        Content = new System.Windows.Controls.Border
+        {
+            BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x2C, 0x33, 0x3E)),
+            BorderThickness = new Thickness(1),
+            Child = root,
+        };
+    }
+
+    public async Task LoadAsync()
+    {
+        var json = await _api.GetStringAsync("api/v1/schedules");
+        using var document = JsonDocument.Parse(json);
+        _list.Items.Clear();
+        if (!document.RootElement.TryGetProperty("schedules", out var schedules) || schedules.GetArrayLength() == 0)
+        {
+            _list.Items.Add("No schedules configured.");
+            return;
+        }
+        foreach (var schedule in schedules.EnumerateArray())
+        {
+            var name = schedule.TryGetProperty("name", out var n) ? n.GetString() : "Schedule";
+            var start = schedule.TryGetProperty("start_min", out var s) && s.ValueKind == JsonValueKind.Number
+                ? s.GetInt32() : -1;
+            var stop = schedule.TryGetProperty("stop_min", out var e) && e.ValueKind == JsonValueKind.Number
+                ? e.GetInt32() : -1;
+            string Time(int minute) => minute < 0 ? "—" : $"{minute / 60:00}:{minute % 60:00}";
+            _list.Items.Add($"{name}   ·   start {Time(start)}   ·   stop {Time(stop)}");
+        }
     }
 }
 
@@ -460,6 +789,14 @@ public sealed class RustGetApi : IDisposable
         var response = await _http.PostAsync(path, null);
         response.EnsureSuccessStatusCode();
     }
+
+    public async Task DeleteAsync(string path)
+    {
+        var response = await _http.DeleteAsync(path);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task<string> GetStringAsync(string path) => await _http.GetStringAsync(path);
 
     public void Dispose()
     {

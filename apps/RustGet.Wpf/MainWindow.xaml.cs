@@ -30,6 +30,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        ThemeManager.Apply(this, AppSettings.Current.Theme, AppSettings.Current.Accent);
         DownloadsList.ItemsSource = _rows;
         Loaded += async (_, _) =>
         {
@@ -188,6 +189,7 @@ public partial class MainWindow : Window
         if (DownloadsList.SelectedItem is null)
         {
             DetailBody.Visibility = Visibility.Collapsed;
+            DetailEmpty.Visibility = Visibility.Visible;
             DetailName.Text = "Select a download";
             DetailStatus.Text = "Choose an item from the list";
             DetailProgress.Value = 0;
@@ -238,12 +240,14 @@ public partial class MainWindow : Window
         if (DownloadsList.SelectedItem is not DownloadRow row)
         {
             DetailBody.Visibility = Visibility.Collapsed;
+            DetailEmpty.Visibility = Visibility.Visible;
             DetailName.Text = "Select a download";
             DetailStatus.Text = "Choose an item from the list";
             DetailProgress.Value = 0;
             return;
         }
         DetailBody.Visibility = Visibility.Visible;
+        DetailEmpty.Visibility = Visibility.Collapsed;
         DetailName.Text = row.FileName;
         DetailStatus.Text = $"{row.Status} · {row.Category}";
         DetailProgress.Value = row.Progress;
@@ -309,6 +313,14 @@ public partial class MainWindow : Window
         System.Windows.MessageBox.Show(this,
             "RustGet 0.1.0\nNative XAML download manager\nRust engine · clean-room implementation",
             "About RustGet", MessageBoxButton.OK, MessageBoxImage.Information);
+
+    private void Theme_Click(object sender, RoutedEventArgs e)
+    {
+        var settings = AppSettings.Current;
+        settings.Theme = settings.Theme == "Light" ? "Dark" : "Light";
+        settings.Save();
+        ThemeManager.Apply(this, settings.Theme, settings.Accent);
+    }
 
     private void Minimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
 
@@ -393,8 +405,8 @@ public sealed class AddDialog : Window
         WindowStyle = WindowStyle.None;
         ResizeMode = ResizeMode.NoResize;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x17, 0x1B, 0x22));
-        Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF7, 0xF5, 0xF2));
+        Background = ThemeManager.Brush("Panel");
+        Foreground = ThemeManager.Brush("Text");
         MouseLeftButtonDown += (_, _) => DragMove();
         var panel = new System.Windows.Controls.StackPanel { Margin = new Thickness(22) };
         panel.Children.Add(new System.Windows.Controls.TextBlock
@@ -450,6 +462,8 @@ public sealed class AppSettings
     public bool StartWithWindows { get; set; }
     public bool MonitorClipboard { get; set; } = true;
     public bool Notifications { get; set; } = true;
+    public string Theme { get; set; } = "Dark";
+    public string Accent { get; set; } = "Orange";
 
     private static readonly string FilePath = System.IO.Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -512,22 +526,26 @@ public sealed class OptionsDialog : Window
     private readonly System.Windows.Controls.CheckBox _startup;
     private readonly System.Windows.Controls.CheckBox _clipboard;
     private readonly System.Windows.Controls.CheckBox _notifications;
+    private readonly System.Windows.Controls.ComboBox _theme;
+    private readonly System.Windows.Controls.ComboBox _accent;
 
     public OptionsDialog()
     {
         Title = "RustGet Options";
         Width = 620;
-        Height = 430;
+        Height = 540;
         WindowStyle = WindowStyle.None;
         ResizeMode = ResizeMode.NoResize;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x17, 0x1B, 0x22));
-        Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF7, 0xF5, 0xF2));
+        Background = ThemeManager.Brush("Panel");
+        Foreground = ThemeManager.Brush("Text");
         MouseLeftButtonDown += (_, _) => DragMove();
 
         _startup = Check("Launch RustGet with Windows", AppSettings.Current.StartWithWindows);
         _clipboard = Check("Monitor the clipboard for download links", AppSettings.Current.MonitorClipboard);
         _notifications = Check("Show a notification when a download completes", AppSettings.Current.Notifications);
+        _theme = Combo(["Dark", "Light", "System"], AppSettings.Current.Theme);
+        _accent = Combo(["Orange", "Blue", "Green", "Violet"], AppSettings.Current.Accent);
         var root = new System.Windows.Controls.StackPanel { Margin = new Thickness(24) };
         root.Children.Add(new System.Windows.Controls.TextBlock
         {
@@ -541,6 +559,29 @@ public sealed class OptionsDialog : Window
             Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xA2, 0xAA, 0xB6)),
             Margin = new Thickness(0, 4, 0, 18),
         });
+        var appearance = new System.Windows.Controls.Grid { Margin = new Thickness(0, 0, 0, 14) };
+        appearance.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition());
+        appearance.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition());
+        var themePanel = new System.Windows.Controls.StackPanel { Margin = new Thickness(0, 0, 8, 0) };
+        themePanel.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = "Theme",
+            Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xA2, 0xAA, 0xB6)),
+            Margin = new Thickness(0, 0, 0, 5),
+        });
+        themePanel.Children.Add(_theme);
+        var accentPanel = new System.Windows.Controls.StackPanel { Margin = new Thickness(8, 0, 0, 0) };
+        accentPanel.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = "Accent",
+            Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xA2, 0xAA, 0xB6)),
+            Margin = new Thickness(0, 0, 0, 5),
+        });
+        accentPanel.Children.Add(_accent);
+        System.Windows.Controls.Grid.SetColumn(accentPanel, 1);
+        appearance.Children.Add(themePanel);
+        appearance.Children.Add(accentPanel);
+        root.Children.Add(appearance);
         root.Children.Add(_startup);
         root.Children.Add(_clipboard);
         root.Children.Add(_notifications);
@@ -586,12 +627,16 @@ public sealed class OptionsDialog : Window
         };
         save.Click += (_, _) =>
         {
-            new AppSettings
+            var settings = new AppSettings
             {
                 StartWithWindows = _startup.IsChecked == true,
                 MonitorClipboard = _clipboard.IsChecked == true,
                 Notifications = _notifications.IsChecked == true,
-            }.Save();
+                Theme = _theme.SelectedItem as string ?? "Dark",
+                Accent = _accent.SelectedItem as string ?? "Orange",
+            };
+            settings.Save();
+            ThemeManager.Apply(System.Windows.Application.Current.MainWindow, settings.Theme, settings.Accent);
             DialogResult = true;
         };
         buttons.Children.Add(cancel);
@@ -604,6 +649,15 @@ public sealed class OptionsDialog : Window
             Child = root,
         };
     }
+
+    private static System.Windows.Controls.ComboBox Combo(string[] items, string selected) =>
+        new()
+        {
+            ItemsSource = items,
+            SelectedItem = selected,
+            FontSize = 13,
+            Padding = new Thickness(8, 6, 8, 6),
+        };
 
     private static System.Windows.Controls.CheckBox Check(string text, bool value) =>
         new()
@@ -635,8 +689,8 @@ public sealed class SchedulerDialog : Window
         WindowStyle = WindowStyle.None;
         ResizeMode = ResizeMode.NoResize;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x17, 0x1B, 0x22));
-        Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF7, 0xF5, 0xF2));
+        Background = ThemeManager.Brush("Panel");
+        Foreground = ThemeManager.Brush("Text");
         MouseLeftButtonDown += (_, _) => DragMove();
         var root = new System.Windows.Controls.StackPanel { Margin = new Thickness(24) };
         root.Children.Add(new System.Windows.Controls.TextBlock

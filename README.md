@@ -66,6 +66,9 @@ certificate.
 RustGet.Native.exe
 ```
 
+The native client supports Dark, Light and System themes with Orange, Blue,
+Green and Violet accents.
+
 The MSI installs the native WPF XAML client and its self-contained .NET runtime.
 It starts `rustget.exe` as the engine and talks to the authenticated loopback
 API. No WebView is used. The installer lets you choose the install directory and

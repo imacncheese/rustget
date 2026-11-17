@@ -5,7 +5,7 @@
         Title="RustGet" Height="760" Width="1120" MinHeight="640" MinWidth="960"
         WindowStartupLocation="Manual" Left="24" Top="24"
         WindowStyle="None" ResizeMode="CanResize"
-        Background="#0C0E12" Foreground="#F7F5F2" FontFamily="Segoe UI"
+        Background="{DynamicResource Bg}" Foreground="{DynamicResource Text}" FontFamily="Segoe UI"
         UseLayoutRounding="True" SnapsToDevicePixels="True">
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome CaptionHeight="44" ResizeBorderThickness="6"
@@ -15,11 +15,20 @@
     <Window.Resources>
         <SolidColorBrush x:Key="Bg" Color="#0C0E12" />
         <SolidColorBrush x:Key="Sidebar" Color="#11141A" />
+        <SolidColorBrush x:Key="TitleBar" Color="#0F1218" />
         <SolidColorBrush x:Key="Panel" Color="#171B22" />
         <SolidColorBrush x:Key="Panel2" Color="#1D222B" />
         <SolidColorBrush x:Key="Line" Color="#2C333E" />
         <SolidColorBrush x:Key="Text" Color="#F7F5F2" />
         <SolidColorBrush x:Key="Muted" Color="#A2AAB6" />
+        <SolidColorBrush x:Key="SubtleText" Color="#C7CEDA" />
+        <SolidColorBrush x:Key="Input" Color="#1A1F27" />
+        <SolidColorBrush x:Key="Selection" Color="#33231A" />
+        <SolidColorBrush x:Key="PillDefault" Color="#252B35" />
+        <SolidColorBrush x:Key="PillCompleted" Color="#123529" />
+        <SolidColorBrush x:Key="PillDownloading" Color="#122B45" />
+        <SolidColorBrush x:Key="PillPaused" Color="#3A2E12" />
+        <SolidColorBrush x:Key="PillFailed" Color="#3B1719" />
         <SolidColorBrush x:Key="Orange" Color="#FF8A4C" />
         <SolidColorBrush x:Key="Green" Color="#5EE0A0" />
         <SolidColorBrush x:Key="Blue" Color="#6EA8FE" />
@@ -27,22 +36,22 @@
         <SolidColorBrush x:Key="Red" Color="#FF7373" />
 
         <Style TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource Text}" />
+            <Setter Property="Foreground" Value="{DynamicResource Text}" />
             <Setter Property="FontSize" Value="13" />
         </Style>
 
         <Style x:Key="Card" TargetType="Border">
-            <Setter Property="Background" Value="{StaticResource Panel}" />
-            <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+            <Setter Property="Background" Value="{DynamicResource Panel}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="12" />
             <Setter Property="Padding" Value="16,14" />
         </Style>
 
         <Style x:Key="Action" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource Panel2}" />
-            <Setter Property="Foreground" Value="{StaticResource Text}" />
-            <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+            <Setter Property="Background" Value="{DynamicResource Panel2}" />
+            <Setter Property="Foreground" Value="{DynamicResource Text}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
             <Setter Property="Padding" Value="14,8" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="Cursor" Value="Hand" />
@@ -52,14 +61,16 @@
                         <Border x:Name="Surface" Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
                                 CornerRadius="8" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}"
+                                              TextElement.FontWeight="{TemplateBinding FontWeight}" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Surface" Property="Background" Value="#2B3340" />
+                                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource Panel2}" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Surface" Property="Background" Value="#151A21" />
+                                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource Line}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.45" />
@@ -71,9 +82,9 @@
         </Style>
 
         <Style x:Key="Primary" TargetType="Button" BasedOn="{StaticResource Action}">
-            <Setter Property="Background" Value="{StaticResource Orange}" />
-            <Setter Property="Foreground" Value="#261207" />
-            <Setter Property="BorderBrush" Value="{StaticResource Orange}" />
+            <Setter Property="Background" Value="{DynamicResource Orange}" />
+            <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Orange}" />
             <Setter Property="FontWeight" Value="Bold" />
         </Style>
 
@@ -81,21 +92,23 @@
             <Setter Property="Width" Value="34" />
             <Setter Property="Height" Value="30" />
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="#C8CEDA" />
+            <Setter Property="Foreground" Value="{DynamicResource SubtleText}" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Surface" Background="{TemplateBinding Background}" CornerRadius="6">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}"
+                                              TextElement.FontWeight="{TemplateBinding FontWeight}" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Surface" Property="Background" Value="#252B35" />
+                                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource Panel2}" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Surface" Property="Background" Value="#343C49" />
+                                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource Line}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -112,7 +125,7 @@
             <Setter Property="Padding" Value="0" />
             <Setter Property="Margin" Value="0,1" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-            <Setter Property="Foreground" Value="#D7DCE5" />
+            <Setter Property="Foreground" Value="{DynamicResource Text}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ListBoxItem">
@@ -121,11 +134,11 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Surface" Property="Background" Value="#1B212A" />
+                                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource Panel2}" />
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Surface" Property="Background" Value="#33231A" />
-                                <Setter Property="Foreground" Value="#FFC29C" />
+                                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource Selection}" />
+                                <Setter Property="Foreground" Value="{DynamicResource Orange}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -134,9 +147,9 @@
         </Style>
 
         <Style TargetType="TextBox">
-            <Setter Property="Background" Value="#1A1F27" />
-            <Setter Property="Foreground" Value="{StaticResource Text}" />
-            <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+            <Setter Property="Background" Value="{DynamicResource Input}" />
+            <Setter Property="Foreground" Value="{DynamicResource Text}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="12,9" />
             <Setter Property="FontSize" Value="13" />
@@ -149,7 +162,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                                <Setter TargetName="Surface" Property="BorderBrush" Value="{StaticResource Orange}" />
+                                <Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource Orange}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -160,20 +173,20 @@
         <Style x:Key="StatusPill" TargetType="Border">
             <Setter Property="CornerRadius" Value="20" />
             <Setter Property="Padding" Value="9,3" />
-            <Setter Property="Background" Value="#252B35" />
+            <Setter Property="Background" Value="{DynamicResource Panel2}" />
             <Setter Property="HorizontalAlignment" Value="Left" />
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Status}" Value="completed">
-                    <Setter Property="Background" Value="#123529" />
+                    <Setter Property="Background" Value="{DynamicResource PillCompleted}" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Status}" Value="downloading">
-                    <Setter Property="Background" Value="#122B45" />
+                    <Setter Property="Background" Value="{DynamicResource PillDownloading}" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Status}" Value="paused">
-                    <Setter Property="Background" Value="#3A2E12" />
+                    <Setter Property="Background" Value="{DynamicResource PillPaused}" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Status}" Value="failed">
-                    <Setter Property="Background" Value="#3B1719" />
+                    <Setter Property="Background" Value="{DynamicResource PillFailed}" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -181,47 +194,49 @@
         <Style x:Key="StatusText" TargetType="TextBlock">
             <Setter Property="FontSize" Value="11" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="#CBD2DD" />
+            <Setter Property="Foreground" Value="{DynamicResource SubtleText}" />
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Status}" Value="completed">
-                    <Setter Property="Foreground" Value="{StaticResource Green}" />
+                    <Setter Property="Foreground" Value="{DynamicResource Green}" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Status}" Value="downloading">
-                    <Setter Property="Foreground" Value="{StaticResource Blue}" />
+                    <Setter Property="Foreground" Value="{DynamicResource Blue}" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Status}" Value="paused">
-                    <Setter Property="Foreground" Value="{StaticResource Yellow}" />
+                    <Setter Property="Foreground" Value="{DynamicResource Yellow}" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Status}" Value="failed">
-                    <Setter Property="Foreground" Value="{StaticResource Red}" />
+                    <Setter Property="Foreground" Value="{DynamicResource Red}" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
     </Window.Resources>
 
-    <Grid Background="{StaticResource Bg}">
+    <Grid Background="{DynamicResource Bg}">
         <Grid.RowDefinitions>
             <RowDefinition Height="44" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
         <!-- Custom title bar -->
-        <Grid Grid.Row="0" Background="#0F1218">
+        <Grid Grid.Row="0" Background="{DynamicResource TitleBar}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
-                <Border Width="24" Height="24" CornerRadius="7" Background="{StaticResource Orange}">
-                    <TextBlock Text="R" FontWeight="Bold" FontSize="15" Foreground="#261207"
+                <Border Width="24" Height="24" CornerRadius="7" Background="{DynamicResource Orange}">
+                    <TextBlock Text="R" FontWeight="Bold" FontSize="15" Foreground="{DynamicResource AccentText}"
                                HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Border>
                 <TextBlock Text="RustGet" Margin="9,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold" />
                 <TextBlock Text="Download manager" Margin="10,0,0,0" VerticalAlignment="Center"
-                           FontSize="11" Foreground="{StaticResource Muted}" />
+                           FontSize="11" Foreground="{DynamicResource Muted}" />
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,6,0"
                         shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                <Button x:Name="ThemeButton" Style="{StaticResource GhostIcon}" Content="◐"
+                        Click="Theme_Click" ToolTip="Switch light/dark theme" />
                 <Button Style="{StaticResource GhostIcon}" Content="—" Click="Minimize_Click" ToolTip="Minimize" />
                 <Button Style="{StaticResource GhostIcon}" Content="▢" Click="Maximize_Click" ToolTip="Maximize" />
                 <Button Style="{StaticResource GhostIcon}" Content="✕" Click="Close_Click" ToolTip="Close" />
@@ -237,8 +252,8 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Sidebar -->
-                <Border Grid.Column="0" Background="{StaticResource Sidebar}"
-                        BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0">
+                <Border Grid.Column="0" Background="{DynamicResource Sidebar}"
+                        BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
                     <Grid Margin="14,18,14,14">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -248,35 +263,35 @@
 
                         <StackPanel Grid.Row="0">
                             <TextBlock Text="LIBRARY" FontSize="10" FontWeight="SemiBold"
-                                       Foreground="{StaticResource Muted}" Margin="10,0,0,6" />
+                                       Foreground="{DynamicResource Muted}" Margin="10,0,0,6" />
                             <ListBox x:Name="FilterList" SelectionChanged="Filter_Changed">
                                 <ListBoxItem Tag="all" IsSelected="True">
                                     <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                        <TextBlock Text="All downloads" /><TextBlock x:Name="AllCount" Grid.Column="1" Foreground="{StaticResource Muted}" /></Grid>
+                                        <TextBlock Text="All downloads" /><TextBlock x:Name="AllCount" Grid.Column="1" Foreground="{DynamicResource Muted}" /></Grid>
                                 </ListBoxItem>
                                 <ListBoxItem Tag="downloading">
                                     <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                        <TextBlock Text="Downloading" /><TextBlock x:Name="DownloadingCount" Grid.Column="1" Foreground="{StaticResource Muted}" /></Grid>
+                                        <TextBlock Text="Downloading" /><TextBlock x:Name="DownloadingCount" Grid.Column="1" Foreground="{DynamicResource Muted}" /></Grid>
                                 </ListBoxItem>
                                 <ListBoxItem Tag="queued">
                                     <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                        <TextBlock Text="Queued" /><TextBlock x:Name="QueuedCount" Grid.Column="1" Foreground="{StaticResource Muted}" /></Grid>
+                                        <TextBlock Text="Queued" /><TextBlock x:Name="QueuedCount" Grid.Column="1" Foreground="{DynamicResource Muted}" /></Grid>
                                 </ListBoxItem>
                                 <ListBoxItem Tag="paused">
                                     <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                        <TextBlock Text="Paused" /><TextBlock x:Name="PausedCount" Grid.Column="1" Foreground="{StaticResource Muted}" /></Grid>
+                                        <TextBlock Text="Paused" /><TextBlock x:Name="PausedCount" Grid.Column="1" Foreground="{DynamicResource Muted}" /></Grid>
                                 </ListBoxItem>
                                 <ListBoxItem Tag="completed">
                                     <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                        <TextBlock Text="Completed" /><TextBlock x:Name="CompletedCount" Grid.Column="1" Foreground="{StaticResource Muted}" /></Grid>
+                                        <TextBlock Text="Completed" /><TextBlock x:Name="CompletedCount" Grid.Column="1" Foreground="{DynamicResource Muted}" /></Grid>
                                 </ListBoxItem>
                                 <ListBoxItem Tag="failed">
                                     <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                        <TextBlock Text="Failed" /><TextBlock x:Name="FailedCount" Grid.Column="1" Foreground="{StaticResource Muted}" /></Grid>
+                                        <TextBlock Text="Failed" /><TextBlock x:Name="FailedCount" Grid.Column="1" Foreground="{DynamicResource Muted}" /></Grid>
                                 </ListBoxItem>
                             </ListBox>
                             <TextBlock Text="CATEGORIES" FontSize="10" FontWeight="SemiBold"
-                                       Foreground="{StaticResource Muted}" Margin="10,20,0,6" />
+                                       Foreground="{DynamicResource Muted}" Margin="10,20,0,6" />
                             <ListBox x:Name="CategoryList" SelectionChanged="Filter_Changed">
                                 <ListBoxItem Content="Archives" Tag="Archives" />
                                 <ListBoxItem Content="Documents" Tag="Documents" />
@@ -288,12 +303,12 @@
                         </StackPanel>
 
                         <StackPanel Grid.Row="2">
-                            <Border Background="#171B22" BorderBrush="{StaticResource Line}" BorderThickness="1"
+                            <Border Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Line}" BorderThickness="1"
                                     CornerRadius="8" Padding="10,8">
                                 <StackPanel>
                                     <TextBlock Text="RustGet 0.1.0" FontSize="11" />
                                     <TextBlock Text="Rust engine · native XAML" FontSize="10"
-                                               Foreground="{StaticResource Muted}" Margin="0,2,0,0" />
+                                               Foreground="{DynamicResource Muted}" Margin="0,2,0,0" />
                                 </StackPanel>
                             </Border>
                         </StackPanel>
@@ -328,12 +343,12 @@
                         <StackPanel Grid.Column="0" VerticalAlignment="Center">
                             <TextBlock x:Name="SectionTitle" Text="All downloads" FontSize="24" FontWeight="Bold" />
                             <TextBlock x:Name="SectionSubtitle" Text="Manage your downloads" FontSize="12"
-                                       Foreground="{StaticResource Muted}" Margin="0,3,0,0" />
+                                       Foreground="{DynamicResource Muted}" Margin="0,3,0,0" />
                         </StackPanel>
                         <Grid Grid.Column="1" Margin="12,0,10,0" VerticalAlignment="Center">
                             <TextBox x:Name="SearchBox" Height="38" VerticalContentAlignment="Center"
                                      TextChanged="Search_Changed" ToolTip="Search downloads by name or URL" />
-                            <TextBlock x:Name="SearchHint" Text="Search downloads" Foreground="{StaticResource Muted}"
+                            <TextBlock x:Name="SearchHint" Text="Search downloads" Foreground="{DynamicResource Muted}"
                                        Margin="13,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" />
                         </Grid>
                         <Button x:Name="AddButton" Grid.Column="2" Style="{StaticResource Primary}"
@@ -344,31 +359,31 @@
                     <UniformGrid Grid.Row="2" Columns="4" Margin="0,0,0,16">
                         <Border Style="{StaticResource Card}" Margin="0,0,10,0">
                             <StackPanel>
-                                <TextBlock Text="ACTIVE" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource Muted}" />
+                                <TextBlock Text="ACTIVE" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource Muted}" />
                                 <TextBlock x:Name="ActiveStat" Text="0" FontSize="26" FontWeight="Bold" Margin="0,4,0,0" />
                             </StackPanel>
                         </Border>
                         <Border Style="{StaticResource Card}" Margin="0,0,10,0">
                             <StackPanel>
-                                <TextBlock Text="TOTAL SPEED" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource Muted}" />
+                                <TextBlock Text="TOTAL SPEED" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource Muted}" />
                                 <TextBlock x:Name="SpeedStat" Text="0 B/s" FontSize="26" FontWeight="Bold" Margin="0,4,0,0" />
                             </StackPanel>
                         </Border>
                         <Border Style="{StaticResource Card}" Margin="0,0,10,0">
                             <StackPanel>
-                                <TextBlock Text="COMPLETED" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource Muted}" />
+                                <TextBlock Text="COMPLETED" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource Muted}" />
                                 <TextBlock x:Name="CompletedStat" Text="0" FontSize="26" FontWeight="Bold" Margin="0,4,0,0" />
                             </StackPanel>
                         </Border>
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="DATA" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource Muted}" />
+                                <TextBlock Text="DATA" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource Muted}" />
                                 <TextBlock x:Name="DataStat" Text="0 B" FontSize="26" FontWeight="Bold" Margin="0,4,0,0" />
                             </StackPanel>
                         </Border>
                     </UniformGrid>
 
-                    <Border Grid.Row="3" Background="{StaticResource Panel}" BorderBrush="{StaticResource Line}"
+                    <Border Grid.Row="3" Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Line}"
                             BorderThickness="1" CornerRadius="12">
                         <Grid>
                             <Grid.RowDefinitions>
@@ -380,11 +395,11 @@
                                     <ColumnDefinition Width="*" /><ColumnDefinition Width="84" />
                                     <ColumnDefinition Width="176" /><ColumnDefinition Width="104" /><ColumnDefinition Width="112" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="NAME" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource Muted}" />
-                                <TextBlock Grid.Column="1" Text="SIZE" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource Muted}" />
-                                <TextBlock Grid.Column="2" Text="PROGRESS" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource Muted}" />
-                                <TextBlock Grid.Column="3" Text="SPEED" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource Muted}" />
-                                <TextBlock Grid.Column="4" Text="STATUS" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource Muted}" />
+                                <TextBlock Text="NAME" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource Muted}" />
+                                <TextBlock Grid.Column="1" Text="SIZE" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource Muted}" />
+                                <TextBlock Grid.Column="2" Text="PROGRESS" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource Muted}" />
+                                <TextBlock Grid.Column="3" Text="SPEED" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource Muted}" />
+                                <TextBlock Grid.Column="4" Text="STATUS" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource Muted}" />
                             </Grid>
                             <Grid Grid.Row="1">
                                 <ListView x:Name="DownloadsList" Background="Transparent" BorderThickness="0"
@@ -401,19 +416,19 @@
                                                     <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" FontSize="13"
                                                                TextTrimming="CharacterEllipsis" />
                                                     <TextBlock Text="{Binding Subtitle}" FontSize="10"
-                                                               Foreground="{StaticResource Muted}" Margin="0,2,0,0"
+                                                               Foreground="{DynamicResource Muted}" Margin="0,2,0,0"
                                                                TextTrimming="CharacterEllipsis" />
                                                 </StackPanel>
                                                 <TextBlock Grid.Column="1" Text="{Binding SizeText}" FontSize="12"
-                                                           VerticalAlignment="Center" Foreground="#C7CEDA" />
+                                                           VerticalAlignment="Center" Foreground="{DynamicResource SubtleText}" />
                                                 <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="0,0,18,0">
                                                     <ProgressBar Value="{Binding Progress}" Maximum="100" Height="6"
-                                                                 Foreground="{StaticResource Orange}" Background="#2A313D" />
+                                                                 Foreground="{DynamicResource Orange}" Background="{DynamicResource Line}" />
                                                     <TextBlock Text="{Binding ProgressText}" FontSize="10"
-                                                               Foreground="{StaticResource Muted}" Margin="0,3,0,0" />
+                                                               Foreground="{DynamicResource Muted}" Margin="0,3,0,0" />
                                                 </StackPanel>
                                                 <TextBlock Grid.Column="3" Text="{Binding SpeedText}" FontSize="12"
-                                                           VerticalAlignment="Center" Foreground="#C7CEDA" />
+                                                           VerticalAlignment="Center" Foreground="{DynamicResource SubtleText}" />
                                                 <Border Grid.Column="4" Style="{StaticResource StatusPill}">
                                                     <TextBlock Text="{Binding Status}" Style="{StaticResource StatusText}" />
                                                 </Border>
@@ -423,15 +438,15 @@
                                 </ListView>
                                 <StackPanel x:Name="EmptyState" VerticalAlignment="Center" HorizontalAlignment="Center"
                                             IsHitTestVisible="False">
-                                    <Border Width="54" Height="54" CornerRadius="16" Background="#222833"
+                                    <Border Width="54" Height="54" CornerRadius="16" Background="{DynamicResource Panel2}"
                                             HorizontalAlignment="Center">
-                                        <TextBlock Text="↓" FontSize="26" Foreground="{StaticResource Orange}"
+                                        <TextBlock Text="↓" FontSize="26" Foreground="{DynamicResource Orange}"
                                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
                                     </Border>
                                     <TextBlock Text="No downloads yet" FontSize="20" FontWeight="SemiBold"
                                                HorizontalAlignment="Center" Margin="0,12,0,0" />
                                     <TextBlock Text="Paste a URL or use Add download to start."
-                                               Foreground="{StaticResource Muted}" Margin="0,6,0,0"
+                                               Foreground="{DynamicResource Muted}" Margin="0,6,0,0"
                                                HorizontalAlignment="Center" />
                                 </StackPanel>
                             </Grid>
@@ -440,21 +455,35 @@
                 </Grid>
 
                 <!-- Details -->
-                <Border Grid.Column="2" Background="{StaticResource Sidebar}"
-                        BorderBrush="{StaticResource Line}" BorderThickness="1,0,0,0">
+                <Border Grid.Column="2" Background="{DynamicResource Sidebar}"
+                        BorderBrush="{DynamicResource Line}" BorderThickness="1,0,0,0">
                     <Grid Margin="18,18,18,16">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
                         <StackPanel Grid.Row="0">
-                            <TextBlock Text="DETAILS" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource Muted}" />
+                            <TextBlock Text="DETAILS" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource Muted}" />
                             <TextBlock x:Name="DetailName" Text="Select a download" FontSize="18" FontWeight="SemiBold"
                                        Margin="0,8,0,0" TextTrimming="CharacterEllipsis" />
                             <TextBlock x:Name="DetailStatus" Text="Choose an item from the list"
-                                       FontSize="11" Foreground="{StaticResource Muted}" Margin="0,3,0,12" />
+                                       FontSize="11" Foreground="{DynamicResource Muted}" Margin="0,3,0,12" />
                             <ProgressBar x:Name="DetailProgress" Height="7" Maximum="100"
-                                         Foreground="{StaticResource Orange}" Background="#2A313D" />
+                                         Foreground="{DynamicResource Orange}" Background="{DynamicResource Line}" />
+                        </StackPanel>
+
+                        <StackPanel x:Name="DetailEmpty" Grid.Row="1" VerticalAlignment="Center"
+                                    HorizontalAlignment="Center" Margin="0,40,0,0">
+                            <Border Width="48" Height="48" CornerRadius="14" Background="{DynamicResource Panel2}"
+                                    HorizontalAlignment="Center">
+                                <TextBlock Text="ⓘ" FontSize="22" Foreground="{DynamicResource Muted}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock Text="No download selected" FontSize="15" FontWeight="SemiBold"
+                                       HorizontalAlignment="Center" Margin="0,12,0,0" />
+                            <TextBlock Text="Choose an item to see its details." FontSize="11"
+                                       Foreground="{DynamicResource Muted}" HorizontalAlignment="Center"
+                                       Margin="0,4,0,0" />
                         </StackPanel>
 
                         <StackPanel x:Name="DetailBody" Grid.Row="1" Margin="0,16,0,0" Visibility="Collapsed">
@@ -462,20 +491,20 @@
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                 <Border Style="{StaticResource Card}" Margin="0,0,6,0" Padding="12">
                                     <StackPanel>
-                                        <TextBlock Text="DOWNLOADED" FontSize="9" Foreground="{StaticResource Muted}" />
+                                        <TextBlock Text="DOWNLOADED" FontSize="9" Foreground="{DynamicResource Muted}" />
                                         <TextBlock x:Name="DetailDownloaded" Text="—" FontSize="15" Margin="0,4,0,0" />
                                     </StackPanel>
                                 </Border>
                                 <Border Grid.Column="1" Style="{StaticResource Card}" Margin="6,0,0,0" Padding="12">
                                     <StackPanel>
-                                        <TextBlock Text="SPEED" FontSize="9" Foreground="{StaticResource Muted}" />
+                                        <TextBlock Text="SPEED" FontSize="9" Foreground="{DynamicResource Muted}" />
                                         <TextBlock x:Name="DetailSpeed" Text="—" FontSize="15" Margin="0,4,0,0" />
                                     </StackPanel>
                                 </Border>
                             </Grid>
-                            <TextBlock Text="SAVED TO" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource Muted}" Margin="0,16,0,5" />
+                            <TextBlock Text="SAVED TO" FontSize="9" FontWeight="SemiBold" Foreground="{DynamicResource Muted}" Margin="0,16,0,5" />
                             <TextBox x:Name="DetailPath" IsReadOnly="True" TextWrapping="Wrap" FontSize="11" />
-                            <TextBlock Text="SOURCE" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource Muted}" Margin="0,12,0,5" />
+                            <TextBlock Text="SOURCE" FontSize="9" FontWeight="SemiBold" Foreground="{DynamicResource Muted}" Margin="0,12,0,5" />
                             <TextBox x:Name="DetailUrl" IsReadOnly="True" TextWrapping="Wrap" FontSize="11" />
                             <StackPanel Orientation="Horizontal" Margin="0,18,0,0">
                                 <Button Style="{StaticResource Action}" Content="Pause" Click="Pause_Click"
@@ -493,3 +522,5 @@
         </Viewbox>
     </Grid>
 </Window>
+
+

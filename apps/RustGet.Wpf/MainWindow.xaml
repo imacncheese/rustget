@@ -146,6 +146,8 @@
             </Setter>
         </Style>
 
+        <Style TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListBoxItem}}" />
+
         <Style TargetType="TextBox">
             <Setter Property="Background" Value="{DynamicResource Input}" />
             <Setter Property="Foreground" Value="{DynamicResource Text}" />
@@ -403,6 +405,7 @@
                             </Grid>
                             <Grid Grid.Row="1">
                                 <ListView x:Name="DownloadsList" Background="Transparent" BorderThickness="0"
+                                          Foreground="{DynamicResource Text}"
                                           SelectionMode="Single" SelectionChanged="Selection_Changed"
                                           ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                     <ListView.ItemTemplate>
@@ -414,6 +417,7 @@
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel Grid.Column="0" Margin="0,0,8,0">
                                                     <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" FontSize="13"
+                                                               Foreground="{DynamicResource Text}"
                                                                TextTrimming="CharacterEllipsis" />
                                                     <TextBlock Text="{Binding Subtitle}" FontSize="10"
                                                                Foreground="{DynamicResource Muted}" Margin="0,2,0,0"

@@ -812,7 +812,8 @@ public sealed class RustGetApi : IDisposable
         return (response?.Downloads ?? []).Select(item =>
         {
             var total = item.TotalSize ?? 0;
-            var progress = total > 0 ? Math.Clamp(item.Downloaded * 100.0 / total, 0, 100) : 0;
+            var completed = item.Status.Equals("completed", StringComparison.OrdinalIgnoreCase);
+            var progress = completed ? 100 : total > 0 ? Math.Clamp(item.Downloaded * 100.0 / total, 0, 100) : 0;
             return new DownloadRow
             {
                 Id = item.Id,
@@ -827,7 +828,7 @@ public sealed class RustGetApi : IDisposable
                 Downloaded = item.Downloaded,
                 SpeedBps = item.SpeedBps,
                 Progress = progress,
-                ProgressText = total > 0 ? $"{progress:F0}%" : "",
+                ProgressText = completed ? "100%" : total > 0 ? $"{progress:F0}%" : "",
             };
         }).ToList();
     }
